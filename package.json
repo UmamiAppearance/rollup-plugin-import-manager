@@ -1,0 +1,46 @@
+{
+  "name": "rollup-plugin-import-manager",
+  "version": "0.1.0",
+  "description": "A rollup plugin to add and remove imports",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint ./index.js",
+    "lint:fix": "eslint ./index.js --fix",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/se-panfilov/rollup-plugin-strip-code.git"
+  },
+
+  "author": "UmamiAppearance",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/UmamiAppearance/rollup-plugin-import-manager/issues"
+  },
+  "homepage": "https://github.com/UmamiAppearance/rollup-plugin-import-manager#readme",
+  "keywords": [
+    "rollup",
+    "rollup-plugin",
+    "rollup-plugin-import-manager",
+    "import",
+    "switch",
+    "remove",
+    "add"
+  ],
+  "dependencies": {
+    "magic-string": "0.25.3",
+    "rollup-pluginutils": "2.8.1"
+  },
+  "devDependencies": {
+    "eslint": "6.1.0",
+    "eslint-config-standard": "13.0.1",
+    "eslint-friendly-formatter": "4.0.1",
+    "eslint-plugin-import": "2.18.2",
+    "eslint-plugin-node": "9.1.0",
+    "eslint-plugin-promise": "4.2.1",
+    "eslint-plugin-standard": "4.0.0",
+    "jest": "24.8.0",
+    "rollup-plugin-buble": "0.19.8"
+  }
+}
