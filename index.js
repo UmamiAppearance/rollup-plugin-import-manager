@@ -20,7 +20,7 @@ function stripCode (options = {}) {
       const startComment = options.start_comment || START_COMMENT
       const endComment = options.end_comment || END_COMMENT
       const defaultPattern = new RegExp(`([\\t ]*\\/\\* ?${startComment} ?\\*\\/)[\\s\\S]*?(\\/\\* ?${endComment} ?\\*\\/[\\t ]*\\n?)`, 'g')
-      let map
+      let map;
       const code = source.replace(pattern || defaultPattern, '')
 
       if (sourceMap !== false && sourcemap !== false) {
