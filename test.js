@@ -8,15 +8,15 @@ import defaultMember, { member [ , [...] ] } from "module-name";
 import defaultMember, * as alias from "module-name";
 import defaultMember from "module-name";
 import "module-name";
-const x = import(module-path);
+const x = import("./module-path");
 
 
 // bluh
  code
 
-      // bla
+   dbb   // bla
 
-code
+code // usuwhsu
 code
 "/*"
 do("http://www.ed.de");
@@ -46,25 +46,44 @@ const testFollowUpComment = (line, lIndex, start, end) => {
     }
 }
 
-const removeStrings = (line) => {
-    const matchStrings = line.match(/(["'`])(?:(?=(\\?))\2.)*?\1/g);
-    if (matchStrings) {
-        matchStrings.forEach(str => line=line.replace(str, "-".repeat(str.length)));
+const getMLC = (line, mlc) => {
+    if (!mlc) {
+        const match = line.match(/\/\*/);
+        if (match) {
+            [ line, mlc ] = getMLC(line.slice(match.index+2), true);
+        }
     }
-    return line;
+    
+    else {
+        const match = line.match(/\*\//);
+        if (match) {
+            [ line, mlc ] = getMLC(line.slice(match.index+2), false);
+        }
+    }
+
+    return [line, mlc];
 }
 
 let mlc = false;
 manager.codeArray.forEach((line, i) => {
     
-    // build a copy of the line without any string
-    // to prevent false positives eg. "http://..."
-    const nsLine = removeStrings(line);
+    // remove all strings to prevent 
+    // false positives
+    // eg const foo = "http://.." 
+    // or console.log("import bar")
+    let cleanedLine = line.replace(/(["'`])(?:(?=(\\?))\2.)*?\1/g, "");
     
+    // remove single line comments
+    cleanedLine = cleanedLine.replace(/\/\/.*/, "");
+
+
+    [ line, mlc ] = getMLC(cleanedLine, mlc);
+    // look for the beginning of multi line comments
+    
+/*
     // match single line comments
-    const slcMatch = nsLine.match(/\/\//);
     if (slcMatch) {
-        const contentBefore = nsLine.slice(0, slcMatch.index);
+        const contentBefore = cleanedLine.slice(0, slcMatch.index);
 
         // if the comment is the start of the line,
         // there is nothing to worry about
@@ -87,9 +106,9 @@ manager.codeArray.forEach((line, i) => {
         }
     }
     
-    else if (!mlc) {
-        const mlcStart = nsLine.match(/\/\*/);
-        
+    else if (!mlc) {*/
+        //const mlcStart = cleanedLine.match(/\/\*/);
+        /*
         if (mlcStart) {
             
             // also test here if there is code before the
@@ -112,9 +131,9 @@ manager.codeArray.forEach((line, i) => {
             }
             
             // test if the comment is actually across
-            // multiple lines, in other words test if
+            // multiple lines, in other words test if*/
             // it /* ends */ directly
-
+/*
             const matchEnd = line.match(/\*\//);
             mlc = !(matchEnd);
 
@@ -140,7 +159,8 @@ manager.codeArray.forEach((line, i) => {
                 manager.comments[i] = { ignore: true };
             }
             
-            else {            
+            else {   
+                testFollowUpComment(line, i, start, end);         
                 manager.comments[i] = {
                     ignore: false,
                     start,
@@ -148,14 +168,12 @@ manager.codeArray.forEach((line, i) => {
                 };
             }
 
-            testFollowUpComment(line, i, start, end);
         }
 
         else {
             manager.comments[i] = { ignore: true };
         }
-    }
+    }*/
+    console.log(cleanedLine);
 });
-
-console.log(manager);
 
