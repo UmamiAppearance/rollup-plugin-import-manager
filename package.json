@@ -13,7 +13,7 @@
     "url": "git+https://github.com/se-panfilov/rollup-plugin-strip-code.git"
   },
   "author": "UmamiAppearance",
-  "license": "GPL-3.0-or-later",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/UmamiAppearance/rollup-plugin-import-manager/issues"
   },
