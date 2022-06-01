@@ -18,8 +18,9 @@ const x = import(module-path);
 
 code
 code
-
-/* bub */ code
+"/*"
+do("http://www.ed.de");
+/* bub */ code /*
 
 hfe
 
@@ -45,35 +46,25 @@ const testFollowUpComment = (line, lIndex, start, end) => {
     }
 }
 
-// prevent false positives inside of strings
-const isStringContent = (line, cIndex) => {
-    const strMatches = line.matchAll(/(["'`])(?:(?=(\\?))\2.)*?\1/g);
-    let isString = false;
-    
-    for (;;) {
-        const next = strMatches.next();
-        if (next.done) {
-            break;
-        }
-        const match = next.value;
-        const start = match.index;
-        if (cIndex >= start) {
-            const end = start + match[0].length;
-            if (cIndex < end) {
-                isString = true;
-            }
-        }
+const removeStrings = (line) => {
+    const matchStrings = line.match(/(["'`])(?:(?=(\\?))\2.)*?\1/g);
+    if (matchStrings) {
+        matchStrings.forEach(str => line=line.replace(str, "-".repeat(str.length)));
     }
-
-    return isString;
+    return line;
 }
-
 
 let mlc = false;
 manager.codeArray.forEach((line, i) => {
-    const slcMatch = line.match(/\/\//);
+    
+    // build a copy of the line without any string
+    // to prevent false positives eg. "http://..."
+    const nsLine = removeStrings(line);
+    
+    // match single line comments
+    const slcMatch = nsLine.match(/\/\//);
     if (slcMatch) {
-        const contentBefore = line.slice(0, slcMatch.index);
+        const contentBefore = nsLine.slice(0, slcMatch.index);
 
         // if the comment is the start of the line,
         // there is nothing to worry about
@@ -81,11 +72,9 @@ manager.codeArray.forEach((line, i) => {
             manager.comments[i] = { ignore: true };
         }
 
-        // test otherwise if the match is inside of
-        // a string and therefore a false positive
-        else if (!isStringContent(line, slcMatch.index)) {
+        else {
             
-        // if it is an actual comment with content before
+            // if it is an actual comment with content before
             // store the start position to allow the analysis
             // of the code before the comment
 
@@ -99,7 +88,7 @@ manager.codeArray.forEach((line, i) => {
     }
     
     else if (!mlc) {
-        const mlcStart = line.match(/\/\*/);
+        const mlcStart = nsLine.match(/\/\*/);
         
         if (mlcStart) {
             
@@ -110,21 +99,27 @@ manager.codeArray.forEach((line, i) => {
             }
 
             // test for a false positive otherwise
-            else if (!isStringContent("/*", line, 0, mlcStart)) {
+            else  {
                 
                 start = 0;
                 end = mlcStart.index;
 
-                manager.limitations[i] = { start, end };
+                manager.comments[i] = {
+                    ignore: false,
+                    start,
+                    end
+                };
             }
             
             // test if the comment is actually across
-            // multiple line, in other words test if it
-            // ends directly
+            // multiple lines, in other words test if
+            // it /* ends */ directly
 
             const matchEnd = line.match(/\*\//);
             mlc = !(matchEnd);
 
+            // stop processing if there is any other 
+            // comment following
             if (matchEnd) {
                 testFollowUpComment(line, i, start, end);
             }
@@ -135,26 +130,29 @@ manager.codeArray.forEach((line, i) => {
         const mlcEnd = line.match(/\*\//);
 
         if (mlcEnd) {
+            mlc = false;
 
-            let start, end;
+            let start = mlcEnd.index+2;
+            end = -1
 
             // test if there is code after the comment to worry about
-            if (line.slice(line.index+2).trim()) {
-                manager.comments[i] = true;
-
-                start = mlcEnd.index+2;
-                end = -1;
-                
-                manager.limitations[i] = { start, end };
+            if (!line.slice(start).trim()) {
+                manager.comments[i] = { ignore: true };
             }
-
-            mlc = false;
+            
+            else {            
+                manager.comments[i] = {
+                    ignore: false,
+                    start,
+                    end
+                };
+            }
 
             testFollowUpComment(line, i, start, end);
         }
 
         else {
-            manager.comments[i] = true;
+            manager.comments[i] = { ignore: true };
         }
     }
 });
