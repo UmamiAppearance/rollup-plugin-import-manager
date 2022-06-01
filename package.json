@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/se-panfilov/rollup-plugin-strip-code.git"
+    "url": "git+https://github.com/UmamiAppearance/rollup-plugin-import-manager.git"
   },
   "author": "UmamiAppearance",
   "license": "MIT",
