@@ -32,7 +32,6 @@ jwdjijdw
 const manager = {
     codeArray: imports.split("\n"),
     comments: {},
-    limitations: {},
     importsLines: {}
 }
 
@@ -46,33 +45,75 @@ const testFollowUpComment = (line, lIndex, start, end) => {
     }
 }
 
+// prevent false positives inside of strings
+const isStringContent = (line, cIndex) => {
+    const strMatches = line.matchAll(/(["'`])(?:(?=(\\?))\2.)*?\1/g);
+    let isString = false;
+    
+    for (;;) {
+        const next = strMatches.next();
+        if (next.done) {
+            break;
+        }
+        const match = next.value;
+        const start = match.index;
+        if (cIndex >= start) {
+            const end = start + match[0].length;
+            if (cIndex < end) {
+                isString = true;
+            }
+        }
+    }
+
+    return isString;
+}
+
 
 let mlc = false;
 manager.codeArray.forEach((line, i) => {
     const slcMatch = line.match(/\/\//);
     if (slcMatch) {
         const contentBefore = line.slice(0, slcMatch.index);
+
+        // if the comment is the start of the line,
+        // there is nothing to worry about
         if (!contentBefore.trim()) {
-            manager.comments[i] = true;
+            manager.comments[i] = { ignore: true };
         }
 
-        else {
-            //
+        // test otherwise if the match is inside of
+        // a string and therefore a false positive
+        else if (!isStringContent(line, slcMatch.index)) {
+            
+        // if it is an actual comment with content before
+            // store the start position to allow the analysis
+            // of the code before the comment
+
+            manager.comments[i] = {
+                ignore: false,
+                start: 0,
+                end: slcMatch.index
+            }
+
         }
     }
     
     else if (!mlc) {
-        const match = line.match(/\/\*/);
+        const mlcStart = line.match(/\/\*/);
         
-        if (match) {
+        if (mlcStart) {
             
-            let start, end;
-            // test if there is code before the comment to worry about
-            if (line.slice(0, line.index).trim()) {
-                manager.comments[i] = true;
+            // also test here if there is code before the
+            // comment to worry about
+            if (!line.slice(0, line.index).trim()) {
+                manager.comments[i] = { ignore: true };
+            }
+
+            // test for a false positive otherwise
+            else if (!isStringContent("/*", line, 0, mlcStart)) {
                 
                 start = 0;
-                end = match.index;
+                end = mlcStart.index;
 
                 manager.limitations[i] = { start, end };
             }
@@ -91,9 +132,9 @@ manager.codeArray.forEach((line, i) => {
     }
 
     else if (mlc) {
-        const matchEnd = line.match(/\*\//);
+        const mlcEnd = line.match(/\*\//);
 
-        if (matchEnd) {
+        if (mlcEnd) {
 
             let start, end;
 
@@ -101,7 +142,7 @@ manager.codeArray.forEach((line, i) => {
             if (line.slice(line.index+2).trim()) {
                 manager.comments[i] = true;
 
-                start = matchEnd.index+2;
+                start = mlcEnd.index+2;
                 end = -1;
                 
                 manager.limitations[i] = { start, end };
