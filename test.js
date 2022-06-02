@@ -2,9 +2,9 @@ const imports = `import name from "module-name";
 import * as name from "module-name";import { member } from "module-name";
 import { member as alias } from "module-name";
 import { member1 , member2 } from "module-name";
-import { member1 , member2 as alias2 , [...] } from "module-name";
-import defaultMember, { member [ , [...] ] } from "module-name";
-import defaultMember, * as alias from "module-name";
+import { member1, member2 as alias2, member3 as alias3 } from "module-name";
+import defaultMember, { member, member2 } from "module-name";
+import defaultMember, * as alias from "module-name"
 import defaultMember from "module-name";
 /* jdwjd
 oh boy */ import "module-name";
@@ -95,23 +95,30 @@ manager.codeArray.forEach((line, i) => {
     [ cleanedLine, mlc, hasMLC ] = getMLC(cleanedLine, mlc);
     
     //console.log("line", i+1, "hasSLC", hasSLC, "hasMLC", hasMLC)
-    //console.log(i+1, ":", cleanedLine);
+    console.log(i+1, ":", cleanedLine);
 
-    const iStatements = cleanedLine.match(/(import)/g);
-    if (iStatements) {
-        iStatements.forEach((statement, li) => {
-            const imp = {
-                index: i,
-                li,
-                line: new MagicString(line),
-                hasMLC,
-                hasSLC
+    if (cleanedLine.match(/(import)/)) {
+        // cf. 
+        const importCollection = line.matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'\s]*([@\w/_-]+)["'\s]*;?/g);
+        for (;;) {
+            const next = importCollection.next();
+            if (next.done) {
+                break;
             }
-            manager.imports.push(imp);
-            console.log(imp.line.toString());
-        });
+            const match = next.value;
+            console.log(match);
+        }
+
+        const imp = {
+            index: i,
+            line: new MagicString(line),
+            hasMLC,
+            hasSLC
+        }
+        manager.imports.push(imp);
+        //console.log(imp.line.toString());
     }
 });
 
-console.log(manager.imports);
+//console.log(manager.imports);
 
