@@ -24,7 +24,7 @@ code 7
 code 8 /*
 NO */code 9
 /* sdjiw */const x = import("./module-path");
-
+// woaannsjfnfknjkews
 `
 
 const MagicString = require("magic-string")
@@ -45,12 +45,25 @@ const testFollowUpComment = (line, lIndex, start, end) => {
     }
 }
 
-const removeStrings = line => line.replace(/(["'`])(?:(?=(\\?))\2.)*?\1/g, "");
+const replaceStrings = line => {
+    const strCollection = line.toString().matchAll(/(["'`])(?:(?=(\\?))\2.)*?\1/g);
+    for (;;) {
+        const next = strCollection.next();
+        if (next.done) {
+            break;
+        }
+        const match = next.value; 
+        line.overwrite(match.index, match.index+match[0].length, "-".repeat(match[0].length));
+    }
+}
 
-handleSLC = (line) => {
-    const cleanedLine = line.replace(/\/\/.*/, "");
-    const match = line !== cleanedLine;
-    return [cleanedLine, match];
+handleSLC = (purgedLine, ncLine) => {
+    const line = purgedLine.toString();
+    const match = line.match(/\/\/.*/);
+    if (match) {
+        purgedLine.overwrite(match.index, match.index+match[0].length, "-".repeat(match[0].length));
+        ncLine.overwrite(match.index, match.index+match[0].length, "-".repeat(match[0].length));
+    }
 }
 
 // recursive multiline match
@@ -82,22 +95,28 @@ const getMLC = (line, mlc, modified=false) => {
 
 let mlc = false;
 manager.codeArray.forEach((line, i) => {
+
+    // no comments, no strings
+    let purgedLine = new MagicString(line);
+
+    // no comments line
+    let ncLine  = new MagicString(line);
     
     // remove all strings 
-    let cleanedLine = removeStrings(line);
+    replaceStrings(purgedLine);
 
     // remove single line comments
-    let hasSLC;
-    [ cleanedLine, hasSLC ] = handleSLC(cleanedLine);
+    handleSLC(purgedLine, ncLine);
+    console.log(i+1, ":", purgedLine.toString());
     
     // remove multi line comments
     let hasMLC;
-    [ cleanedLine, mlc, hasMLC ] = getMLC(cleanedLine, mlc);
+    [ purgedLine, mlc, hasMLC ] = getMLC(purgedLine.toString(), mlc);
     
-    //console.log("line", i+1, "hasSLC", hasSLC, "hasMLC", hasMLC)
-    console.log(i+1, ":", cleanedLine);
+    //console.log("line", i+1, "hasMLC", hasMLC)
+    //console.log(i+1, ":", cleanedLine);
 
-    if (cleanedLine.match(/(import)/)) {
+    if (purgedLine.match(/(import)/)) {
         // cf. 
         const importCollection = line.matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'\s]*([@\w/_-]+)["'\s]*;?/g);
         for (;;) {
@@ -106,14 +125,12 @@ manager.codeArray.forEach((line, i) => {
                 break;
             }
             const match = next.value;
-            console.log(match);
+            //console.log(match);
         }
 
         const imp = {
             index: i,
             line: new MagicString(line),
-            hasMLC,
-            hasSLC
         }
         manager.imports.push(imp);
         //console.log(imp.line.toString());
