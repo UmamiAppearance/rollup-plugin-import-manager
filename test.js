@@ -11,22 +11,19 @@ import "module-name";
 const x = import("./module-path");
 
 
-// bluh
- code
+code 1
+code 2
+/* NO */
+code 3
+/*
+NO
+*/ code4
+code 5
+/* NO */ code 6 /* NO */
+code 7
+code 8 /*
+NO */code 9
 
-   dbb   // bla
-
-code // usuwhsu
-code
-"/*"
-do("http://www.ed.de");
-/* bub */ code /*
-
-hfe
-
-code /* 
-jwdjijdw
-*/
 `
 
 
@@ -47,19 +44,24 @@ const testFollowUpComment = (line, lIndex, start, end) => {
 }
 
 const getMLC = (line, mlc) => {
+    let subLine = "";
     if (!mlc) {
         const match = line.match(/\/\*/);
         if (match) {
-            [ line, mlc ] = getMLC(line.slice(match.index+2), true);
+            [ subLine, mlc ] = getMLC(line.slice(match.index+2), true);
+            line = line.slice(0, match.index);
         }
     }
     
     else {
         const match = line.match(/\*\//);
         if (match) {
-            [ line, mlc ] = getMLC(line.slice(match.index+2), false);
+            [ subLine, mlc ] = getMLC(line.slice(match.index+2), false);
         }
+        line = "";
     }
+
+    line += subLine;
 
     return [line, mlc];
 }
@@ -77,7 +79,7 @@ manager.codeArray.forEach((line, i) => {
     cleanedLine = cleanedLine.replace(/\/\/.*/, "");
 
 
-    [ line, mlc ] = getMLC(cleanedLine, mlc);
+    [ cleanedLine, mlc ] = getMLC(cleanedLine, mlc);
     // look for the beginning of multi line comments
     
 /*
