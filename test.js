@@ -36,15 +36,6 @@ const manager = {
 }
 
 
-
-// test if another comment starts and stop
-// processing in that case
-const testFollowUpComment = (line, lIndex, start, end) => {
-    if (line.slice(start, end).match(/(\/\/|\/\*)/)) {
-        throw new Error(`File cannot be processed. Unclear comment structure at line '${lIndex+1}'`);
-    }
-}
-
 const replaceStrings = line => {
     const strCollection = line.toString().matchAll(/(["'`])(?:(?=(\\?))\2.)*?\1/g);
     for (;;) {
@@ -67,30 +58,37 @@ handleSLC = (purgedLine, ncLine) => {
 }
 
 // recursive multiline match
-const getMLC = (line, mlc, modified=false) => {
-    let subLine = "";
+const getMLC = (purgedLine, ncLine, mlc) => {
 
-    if (!mlc) {
-        const match = line.match(/\/\*/);
-        if (match) {
-            modified = true;
-            [ subLine, mlc ] = getMLC(line.slice(match.index+2), true);
-            line = line.slice(0, match.index);
+    const inner = (line, mlc) => {
+        let subLine = "";
+
+        if (!mlc) {
+            const match = line.match(/\/\*/);
+            if (match) {
+                [ subLine, mlc ] = getMLC(line.slice(match.index+2), true);
+                line = line.slice(0, match.index);
+                purgedLine.overwrite(match.index, match.index+match[0].length, "-".repeat(match.index+match[0].length));
+                ncLine.overwrite(match.index, match.index+match[0].length, "-".repeat(match.index+match[0].length));
+            }
         }
-    }
-    
-    else {
-        const match = line.match(/\*\//);
-        if (match) {
-            modified = true;
-            [ subLine, mlc ] = getMLC(line.slice(match.index+2), false);
+        
+        else {
+            const match = line.match(/\*\//);
+            if (match) {
+                [ subLine, mlc ] = getMLC(line.slice(match.index+2), false);
+                purgedLine.overwrite()
+            }
+            line = "";
         }
-        line = "";
+
+        line += subLine;
+
+        return [line, mlc];
     }
+    const line = new MagicString(purgedLine.toString());
+    inner(line.toString(), mlc)
 
-    line += subLine;
-
-    return [line, mlc, modified];
 }
 
 let mlc = false;
@@ -110,8 +108,7 @@ manager.codeArray.forEach((line, i) => {
     console.log(i+1, ":", purgedLine.toString());
     
     // remove multi line comments
-    let hasMLC;
-    [ purgedLine, mlc, hasMLC ] = getMLC(purgedLine.toString(), mlc);
+    [ purgedLine, ncLine, mlc ] = getMLC(purgedLine.toString(), mlc);
     
     //console.log("line", i+1, "hasMLC", hasMLC)
     //console.log(i+1, ":", cleanedLine);
