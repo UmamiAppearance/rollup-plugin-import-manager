@@ -63,16 +63,14 @@ class ImportManager {
 
     #replaceStrings(line) {
         const strCollection = line.matchAll(/(["'`])(?:(?=(\\?))\2.)*?\1/g);
-        for (;;) {
-            const next = strCollection.next();
-            if (next.done) {
-                break;
-            }
+        let next = strCollection.next();
+        while (!next.done) {
             const match = next.value; 
             const matchLen = match[0].length;
             line = line.slice(0, match.index) 
                  + "-".repeat(matchLen)
                  + line.slice(match.index+matchLen);
+            next = strCollection.next();
         }
         return line;
     }
@@ -140,6 +138,64 @@ class ImportManager {
         return [ purgedLine, ncLine, mlc ];
     }
 
+    #getES6Imports(cleanedArray) {
+        
+        const es6ImportCollection = cleanedArray.join("\n").matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'\s]*([@\w/_-]+)["'\s]*;?/g);
+        
+        let next = es6ImportCollection.next();
+        while (!next.done) {
+            const match = next.value;
+            const start = match.index;
+            const end = start + match[0].length;
+
+            this.manager.es6Imports.push(
+                {
+                    code: match[0],
+                    name: match[1],
+                    moduleName: match[2],
+                    start,
+                    end
+                }
+            )
+            
+            next = es6ImportCollection.next();
+            //console.log(match);
+        }
+    }
+
+    #getDynamicImports(purgedArray) {
+        const dynamicImportCollection = purgedArray.join("\n").matchAll(/(import\s*\(\s*)([^\s]+)(\s*\);?)/g);
+        let next = dynamicImportCollection.next();
+        while (!next.done) {
+            const match = next.value;
+            const start = match.index;
+            const end = start + match[0].length;
+            const code = this.manager.code.slice(start, end);
+            const modStart = start + match[1].length ;
+            const modEnd = modStart + match[2].length;
+            const moduleName = this.manager.code.slice(modStart, modEnd);
+            //console.log(match);
+            this.manager.dynamicImport.push(
+                {
+                    code,
+                    moduleName,
+                    start,
+                    end,
+                    modStart,
+                    modEnd,
+                }
+            )
+
+            next = dynamicImportCollection.next();
+        }
+        this.manager.code.overwrite(this.manager.dynamicImport[1].modStart, this.manager.dynamicImport[1].modEnd, "'./path/to/something/great'");
+        this.manager.code.overwrite(this.manager.dynamicImport[3].modStart, this.manager.dynamicImport[3].modEnd, "'test'");
+        //console.log(this.manager.code.toString());
+            
+        console.log(this.manager);
+    }
+
+
     collectImports() {
 
         let mlc = false;
@@ -165,59 +221,8 @@ class ImportManager {
             purgedArray.push(purgedLine);
         });
 
-        const es6ImportCollection = cleanedArray.join("\n").matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'\s]*([@\w/_-]+)["'\s]*;?/g);
-        for (;;) {
-            const next = es6ImportCollection.next();
-            if (next.done) {
-                break;
-            }
-            const match = next.value;
-            const start = match.index;
-            const end = start + match[0].length;
-
-            this.manager.es6Imports.push(
-                {
-                    code: match[0],
-                    name: match[1],
-                    moduleName: match[2],
-                    start,
-                    end
-                }
-            )
-
-            //console.log(match);
-        }
-
-        const dynamicImportCollection = purgedArray.join("\n").matchAll(/(import\s*\(\s*)([^\s]+)(\s*\);?)/g);
-        for (;;) {
-            const next = dynamicImportCollection.next();
-            if (next.done) {
-                break;
-            }
-            const match = next.value;
-            const start = match.index;
-            const end = start + match[0].length;
-            const code = this.manager.code.slice(start, end);
-            const modStart = start + match[1].length ;
-            const modEnd = modStart + match[2].length;
-            const moduleName = this.manager.code.slice(modStart, modEnd);
-            //console.log(match);
-            this.manager.dynamicImport.push(
-                {
-                    code,
-                    moduleName,
-                    start,
-                    end,
-                    modStart,
-                    modEnd,
-                }
-            )
-        }
-        //this.manager.code.overwrite(this.manager.dynamicImport[1].modStart, this.manager.dynamicImport[1].modEnd, "'./path/to/something/great'");
-        //this.manager.code.overwrite(this.manager.dynamicImport[2].modStart, this.manager.dynamicImport[3].modEnd, "'test'");
-        //console.log(this.manager.code.toString());
-            
-        console.log(this.manager.dynamicImport);
+        this.#getES6Imports(cleanedArray);
+        this.#getDynamicImports(purgedArray);
     }
 }
 
