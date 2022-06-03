@@ -19,7 +19,7 @@ code 3
 NO
 */ code4
 code 5
-/* NO */ code 6 /* NO */ code +
+/* NO */ code 6 /* NO */ code + // nope
 code 7
 code 8 /*
 NO */code 9
@@ -48,47 +48,62 @@ const replaceStrings = line => {
     }
 }
 
-handleSLC = (purgedLine, ncLine) => {
+const handleSLC = (purgedLine, ncLine) => {
     const line = purgedLine.toString();
     const match = line.match(/\/\/.*/);
     if (match) {
-        purgedLine.overwrite(match.index, match.index+match[0].length, "-".repeat(match[0].length));
-        ncLine.overwrite(match.index, match.index+match[0].length, "-".repeat(match[0].length));
+        const len = match[0].length;
+        purgedLine.overwrite(match.index, match.index+len, "-".repeat(len));
+        ncLine.overwrite(match.index, match.index+len, "-".repeat(len));
     }
 }
 
 // recursive multiline match
-const getMLC = (purgedLine, ncLine, mlc) => {
+const handleMLC = (purgedLine, ncLine, mlc) => {
 
-    const inner = (line, mlc) => {
-        let subLine = "";
+    const inner = (pl, ncl, mlc) => {
+        let plSub = "";
+        let nclSub = "";
 
         if (!mlc) {
-            const match = line.match(/\/\*/);
+            const match = pl.match(/\/\*/);
             if (match) {
-                [ subLine, mlc ] = getMLC(line.slice(match.index+2), true);
-                line = line.slice(0, match.index);
-                purgedLine.overwrite(match.index, match.index+match[0].length, "-".repeat(match.index+match[0].length));
-                ncLine.overwrite(match.index, match.index+match[0].length, "-".repeat(match.index+match[0].length));
+                const l = match.index;
+                [ plSub, nclSub, mlc ] = inner(pl.slice(l), ncl.slice(l), true);
+                pl = pl.slice(0, l);
+                ncl = ncl.slice(0, l);
+                //console.log("sliceA", pl);
             }
         }
         
         else {
-            const match = line.match(/\*\//);
+            const match = pl.match(/\*\//);
+            let l = pl.length;
             if (match) {
-                [ subLine, mlc ] = getMLC(line.slice(match.index+2), false);
-                purgedLine.overwrite()
+                l = match.index+2;
+                [ plSub, nclSub, mlc ] = inner(pl.slice(l), ncl.slice(l), false);
             }
-            line = "";
+            pl = "-".repeat(l);
+            ncl = "-".repeat(l);
         }
 
-        line += subLine;
+        pl += plSub;
+        ncl += nclSub;
 
-        return [line, mlc];
+        return [pl, ncl, mlc];
     }
-    const line = new MagicString(purgedLine.toString());
-    inner(line.toString(), mlc)
 
+    let pl = purgedLine.toString();
+    let ncl = ncLine.toString();
+    let len = pl.length;
+
+    if (len) {
+        [ pl, ncl, mlc ] = inner(pl, ncl, mlc);
+        purgedLine.overwrite(0, len, pl);
+        ncLine.overwrite(0, len, ncl)
+    }
+    
+    return mlc;
 }
 
 let mlc = false;
@@ -105,17 +120,16 @@ manager.codeArray.forEach((line, i) => {
 
     // remove single line comments
     handleSLC(purgedLine, ncLine);
-    console.log(i+1, ":", purgedLine.toString());
     
     // remove multi line comments
-    [ purgedLine, ncLine, mlc ] = getMLC(purgedLine.toString(), mlc);
+    mlc = handleMLC(purgedLine, ncLine, mlc);
     
     //console.log("line", i+1, "hasMLC", hasMLC)
-    //console.log(i+1, ":", cleanedLine);
-
-    if (purgedLine.match(/(import)/)) {
-        // cf. 
-        const importCollection = line.matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'\s]*([@\w/_-]+)["'\s]*;?/g);
+    console.log(i+1, ":", ncLine.toString());
+    
+    if (purgedLine.toString().match(/(import)/)) {
+        // cf. https://gist.github.com/manekinekko/7e58a17bc62a9be47172
+        const importCollection = ncLine.toString().matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'\s]*([@\w/_-]+)["'\s]*;?/g);
         for (;;) {
             const next = importCollection.next();
             if (next.done) {
