@@ -30,10 +30,13 @@ NO */code 9
 
 require("fs");
 
-import {
-    member1,
-    member2,
-} from "module-name";
+import 
+    defaultMember,
+    {
+        member1,
+        member2,
+    }
+from "module-name";
 
 const imp = import (
     "bullshit"
@@ -160,7 +163,7 @@ class ImportManager {
     getDynamicImports() {
         this.imports.dynamic.count = 0;
 
-        const dynamicImportCollection = this.blackenedCode.ncNoStrings.matchAll(/(import\s*\(\s*)([^\s]+)(\s*\);?)/g);
+        const dynamicImportCollection = this.blackenedCode.ncNoStrings.matchAll(/(import\s*\(\s*)(\S+)(\s*\);?)/g);
         let next = dynamicImportCollection.next();
 
         while (!next.done) {
@@ -206,10 +209,26 @@ class ImportManager {
             const start = match.index;
             const end = start + match[0].length;
 
+            const memberStr = match[1] ? match[1].trim() : null;
+            console.log(match[0]);
+            console.log(match.at(1));
+            let members = null;
+
+            if (memberStr) {
+                const nonDefaultMatch = memberStr.match(/{[\s\S]*}/);
+                console.log(nonDefaultMatch);
+                
+                if (nonDefaultMatch) {
+                    const mStart = nonDefaultMatch.index + 1;
+                    const memberListStr = memberStr.slice(mStart, mStart+nonDefaultMatch[0].length-2);
+                    members = memberListStr.split(",").map(m => m.trim());
+                }
+            }
+
             this.imports.es6.units.push(
                 {
                     code: match[0],
-                    name: match[1],
+                    members,
                     moduleName: match[2],
                     start,
                     end
@@ -217,7 +236,7 @@ class ImportManager {
             )
             
             next = es6ImportCollection.next();
-            //console.log(match);
+            console.log(match);
             
             this.imports.es6.searched = true;
         }
@@ -226,7 +245,7 @@ class ImportManager {
     getCJSImports() {
         this.imports.cjs.count = 0;
 
-        const cjsImportCollection = this.blackenedCode.ncNoStrings.matchAll(/(require\s*\(\s*)([^\s]+)(\s*\);?)/g);
+        const cjsImportCollection = this.blackenedCode.ncNoStrings.matchAll(/(require\s*\(\s*)(\S+)(\s*\);?)/g);
         let next = cjsImportCollection.next();
 
         while (!next.done) {
