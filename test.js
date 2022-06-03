@@ -213,6 +213,7 @@ class ImportManager {
             console.log(match[0]);
             console.log(match.at(1));
             let members = null;
+            let defaultMembers = null;
 
             if (memberStr) {
                 const nonDefaultMatch = memberStr.match(/{[\s\S]*}/);
@@ -220,14 +221,27 @@ class ImportManager {
                 
                 if (nonDefaultMatch) {
                     const mStart = nonDefaultMatch.index + 1;
+                    const dM = memberStr.slice(0, mStart).split(",")[0];
+                    if (dM) {
+                        defaultMembers = dM;
+                    } 
                     const memberListStr = memberStr.slice(mStart, mStart+nonDefaultMatch[0].length-2);
                     members = memberListStr.split(",").map(m => m.trim());
+                }
+                
+                else {
+                    defaultMembers = memberStr.trim();
+                }
+
+                if (defaultMembers) {
+                    defaultMembers = defaultMembers.split(",").map(m => m.trim());
                 }
             }
 
             this.imports.es6.units.push(
                 {
                     code: match[0],
+                    defaultMembers,
                     members,
                     moduleName: match[2],
                     start,
