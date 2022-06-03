@@ -1,4 +1,4 @@
-const imports = `import name from "module-name";
+const source = `import name from "module-name";
 import * as name from "module-name";import { member } from "module-name";
 import { member as alias } from "module-name";
 import { member1 , member2 } from "module-name";
@@ -25,14 +25,33 @@ code 8 /*
 NO */code 9
 /* sdjiw */const x = import("./module-path");
 // woaannsjfnfknjkews
+
+
+import {
+    member1,
+    member2,
+} from "module-name";
+
+const imp = import (
+    "bullshit"
+);
+
+const y = "bdwi";
+
+import("modulePath")
+  .then(obj => <module object>)
+  .catch(err => <loading error, e.g. if no such module>)
 `
 
 const MagicString = require("magic-string")
 
 
 const manager = {
-    codeArray: imports.split("\n"),
-    imports: []
+    code: new MagicString(source),
+    cjsImports: [],
+    es6Imports: [],
+    dynamicImport: [],
+
 }
 
 
@@ -107,7 +126,9 @@ const handleMLC = (purgedLine, ncLine, mlc) => {
 }
 
 let mlc = false;
-manager.codeArray.forEach((line, i) => {
+let cleanedArray = [];
+let purgedArray = [];
+source.split("\n").forEach((line, i) => {
 
     // no comments, no strings
     let purgedLine = new MagicString(line);
@@ -125,28 +146,63 @@ manager.codeArray.forEach((line, i) => {
     mlc = handleMLC(purgedLine, ncLine, mlc);
     
     //console.log("line", i+1, "hasMLC", hasMLC)
-    console.log(i+1, ":", ncLine.toString());
+    console.log(i+1, ":", purgedLine.toString());
     
-    if (purgedLine.toString().match(/(import)/)) {
-        // cf. https://gist.github.com/manekinekko/7e58a17bc62a9be47172
-        const importCollection = ncLine.toString().matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'\s]*([@\w/_-]+)["'\s]*;?/g);
-        for (;;) {
-            const next = importCollection.next();
-            if (next.done) {
-                break;
-            }
-            const match = next.value;
-            //console.log(match);
-        }
-
-        const imp = {
-            index: i,
-            line: new MagicString(line),
-        }
-        manager.imports.push(imp);
-        //console.log(imp.line.toString());
-    }
+    cleanedArray.push(ncLine.toString());
+    purgedArray.push(purgedLine.toString());
 });
 
-//console.log(manager.imports);
+const es6ImportCollection = cleanedArray.join("\n").matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'\s]*([@\w/_-]+)["'\s]*;?/g);
+for (;;) {
+    const next = es6ImportCollection.next();
+    if (next.done) {
+        break;
+    }
+    const match = next.value;
+    const start = match.index;
+    const end = start + match[0].length;
+
+    manager.es6Imports.push(
+        {
+            code: match[0],
+            name: match[1],
+            moduleName: match[2],
+            start,
+            end
+        }
+    )
+
+    //console.log(match);
+}
+
+const dynamicImportCollection = purgedArray.join("\n").matchAll(/(import\s*\(\s*)(\-+)(\s*\);?)/g);
+for (;;) {
+    const next = dynamicImportCollection.next();
+    if (next.done) {
+        break;
+    }
+    const match = next.value;
+    const start = match.index;
+    const end = start + match[0].length;
+    const code = manager.code.slice(start, end);
+    const modStart = start + match[1].length + 1;
+    const modEnd = modStart + match[2].length - 2;
+    const moduleName = manager.code.slice(modStart, modEnd);
+    console.log(match);
+    manager.dynamicImport.push(
+        {
+            code,
+            moduleName,
+            start,
+            end,
+            modStart,
+            modEnd,
+        }
+    )
+}
+manager.code.overwrite(manager.dynamicImport[1].modStart, manager.dynamicImport[1].modEnd, "./pa");
+manager.code.overwrite(manager.dynamicImport[2].modStart, manager.dynamicImport[2].modEnd, "test");
+console.log(manager.code.toString());
+    
+//console.log(manager.es6Imports);
 
