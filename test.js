@@ -28,7 +28,7 @@ NO */code 9
 /* sdjiw */const x = import("./module-path");
 // woaannsjfnfknjkews
 
-import( );
+require("fs");
 
 import {
     member1,
@@ -46,17 +46,36 @@ import("modulePath")
   .catch(err => <loading error, e.g. if no such module>)
 `
 
-const MagicString = require("magic-string")
+const MagicString = require("magic-string");
 
 class ImportManager {
 
-    constructor() {
-        this.manager = {
-            code: new MagicString(source),
-            cjsImports: [],
-            es6Imports: [],
-            dynamicImport: [],
+    constructor(autoSearch=true) {
+        this.imports = {
+            cjs: {
+                searched: false,
+                units: []
+            },
+            es6: {
+                searched: false,
+                units: []
+            },
+            dynamic: {
+                searched: false,
+                units: []
+            }
 
+        }
+
+        this.code = new MagicString(source);
+        this.blackenedCode = {
+            noComments: null,
+            ncNoStrings: null
+        }
+
+        this.prepareSource();
+        if (autoSearch) {
+            this.getAllImports();
         }
     }
 
@@ -138,44 +157,23 @@ class ImportManager {
         return [ purgedLine, ncLine, mlc ];
     }
 
-    #getES6Imports(cleanedArray) {
-        
-        const es6ImportCollection = cleanedArray.join("\n").matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'\s]*([@\w/_-]+)["'\s]*;?/g);
-        
-        let next = es6ImportCollection.next();
-        while (!next.done) {
-            const match = next.value;
-            const start = match.index;
-            const end = start + match[0].length;
+    getDynamicImports() {
+        this.imports.dynamic.count = 0;
 
-            this.manager.es6Imports.push(
-                {
-                    code: match[0],
-                    name: match[1],
-                    moduleName: match[2],
-                    start,
-                    end
-                }
-            )
-            
-            next = es6ImportCollection.next();
-            //console.log(match);
-        }
-    }
-
-    #getDynamicImports(purgedArray) {
-        const dynamicImportCollection = purgedArray.join("\n").matchAll(/(import\s*\(\s*)([^\s]+)(\s*\);?)/g);
+        const dynamicImportCollection = this.blackenedCode.ncNoStrings.matchAll(/(import\s*\(\s*)([^\s]+)(\s*\);?)/g);
         let next = dynamicImportCollection.next();
+
         while (!next.done) {
+            this.imports.dynamic.count ++;
             const match = next.value;
             const start = match.index;
             const end = start + match[0].length;
-            const code = this.manager.code.slice(start, end);
+            const code = this.code.slice(start, end);
             const modStart = start + match[1].length ;
             const modEnd = modStart + match[2].length;
-            const moduleName = this.manager.code.slice(modStart, modEnd);
+            const moduleName = this.code.slice(modStart, modEnd);
             //console.log(match);
-            this.manager.dynamicImport.push(
+            this.imports.dynamic.units.push(
                 {
                     code,
                     moduleName,
@@ -188,16 +186,78 @@ class ImportManager {
 
             next = dynamicImportCollection.next();
         }
-        this.manager.code.overwrite(this.manager.dynamicImport[1].modStart, this.manager.dynamicImport[1].modEnd, "'./path/to/something/great'");
-        this.manager.code.overwrite(this.manager.dynamicImport[3].modStart, this.manager.dynamicImport[3].modEnd, "'test'");
-        //console.log(this.manager.code.toString());
-            
-        console.log(this.manager);
+        //this.code.overwrite(this.imports.dynamic[1].modStart, this.imports.dynamic[1].modEnd, "'./path/to/something/great'");
+        //this.code.overwrite(this.imports.dynamic[3].modStart, this.imports.dynamic[3].modEnd, "'test'");
+        //console.log(this.imports.code.toString());
+        
+        this.imports.dynamic.searched = true;
     }
 
+    getES6Imports() {
+        this.imports.es6.count = 0;
 
-    collectImports() {
+        const es6ImportCollection = this.blackenedCode.noComments.matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'\s]*([@\w/_-]+)["'\s]*;?/g);
+        
+        let next = es6ImportCollection.next();
+        while (!next.done) {
+            this.imports.es6.count ++;
 
+            const match = next.value;
+            const start = match.index;
+            const end = start + match[0].length;
+
+            this.imports.es6.units.push(
+                {
+                    code: match[0],
+                    name: match[1],
+                    moduleName: match[2],
+                    start,
+                    end
+                }
+            )
+            
+            next = es6ImportCollection.next();
+            //console.log(match);
+            
+            this.imports.es6.searched = true;
+        }
+    }
+
+    getCJSImports() {
+        this.imports.cjs.count = 0;
+
+        const cjsImportCollection = this.blackenedCode.ncNoStrings.matchAll(/(require\s*\(\s*)([^\s]+)(\s*\);?)/g);
+        let next = cjsImportCollection.next();
+
+        while (!next.done) {
+            this.imports.cjs.count ++;
+
+            const match = next.value;
+            const start = match.index;
+            const end = start + match[0].length;
+            const code = this.code.slice(start, end);
+            const modStart = start + match[1].length ;
+            const modEnd = modStart + match[2].length;
+            const moduleName = this.code.slice(modStart, modEnd);
+            //console.log(match);
+            this.imports.cjs.units.push(
+                {
+                    code,
+                    moduleName,
+                    start,
+                    end,
+                    modStart,
+                    modEnd,
+                }
+            )
+
+            next = next = cjsImportCollection.next();
+        } 
+
+        this.imports.cjs.searched = true;
+    }
+
+    prepareSource() {
         let mlc = false;
         let cleanedArray = [];
         let purgedArray = [];
@@ -221,10 +281,17 @@ class ImportManager {
             purgedArray.push(purgedLine);
         });
 
-        this.#getES6Imports(cleanedArray);
-        this.#getDynamicImports(purgedArray);
+        this.blackenedCode.noComments = cleanedArray.join("\n");
+        this.blackenedCode.ncNoStrings = purgedArray.join("\n");
+    }
+
+    getAllImports() {
+        this.getDynamicImports()
+        this.getES6Imports();
+        this.getCJSImports();
     }
 }
 
 const importManager = new ImportManager();
-importManager.collectImports();
+console.log(JSON.stringify(importManager.imports, null, 4));
+
