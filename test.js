@@ -216,8 +216,7 @@ class ImportManager {
             if (memberStr) {
                 console.log(match[0])
                 // find position of all members
-                const regex = new RegExp(memberStr.replace(/\*/, /\\*/));
-                const amPos = match[0].match(regex);
+                const amPos = match[0].indexOf(memberStr);
                 console.log(amPos);
 
                 const nonDefaultMatch = memberStr.match(/{[\s\S]*}/);
@@ -240,7 +239,7 @@ class ImportManager {
                     members = {};
                     m.forEach(member => {
                         members[member] = {};
-                        const pos = nonDefaultStr.search(member);
+                        const pos = nonDefaultStr.indexOf(member);
                         const len = member.length;
                         members[member].start = start + amPos + mStart + pos;
                         members[member].end = members[member].start + len;
@@ -265,7 +264,7 @@ class ImportManager {
                     defaultMembers = {};
                     dm.forEach(defaultMember => {
                         defaultMembers[defaultMember] = {};
-                        const pos = defaultStr.search(defaultMember);
+                        const pos = defaultStr.indexOf(defaultMember);
                         const len = defaultMember.length;
                         defaultMembers[defaultMember].start = start + amPos + pos;
                         defaultMembers[defaultMember].end = defaultMembers[defaultMember].start + len;
@@ -366,3 +365,4 @@ class ImportManager {
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 
+console.log(source.slice(753, 766));
