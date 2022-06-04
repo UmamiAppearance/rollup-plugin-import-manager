@@ -82,16 +82,20 @@ class ImportManager {
         }
     }
 
+    #blacken(str, start, len) {
+        str = str.slice(0, start)
+            + "-".repeat(len)
+            + str.slice(start+len);
+        return str; 
+    }
+
 
     #replaceStrings(line) {
         const strCollection = line.matchAll(/(["'`])(?:(?=(\\?))\2.)*?\1/g);
         let next = strCollection.next();
         while (!next.done) {
             const match = next.value; 
-            const matchLen = match[0].length;
-            line = line.slice(0, match.index) 
-                 + "-".repeat(matchLen)
-                 + line.slice(match.index+matchLen);
+            line = this.#blacken(line, match.index, match[0].length);
             next = strCollection.next();
         }
         return line;
@@ -100,15 +104,9 @@ class ImportManager {
     #handleSLC(purgedLine, ncLine) {
         const match = purgedLine.match(/\/\/.*/);
         if (match) {
-            const matchLen = match[0].length;
-            
-            purgedLine = purgedLine.slice(0, match.index)
-                       + "-".repeat(matchLen)
-                       + purgedLine.slice(match.index + matchLen);
-
-            ncLine = ncLine.slice(0, match.index)
-                   + "-".repeat(matchLen);
-                   + ncLine.slice(match.index + matchLen)
+            purgedLine = this.#blacken(purgedLine, match.index, match[0].length);
+            ncLine = this.#blacken(ncLine, match.index, match[0].length);
+        
         }
         return [ purgedLine, ncLine ];
     }
@@ -216,17 +214,23 @@ class ImportManager {
             console.log(match.at(1));
             
             if (memberStr) {
+                console.log(match[0])
+                // find position of all members
+                const regex = new RegExp(memberStr.replace(/\*/, /\\*/));
+                const amPos = match[0].match(regex);
+                console.log(amPos);
+
                 const nonDefaultMatch = memberStr.match(/{[\s\S]*}/);
                 console.log(nonDefaultMatch);
                 
-                let defaultMatch = false;
+                let defaultStr = null;
 
                 if (nonDefaultMatch) {
                     const mStart = nonDefaultMatch.index;
                     let nonDefaultStr = nonDefaultMatch[0];
 
                     if (mStart > 0) {
-                        defaultMatch = memberStr.slice(0, nonDefaultMatch.index-1);
+                        defaultStr = memberStr.slice(0, nonDefaultMatch.index);
                     }
                     const m = memberStr.slice(mStart+1, mStart+nonDefaultStr.length-2)
                                        .split(",")
@@ -238,26 +242,37 @@ class ImportManager {
                         members[member] = {};
                         const pos = nonDefaultStr.search(member);
                         const len = member.length;
-                        members[member].start = start + mStart + pos;
+                        members[member].start = start + amPos + mStart + pos;
                         members[member].end = members[member].start + len;
 
                         // erase already found members to 
-                        // prevent eventually substr matches
-                        nonDefaultStr = nonDefaultStr.slice(0, pos)
-                                      + ("-").repeat(len)
-                                      + nonDefaultStr.slice(pos+len);
+                        // prevent potential substr matches
+                        nonDefaultStr = this.#blacken(nonDefaultStr, pos, len);
                         console.log(nonDefaultStr);
-                    })
+                    });
                 }
                 
                 else {
-                    defaultMatch = memberStr;
+                    defaultStr = memberStr;
                 }
 
-                if (defaultMatch) {
-                    defaultMembers = defaultMatch.split(",")
-                                                 .map(m => m.trim())
-                                                 .filter(m => m);;
+                if (defaultStr) {
+
+                    const dm = defaultStr.split(",")
+                                           .map(m => m.trim())
+                                           .filter(m => m);
+                    
+                    defaultMembers = {};
+                    dm.forEach(defaultMember => {
+                        defaultMembers[defaultMember] = {};
+                        const pos = defaultStr.search(defaultMember);
+                        const len = defaultMember.length;
+                        defaultMembers[defaultMember].start = start + amPos + pos;
+                        defaultMembers[defaultMember].end = defaultMembers[defaultMember].start + len;
+
+                        defaultStr = this.#blacken(defaultStr, pos, len);
+                        console.log(defaultStr);
+                    });
                 }
             }
 
