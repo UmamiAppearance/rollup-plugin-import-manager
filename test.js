@@ -213,20 +213,20 @@ class ImportManager {
             
             if (memberStr) {
                 // find position of all members
-                const amPos = match[0].indexOf(memberStr);
+                const memberStrStart = match[0].indexOf(memberStr);
 
                 const nonDefaultMatch = memberStr.match(/{[\s\S]*}/);
                 
                 let defaultStr = null;
 
                 if (nonDefaultMatch) {
-                    const mStart = nonDefaultMatch.index;
+                    const nonDefaultStart = nonDefaultMatch.index;
                     let nonDefaultStr = nonDefaultMatch[0];
 
-                    if (mStart > 0) {
+                    if (nonDefaultStart > 0) {
                         defaultStr = memberStr.slice(0, nonDefaultMatch.index);
                     }
-                    const m = memberStr.slice(mStart+1, mStart+nonDefaultStr.length-2)
+                    const m = memberStr.slice(nonDefaultStart+1, nonDefaultStart+nonDefaultStr.length-2)
                                        .split(",")
                                        .map(m => m.trim())
                                        .filter(m => m);
@@ -234,7 +234,7 @@ class ImportManager {
                     members = {};
                     m.forEach(member => {
                         
-                        const pos = nonDefaultStr.indexOf(member);
+                        const memberPos = nonDefaultStr.indexOf(member);
                         
                         let name = member;
                         let len;
@@ -245,22 +245,22 @@ class ImportManager {
                             len = aliasMatch.index;
                             name = member.slice(0, len);
                             members[name] = {};
-                            const aStart = aliasMatch.index + aliasMatch[0].length;
+                            const aliasStart = aliasMatch.index + aliasMatch[0].length;
                             members[name].alias = {
-                                name: member.slice(aStart),
-                                start: start + amPos + mStart + aStart,
-                                end: start + amPos + mStart + pos + member.length
+                                name: member.slice(aliasStart),
+                                start: start + memberStrStart + nonDefaultStart + memberPos + aliasStart,
+                                end: start + memberStrStart + nonDefaultStart + memberPos + member.length
                             }
                         } else {
-                            members[member] = {};
+                            members[name] = {};
                             len = member.length;
                         }
-                        members[name].start = start + amPos + mStart + pos;
+                        members[name].start = start + memberStrStart + nonDefaultStart + memberPos;
                         members[name].end = members[name].start + len;
 
                         // erase already found members to 
                         // prevent potential substr matches
-                        nonDefaultStr = this.#blacken(nonDefaultStr, pos, len);
+                        nonDefaultStr = this.#blacken(nonDefaultStr, memberPos, len);
                     });
                 }
                 
@@ -279,7 +279,7 @@ class ImportManager {
                         defaultMembers[defaultMember] = {};
                         const pos = defaultStr.indexOf(defaultMember);
                         const len = defaultMember.length;
-                        defaultMembers[defaultMember].start = start + amPos + pos;
+                        defaultMembers[defaultMember].start = start + memberStrStart + pos;
                         defaultMembers[defaultMember].end = defaultMembers[defaultMember].start + len;
 
                         defaultStr = this.#blacken(defaultStr, pos, len);
@@ -376,4 +376,4 @@ class ImportManager {
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 
-console.log(source.slice(220, 256));
+console.log(source.slice(125, 130));
