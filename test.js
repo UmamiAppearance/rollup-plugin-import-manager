@@ -209,32 +209,55 @@ class ImportManager {
             const start = match.index;
             const end = start + match[0].length;
 
+            let members = null;
+            let defaultMembers = null;
             const memberStr = match[1] ? match[1].trim() : null;
             console.log(match[0]);
             console.log(match.at(1));
-            let members = null;
-            let defaultMembers = null;
-
+            
             if (memberStr) {
                 const nonDefaultMatch = memberStr.match(/{[\s\S]*}/);
                 console.log(nonDefaultMatch);
                 
+                let defaultMatch = false;
+
                 if (nonDefaultMatch) {
-                    const mStart = nonDefaultMatch.index + 1;
-                    const dM = memberStr.slice(0, mStart).split(",")[0];
-                    if (dM) {
-                        defaultMembers = dM;
-                    } 
-                    const memberListStr = memberStr.slice(mStart, mStart+nonDefaultMatch[0].length-2);
-                    members = memberListStr.split(",").map(m => m.trim());
+                    const mStart = nonDefaultMatch.index;
+                    let nonDefaultStr = nonDefaultMatch[0];
+
+                    if (mStart > 0) {
+                        defaultMatch = memberStr.slice(0, nonDefaultMatch.index-1);
+                    }
+                    const m = memberStr.slice(mStart+1, mStart+nonDefaultStr.length-2)
+                                       .split(",")
+                                       .map(m => m.trim())
+                                       .filter(m => m);
+                    
+                    members = {};
+                    m.forEach(member => {
+                        members[member] = {};
+                        const pos = nonDefaultStr.search(member);
+                        const len = member.length;
+                        members[member].start = start + mStart + pos;
+                        members[member].end = members[member].start + len;
+
+                        // erase already found members to 
+                        // prevent eventually substr matches
+                        nonDefaultStr = nonDefaultStr.slice(0, pos)
+                                      + ("-").repeat(len)
+                                      + nonDefaultStr.slice(pos+len);
+                        console.log(nonDefaultStr);
+                    })
                 }
                 
                 else {
-                    defaultMembers = memberStr.trim();
+                    defaultMatch = memberStr;
                 }
 
-                if (defaultMembers) {
-                    defaultMembers = defaultMembers.split(",").map(m => m.trim());
+                if (defaultMatch) {
+                    defaultMembers = defaultMatch.split(",")
+                                                 .map(m => m.trim())
+                                                 .filter(m => m);;
                 }
             }
 
@@ -319,9 +342,9 @@ class ImportManager {
     }
 
     getAllImports() {
-        this.getDynamicImports()
+        //this.getDynamicImports()
         this.getES6Imports();
-        this.getCJSImports();
+        //this.getCJSImports();
     }
 }
 
