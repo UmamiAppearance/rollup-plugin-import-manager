@@ -241,7 +241,6 @@ class ImportManager {
 
                         const aliasMatch = member.match(/(\s+as\s+)/);
                         if (aliasMatch) {
-                            // TODO: Find Errors
                             len = aliasMatch.index;
                             name = member.slice(0, len);
                             members[name] = {};
@@ -268,6 +267,7 @@ class ImportManager {
                     defaultStr = memberStr;
                 }
 
+                console.log("defaultStr", defaultStr);
                 if (defaultStr) {
 
                     const dm = defaultStr.split(",")
@@ -276,13 +276,35 @@ class ImportManager {
                     
                     defaultMembers = {};
                     dm.forEach(defaultMember => {
-                        defaultMembers[defaultMember] = {};
-                        const pos = defaultStr.indexOf(defaultMember);
-                        const len = defaultMember.length;
-                        defaultMembers[defaultMember].start = start + memberStrStart + pos;
-                        defaultMembers[defaultMember].end = defaultMembers[defaultMember].start + len;
 
-                        defaultStr = this.#blacken(defaultStr, pos, len);
+                        const defaultMemberPos = defaultStr.indexOf(defaultMember);
+                        console.log("IHHWIHDW", defaultMemberPos, "dm", defaultMember);
+                        let name = defaultMember;
+                        let len;
+
+                        const aliasMatch = defaultMember.match(/(\s+as\s+)/);
+                        if (aliasMatch) {
+                            console.log("ALLLLLLLIAS SHHH");
+                            console.log(name);
+                            len = aliasMatch.index;
+                            name = defaultMember.slice(0, len);
+                            defaultMembers[name] = {};
+                            console.log(name);
+                            const aliasStart = aliasMatch.index + aliasMatch[0].length;
+                            defaultMembers[name].alias = {
+                                name: defaultMember.slice(aliasStart),
+                                start: start + memberStrStart + defaultMemberPos + aliasStart,
+                                end: start + memberStrStart + defaultMemberPos + defaultMember.length
+                            }
+                        } else {
+                            defaultMembers[name] = {};
+                            len = defaultMember.length;
+                        }
+
+                        defaultMembers[name].start = start + memberStrStart + defaultMemberPos;
+                        defaultMembers[name].end = defaultMembers[name].start + len;
+
+                        defaultStr = this.#blacken(defaultStr, defaultMemberPos, len);
                     });
                 }
             }
@@ -376,4 +398,4 @@ class ImportManager {
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 
-console.log(source.slice(125, 130));
+console.log(source.slice(250, 256));
