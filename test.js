@@ -210,17 +210,12 @@ class ImportManager {
             let members = null;
             let defaultMembers = null;
             const memberStr = match[1] ? match[1].trim() : null;
-            console.log(match[0]);
-            console.log(match.at(1));
             
             if (memberStr) {
-                console.log(match[0])
                 // find position of all members
                 const amPos = match[0].indexOf(memberStr);
-                console.log(amPos);
 
                 const nonDefaultMatch = memberStr.match(/{[\s\S]*}/);
-                console.log(nonDefaultMatch);
                 
                 let defaultStr = null;
 
@@ -238,16 +233,34 @@ class ImportManager {
                     
                     members = {};
                     m.forEach(member => {
-                        members[member] = {};
+                        
                         const pos = nonDefaultStr.indexOf(member);
-                        const len = member.length;
-                        members[member].start = start + amPos + mStart + pos;
-                        members[member].end = members[member].start + len;
+                        
+                        let name = member;
+                        let len;
+
+                        const aliasMatch = member.match(/(\s+as\s+)/);
+                        if (aliasMatch) {
+                            // TODO: Find Errors
+                            len = aliasMatch.index;
+                            name = member.slice(0, len);
+                            members[name] = {};
+                            const aStart = aliasMatch.index + aliasMatch[0].length;
+                            members[name].alias = {
+                                name: member.slice(aStart),
+                                start: start + amPos + mStart + aStart,
+                                end: start + amPos + mStart + pos + member.length
+                            }
+                        } else {
+                            members[member] = {};
+                            len = member.length;
+                        }
+                        members[name].start = start + amPos + mStart + pos;
+                        members[name].end = members[name].start + len;
 
                         // erase already found members to 
                         // prevent potential substr matches
                         nonDefaultStr = this.#blacken(nonDefaultStr, pos, len);
-                        console.log(nonDefaultStr);
                     });
                 }
                 
@@ -270,7 +283,6 @@ class ImportManager {
                         defaultMembers[defaultMember].end = defaultMembers[defaultMember].start + len;
 
                         defaultStr = this.#blacken(defaultStr, pos, len);
-                        console.log(defaultStr);
                     });
                 }
             }
@@ -287,7 +299,6 @@ class ImportManager {
             )
             
             next = es6ImportCollection.next();
-            console.log(match);
             
             this.imports.es6.searched = true;
         }
@@ -309,7 +320,7 @@ class ImportManager {
             const modStart = start + match[1].length ;
             const modEnd = modStart + match[2].length;
             const moduleName = this.code.slice(modStart, modEnd);
-            //console.log(match);
+
             this.imports.cjs.units.push(
                 {
                     code,
@@ -365,4 +376,4 @@ class ImportManager {
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 
-console.log(source.slice(753, 766));
+console.log(source.slice(220, 256));
