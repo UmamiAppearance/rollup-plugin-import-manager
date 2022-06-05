@@ -158,6 +158,28 @@ class ImportManager {
         return [ purgedLine, ncLine, mlc ];
     }
 
+    #makeImport(type, match, id) {
+        const start = match.index;
+        const end = start + match[0].length;
+        const code = this.code.slice(start, end);
+        const module = {};
+        module.start = match[1].length;
+        module.end = module.start + match[2].length;
+        module.name = code.slice(module.start, module.end);
+
+        //console.log(match);
+        this.imports[type].units.push(
+            {
+                id,
+                code: new MagicString(code),
+                c: code, // TODO: remove me
+                module,
+                start,
+                end,
+            }
+        )
+    }
+
     getDynamicImports() {
         this.imports.dynamic.count = 0;
         let id = 3000;
@@ -167,33 +189,10 @@ class ImportManager {
 
         while (!next.done) {
             this.imports.dynamic.count ++;
-            const match = next.value;
-            const start = match.index;
-            const end = start + match[0].length;
-            const code = this.code.slice(start, end);
-            const module = {};
-            module.start = match[1].length;
-            module.end = module.start + match[2].length;
-            module.name = code.slice(module.start, module.end);
-
-            //console.log(match);
-            this.imports.dynamic.units.push(
-                {
-                    id: id++,
-                    code: new MagicString(code),
-                    c: code, // TODO: remove me
-                    module,
-                    start,
-                    end,
-                }
-            )
-
+            this.#makeImport("dynamic", next.value, id++);
             next = dynamicImportCollection.next();
         }
-        //this.code.overwrite(this.imports.dynamic[1].modStart, this.imports.dynamic[1].modEnd, "'./path/to/something/great'");
-        //this.code.overwrite(this.imports.dynamic[3].modStart, this.imports.dynamic[3].modEnd, "'test'");
-        //console.log(this.imports.code.toString());
-        
+
         this.imports.dynamic.searched = true;
     }
 
@@ -343,28 +342,11 @@ class ImportManager {
 
         while (!next.done) {
             this.imports.cjs.count ++;
-
-            const match = next.value;
-            const start = match.index;
-            const end = start + match[0].length;
-            const code = this.code.slice(start, end);
-            const module = {};
-            module.start = match[1].length;
-            module.end = module.start + match[2].length;
-            module.name = code.slice(module.start, module.end);
-
-            this.imports.cjs.units.push(
-                {
-                    id: id++,
-                    code: new MagicString(code),
-                    c: code, // TODO: remove me
-                    module,
-                    start,
-                    end
-                }
-            )
-
-            next = next = cjsImportCollection.next();
+            while (!next.done) {
+                this.imports.dynamic.count ++;
+                this.#makeImport("cjs", next.value, id++);
+                next = cjsImportCollection.next();
+            }
         } 
 
         this.imports.cjs.searched = true;
