@@ -160,6 +160,7 @@ class ImportManager {
 
     getDynamicImports() {
         this.imports.dynamic.count = 0;
+        let id = 3000;
 
         const dynamicImportCollection = this.blackenedCode.ncNoStrings.matchAll(/(import\s*\(\s*)(\S+)(\s*\);?)/g);
         let next = dynamicImportCollection.next();
@@ -170,18 +171,20 @@ class ImportManager {
             const start = match.index;
             const end = start + match[0].length;
             const code = this.code.slice(start, end);
-            const modStart = start + match[1].length ;
-            const modEnd = modStart + match[2].length;
-            const moduleName = this.code.slice(modStart, modEnd);
+            const module = {};
+            module.start = match[1].length;
+            module.end = module.start + match[2].length;
+            module.name = code.slice(module.start, module.end);
+
             //console.log(match);
             this.imports.dynamic.units.push(
                 {
-                    code,
-                    moduleName,
+                    id: id++,
+                    code: new MagicString(code),
+                    c: code, // TODO: remove me
+                    module,
                     start,
                     end,
-                    modStart,
-                    modEnd,
                 }
             )
 
@@ -196,6 +199,7 @@ class ImportManager {
 
     getES6Imports() {
         this.imports.es6.count = 0;
+        let id = 2000;
 
         const es6ImportCollection = this.blackenedCode.noComments.matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'\s]*([@\w/_-]+)["'\s]*;?/g);
         
@@ -232,9 +236,10 @@ class ImportManager {
                                        .filter(m => m);
                     
                     members = {};
+                    let searchIndex = 0;
                     m.forEach(member => {
                         
-                        const memberPos = nonDefaultStr.indexOf(member);
+                        const memberPos = nonDefaultStr.indexOf(member, searchIndex);
                         
                         let name = member;
                         let len;
@@ -247,19 +252,19 @@ class ImportManager {
                             const aliasStart = aliasMatch.index + aliasMatch[0].length;
                             members[name].alias = {
                                 name: member.slice(aliasStart),
-                                start: start + memberStrStart + nonDefaultStart + memberPos + aliasStart,
-                                end: start + memberStrStart + nonDefaultStart + memberPos + member.length
+                                start: memberStrStart + nonDefaultStart + memberPos + aliasStart,
+                                end: memberStrStart + nonDefaultStart + memberPos + member.length
                             }
                         } else {
                             members[name] = {};
                             len = member.length;
                         }
-                        members[name].start = start + memberStrStart + nonDefaultStart + memberPos;
+                        members[name].start = memberStrStart + nonDefaultStart + memberPos;
                         members[name].end = members[name].start + len;
 
-                        // erase already found members to 
+                        // erase already found start +  + bers to 
                         // prevent potential substr matches
-                        nonDefaultStr = this.#blacken(nonDefaultStr, memberPos, len);
+                        searchIndex = memberPos + end;
                     });
                 }
                 
@@ -267,7 +272,6 @@ class ImportManager {
                     defaultStr = memberStr;
                 }
 
-                console.log("defaultStr", defaultStr);
                 if (defaultStr) {
 
                     const dm = defaultStr.split(",")
@@ -275,46 +279,50 @@ class ImportManager {
                                            .filter(m => m);
                     
                     defaultMembers = {};
+                    let searchIndex = 0;
                     dm.forEach(defaultMember => {
-
-                        const defaultMemberPos = defaultStr.indexOf(defaultMember);
-                        console.log("IHHWIHDW", defaultMemberPos, "dm", defaultMember);
+                        const defaultMemberPos = defaultStr.indexOf(defaultMember, searchIndex);
                         let name = defaultMember;
                         let len;
 
                         const aliasMatch = defaultMember.match(/(\s+as\s+)/);
                         if (aliasMatch) {
-                            console.log("ALLLLLLLIAS SHHH");
-                            console.log(name);
                             len = aliasMatch.index;
                             name = defaultMember.slice(0, len);
                             defaultMembers[name] = {};
-                            console.log(name);
                             const aliasStart = aliasMatch.index + aliasMatch[0].length;
                             defaultMembers[name].alias = {
                                 name: defaultMember.slice(aliasStart),
-                                start: start + memberStrStart + defaultMemberPos + aliasStart,
-                                end: start + memberStrStart + defaultMemberPos + defaultMember.length
+                                start: memberStrStart + defaultMemberPos + aliasStart,
+                                end: memberStrStart + defaultMemberPos + defaultMember.length
                             }
                         } else {
                             defaultMembers[name] = {};
                             len = defaultMember.length;
                         }
 
-                        defaultMembers[name].start = start + memberStrStart + defaultMemberPos;
+                        defaultMembers[name].start = memberStrStart + defaultMemberPos;
                         defaultMembers[name].end = defaultMembers[name].start + len;
 
-                        defaultStr = this.#blacken(defaultStr, defaultMemberPos, len);
+                        searchIndex = defaultMemberPos + len;
                     });
                 }
             }
 
+            const module = {
+                name: match[2]
+            }
+            module.start = match[0].lastIndexOf(match[2]);
+            module.end = module.start + match[2].length;
+
             this.imports.es6.units.push(
                 {
-                    code: match[0],
+                    id: id++,
+                    code: new MagicString(match[0]),
+                    c: match[0], // TODO: remove me
                     defaultMembers,
                     members,
-                    moduleName: match[2],
+                    module,
                     start,
                     end
                 }
@@ -328,6 +336,7 @@ class ImportManager {
 
     getCJSImports() {
         this.imports.cjs.count = 0;
+        let id = 1000;
 
         const cjsImportCollection = this.blackenedCode.ncNoStrings.matchAll(/(require\s*\(\s*)(\S+)(\s*\);?)/g);
         let next = cjsImportCollection.next();
@@ -339,18 +348,19 @@ class ImportManager {
             const start = match.index;
             const end = start + match[0].length;
             const code = this.code.slice(start, end);
-            const modStart = start + match[1].length ;
-            const modEnd = modStart + match[2].length;
-            const moduleName = this.code.slice(modStart, modEnd);
+            const module = {};
+            module.start = match[1].length;
+            module.end = module.start + match[2].length;
+            module.name = code.slice(module.start, module.end);
 
             this.imports.cjs.units.push(
                 {
-                    code,
-                    moduleName,
+                    id: id++,
+                    code: new MagicString(code),
+                    c: code, // TODO: remove me
+                    module,
                     start,
-                    end,
-                    modStart,
-                    modEnd,
+                    end
                 }
             )
 
@@ -377,8 +387,6 @@ class ImportManager {
             
             // remove multi line comments
             [ purgedLine, ncLine, mlc ] = this.#handleMLC(purgedLine, ncLine, mlc);
-            
-            //console.log(i+1, ":", purgedLine);
 
             cleanedArray.push(ncLine);
             purgedArray.push(purgedLine);
@@ -389,13 +397,20 @@ class ImportManager {
     }
 
     getAllImports() {
-        //this.getDynamicImports()
+        this.getDynamicImports()
         this.getES6Imports();
-        //this.getCJSImports();
+        this.getCJSImports();
     }
 }
 
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 
-console.log(source.slice(250, 256));
+/*
+const node = importManager.imports.dynamic.units.filter(i => i.id === 3003)[0];
+console.log(node);
+
+node.code.overwrite(node.module.start, node.module.end, "\"funny\"");
+importManager.code.overwrite(node.start, node.end, node.code.toString());
+console.log(importManager.code.toString());
+*/
