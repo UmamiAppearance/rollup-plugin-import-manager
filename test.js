@@ -4,7 +4,9 @@ import { member as alias } from "module-name";
 import { member1 , member2 } from "module-name";
 import { member1, member2 as alias2, member3 as alias3 } from "module-name";
 import defaultMember, { member, member2 } from "module-name";
-import defaultMember, * as alias from "module-name"
+import defaultMember,
+       * as alias 
+from "module-name"
 import defaultMember from "module-name";
 /* jdwjd
 oh boy */ import "module-name";
@@ -35,6 +37,7 @@ import
     {
         member1,
         member2,
+        member3
     }
 from "module-name";
 
@@ -222,7 +225,6 @@ class ImportManager {
                 let defaultStr = null;
 
                 if (nonDefaultMatch) {
-                    let index = 0;
                     const nonDefaultStart = nonDefaultMatch.index;
                     let nonDefaultStr = nonDefaultMatch[0];
 
@@ -235,7 +237,7 @@ class ImportManager {
                                        .filter(m => m);
                     
                     let searchIndex = 0;
-                    m.forEach(member => {
+                    m.forEach((member, index) => {
                         const memberPos = nonDefaultStr.indexOf(member, searchIndex);
                         
                         let name = member;
@@ -260,7 +262,12 @@ class ImportManager {
                         newMember.start = memberStrStart + nonDefaultStart + memberPos;
                         newMember.end = newMember.start + len;
                         newMember.absEnd = newMember.start + member.length;
-                        newMember.index = index ++;
+                        newMember.index = index;
+
+                        if (index > 0) {
+                            newMember.last = members[index-1].absEnd;
+                            members[index-1].next = newMember.start;
+                        }
 
                         members.push(newMember);
 
@@ -276,13 +283,12 @@ class ImportManager {
                 }
 
                 if (defaultStr) {
-                    let index = 0;
                     const dm = defaultStr.split(",")
                                            .map(m => m.trim())
                                            .filter(m => m);
                     
                     let searchIndex = 0;
-                    dm.forEach(defaultMember => {
+                    dm.forEach((defaultMember, index) => {
                         const defaultMemberPos = defaultStr.indexOf(defaultMember, searchIndex);
                         let name = defaultMember;
                         let len;
@@ -306,7 +312,12 @@ class ImportManager {
                         newDefMember.start = memberStrStart + defaultMemberPos;
                         newDefMember.end = newDefMember.start + len;
                         newDefMember.absEnd = newDefMember.start + defaultMember.length;
-                        newDefMember.index = index ++;
+                        newDefMember.index = index;
+
+                        if (index > 0) {
+                            newDefMember.last = defaultMembers[index-1].absEnd;
+                            defaultMembers[index-1].next = newDefMember.start;
+                        }
 
                         defaultMembers.push(newDefMember);
                         searchIndex = defaultMemberPos + len + 1;
@@ -320,6 +331,9 @@ class ImportManager {
             module.start = match[0].lastIndexOf(match[2]);
             module.end = module.start + match[2].length;
 
+            const sepDef = (defaultMembers.length > 1) ? match[0].slice(defaultMembers[0].absEnd, defaultMembers[0].next) : ", ";
+            const sepMem = (members.length > 1) ? match[0].slice(members[0].absEnd, members[0].next) : ", ";
+
             this.imports.es6.units.push(
                 {
                     id: id++,
@@ -329,7 +343,9 @@ class ImportManager {
                     members,
                     module,
                     start,
-                    end
+                    end,
+                    sepDef,
+                    sepMem
                 }
             )
             
@@ -394,12 +410,13 @@ class ImportManager {
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 
-/*
-const node = importManager.imports.es6.units.filter(i => i.id === 2006)[0];
+const node = importManager.imports.es6.units.filter(i => i.id === 2010)[0];
 console.log(node);
 
-//node.code.remove(node.members.member1.start, node.members.member1.end);
-node.code.overwrite(node.members.member2.start, node.members.member2.end, "\"funny\"");
+node.code.remove(node.members[1].start, node.members[1].next);
+node.code.overwrite(node.members[2].start, node.members[2].end, "funny");
+node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "stuff");
+node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "more_stuff");
 importManager.code.overwrite(node.start, node.end, node.code.toString());
+
 console.log(importManager.code.toString());
-*/
