@@ -405,14 +405,71 @@ class ImportManager {
         this.getES6Imports();
         this.getCJSImports();
     }
+
+    #testType(type) {
+        if (!["cjs", "dynamic", "es6"].includes(type)) {
+            throw new TypeError("Invalid. Type must be 'cjs', 'dynamic', or 'es6'.");
+        }
+    }
+
+    #listUnits(units) {
+        let msg = "";
+        units.forEach(unit => {
+            msg += `\nID: ${unit.id}\nNAME: ${unit.module.name}\nSTATEMENT: ${unit.code.toString()}\n`;
+        });
+        return msg;
+    }
+
+    selectModByName(name, type="es6") {
+        if (!name) {
+            throw new Error("The name must be provided");
+        }
+
+        this.#testType(type);        
+        const units = this.imports[type].units.filter(unit => unit.module.name === name);
+        
+        if (units.length === 0) {
+            let msg = this.#listUnits(this.imports[type].units);
+            msg += `___\nUnable to locate import statement with name: '${name}'`;
+            throw new Error(msg);
+        }
+        
+        else if (units.length > 1) {
+            let msg = this.#listUnits(units);
+            msg += `___\nFound multiple matches for '${name}'. If no other solution is available you can select by id.`;
+            throw new Error(msg);
+        }
+
+        return units[0];
+    }
+
+    selectModById(id, type="es6") {
+        if (!id) {
+            throw new Error("The id must be provided");
+        }
+
+        this.#testType(type);
+        const units = this.imports.es6.units.filter(n => n.id == id);
+
+        if (units.length === 0) {
+            let msg = this.#listUnits(this.imports[type].units);
+            msg += `___\nUnable to locate import statement with id: '${id}'`;
+            throw new Error(msg);
+        }
+
+        return units[0];
+    }
+
 }
 
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 
-const node = importManager.imports.es6.units.filter(i => i.id === 2010)[0];
+//const node = importManager.selectModById(2010);
+const node = importManager.selectModByName("\"fs\"", "cjs");
+// TODO: solve string matching, quotes no quotes?
 console.log(node);
-
+/*
 node.code.remove(node.members[1].start, node.members[1].next);
 node.code.overwrite(node.members[2].start, node.members[2].end, "funny");
 node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "stuff");
@@ -420,3 +477,4 @@ node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "more_stuff");
 importManager.code.overwrite(node.start, node.end, node.code.toString());
 
 console.log(importManager.code.toString());
+*/
