@@ -8,6 +8,7 @@ import defaultMember,
        * as alias 
 from "module-name"
 import defaultMember from "module-name";
+
 /* jdwjd
 oh boy */ import "module-name";
 
@@ -40,6 +41,8 @@ import
         member3
     }
 from "module-name";
+
+import { stuff } from "../path/test-module";
 
 const imp = import (
     "bullshit"
@@ -168,7 +171,14 @@ class ImportManager {
         const module = {};
         module.start = match[1].length;
         module.end = module.start + match[2].length;
-        module.name = code.slice(module.start, module.end);
+        if (code.charAt(module.start).match(/["'`]/)) {
+            module.type = "str";
+            module.name = code.slice(module.start+1, module.end-1).split("/").at(-1);  
+        } else {
+            module.type = "lit";
+            module.name = code.slice(module.start, module.end);
+        }
+        
 
         this.imports[type].units.push(
             {
@@ -202,7 +212,8 @@ class ImportManager {
         this.imports.es6.count = 0;
         let id = 2000;
 
-        const es6ImportCollection = this.blackenedCode.noComments.matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'\s]*([@\w/_-]+)["'\s]*;?/g);
+        //const es6ImportCollectionO = this.blackenedCode.noComments.matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'`\s]*([\.@\w/_-]+)["'`\s]*;?/g);
+        const es6ImportCollection = this.blackenedCode.ncNoStrings.matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?(\S+);?/g);
         
         let next = es6ImportCollection.next();
         while (!next.done) {
@@ -211,6 +222,7 @@ class ImportManager {
             const match = next.value;
             const start = match.index;
             const end = start + match[0].length;
+            const code = this.code.slice(start, end);
 
             const members = [];
             const defaultMembers = [];
@@ -218,7 +230,7 @@ class ImportManager {
             
             if (memberStr) {
                 // find position of all members
-                const memberStrStart = match[0].indexOf(memberStr);
+                const memberStrStart = code.indexOf(memberStr);
 
                 const nonDefaultMatch = memberStr.match(/{[\s\S]*}/);
                 
@@ -325,20 +337,26 @@ class ImportManager {
                 }
             }
 
-            const module = {
-                name: match[2]
-            }
+            const module = {}
             module.start = match[0].lastIndexOf(match[2]);
             module.end = module.start + match[2].length;
 
-            const sepDef = (defaultMembers.length > 1) ? match[0].slice(defaultMembers[0].absEnd, defaultMembers[0].next) : ", ";
-            const sepMem = (members.length > 1) ? match[0].slice(members[0].absEnd, members[0].next) : ", ";
+            if (code.charAt(module.start).match(/["'`]/)) {
+                module.type = "str";
+                module.name = code.slice(module.start+1, module.end-2).split("/").at(-1);  
+            } else {
+                module.type = "lit";
+                module.name = code.slice(module.start, module.end);
+            }
+
+            const sepDef = (defaultMembers.length > 1) ? code.slice(defaultMembers[0].absEnd, defaultMembers[0].next) : ", ";
+            const sepMem = (members.length > 1) ? code.slice(members[0].absEnd, members[0].next) : ", ";
 
             this.imports.es6.units.push(
                 {
                     id: id++,
-                    code: new MagicString(match[0]),
-                    c: match[0], // TODO: remove me
+                    code: new MagicString(code),
+                    c: code, // TODO: remove me
                     defaultMembers,
                     members,
                     module,
@@ -465,16 +483,17 @@ class ImportManager {
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 
-//const node = importManager.selectModById(2010);
-const node = importManager.selectModByName("\"fs\"", "cjs");
-// TODO: solve string matching, quotes no quotes?
+const node = importManager.selectModById(2010);
+//const node = importManager.selectModByName("\"fs\"", "cjs");
+// TODO: solve string matching, quotes no quotes? - Still Buggy
 console.log(node);
-/*
+
 node.code.remove(node.members[1].start, node.members[1].next);
 node.code.overwrite(node.members[2].start, node.members[2].end, "funny");
 node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "stuff");
 node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "more_stuff");
+node.code.overwrite(node.module.start, node.module.end, "\"bang!\"");
+
 importManager.code.overwrite(node.start, node.end, node.code.toString());
 
 console.log(importManager.code.toString());
-*/
