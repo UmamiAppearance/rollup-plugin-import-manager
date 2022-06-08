@@ -82,14 +82,21 @@ class ImportManager {
         }
 
         this.code = new MagicString(source);
-        this.blackenedCode = null;
+        this.blackenedCode = this.prepareSource(source);
 
-        this.prepareSource();
         if (autoSearch) {
             this.getAllImports();
         }
     }
 
+    /**
+     * Replaces a part of a string from a given
+     * start point with dashes of a given length.  
+     * @param {string} str - Input string. 
+     * @param {number} start - Start index. 
+     * @param {number} len - Amount of chars to replace.  
+     * @returns {string} - The blackened string.
+     */
     #blacken(str, start, len) {
         str = str.slice(0, start)
             + "-".repeat(len)
@@ -98,6 +105,12 @@ class ImportManager {
     }
 
 
+    /**
+     * Helper method to blacken all strings in a
+     * row of a file.
+     * @param {string} line - The line to be analyzed and blackened.
+     * @returns {string} - The processed line.
+     */
     #replaceStrings(line) {
         const strCollection = line.matchAll(/(["'`])(?:(?=(\\?))\2.)*?\1/g);
         let next = strCollection.next();
@@ -109,60 +122,103 @@ class ImportManager {
         return line;
     }
 
-    #handleSLC(purgedLine) {
-        const match = purgedLine.match(/\/\/.*/);
+
+    /**
+     * Helper method to find single line comments
+     * in a row of a filename. Matches are getting
+     * blackened.
+     * @param {string} line 
+     * @returns {string} - The processed line.
+     */
+    #handleSLC(line) {
+        const match = line.match(/\/\/.*/);
         if (match) {
-            purgedLine = this.#blacken(purgedLine, match.index, match[0].length);
+            line = this.#blacken(line, match.index, match[0].length);
         }
-        return purgedLine;
+        return line;
     }
 
-    // recursive multiline match
-    #handleMLC(purgedLine, mlc) {
+
+    /**
+     * Helper method to find multiline comments.
+     * It takes a line of a file as a input and
+     * also the current state of a multiline
+     * comment. ( /° => true | °/ => false)
+     * It contains a recursive multiline search
+     * function.
+     * @param {string} line - The input line of a file. 
+     * @param {boolean} mlc - If a mlc opens true else false (the state must get carried over to the following line).
+     * @returns {string} - The processed line.
+     */
+    #handleMLC(line, mlc) {
 
         const search = (pl, mlc) => {
+            
             let plSub = "";
 
+            // if the state if closed (false)
+            // search for the opening chars
             if (!mlc) {
                 const match = pl.match(/\/\*/);
                 if (match) {
                     const l = match.index;
+
+                    // if a match is found, feed the
+                    // rest of the string to the search 
+                    // function again
                     [ plSub, mlc ] = search(pl.slice(l), true);
+
+                    // save the string up until the match
                     pl = pl.slice(0, l);
                 }
             }
             
+            // if the state if open (true)
+            // search for the closing chars
             else {
                 const match = pl.match(/\*\//);
                 let l = pl.length;
                 if (match) {
+
+                    // if a match is found, feed the
+                    // rest of the string to the search 
+                    // function again
                     l = match.index+2;
                     [ plSub, mlc ] = search(pl.slice(l), false);
                 }
+                // save dashes by the amount of characters 
+                // up until the match
                 pl = "-".repeat(l);
             }
 
+            // join the divided strings
             pl += plSub;
 
             return [pl, mlc];
         }
 
-        let pl = purgedLine.toString();
-        let len = pl.length;
+        let purgedLine = line;
 
-        if (len) {
-            [ pl, mlc ] = search(pl, mlc);
-            purgedLine = pl;
+        // don't feed empty lines into the search fn
+        if (purgedLine.trim()) {
+            [ purgedLine, mlc ] = search(purgedLine, mlc);
+            line = purgedLine;
         }
         
-        return [ purgedLine, mlc ];
+        return [ line, mlc ];
     }
 
-    prepareSource() {
+    /**
+     * Prepares the source by replacing problematic
+     * content with dashes by calling the helper methods.
+     * @param {string} src - Source code.
+     * @returns {string} - Source code with blackened sections.
+     */
+    prepareSource(src) {
         let mlc = false;
         let purgedArray = [];
         
-        source.split("\n").forEach((line, i) => {
+        src.split("\n").forEach((line, i) => {
 
             // with all strings purged 
             let purgedLine = this.#replaceStrings(line);
@@ -176,61 +232,26 @@ class ImportManager {
             purgedArray.push(purgedLine);
         });
 
-        this.blackenedCode = purgedArray.join("\n");
+        return purgedArray.join("\n");
     }
 
 
-    #makeImport(type, match, id) {
-        const start = match.index;
-        const end = start + match[0].length;
-        const code = this.code.slice(start, end);
-        const module = {};
-        module.start = match[1].length;
-        module.end = module.start + match[2].length;
-        const char0 = code.charAt(module.start);
-        if (char0.match(/["'`]/)) {
-            module.type = "string";
-            module.quotes = char0;
-            module.name = code.slice(module.start+1, module.end-1).split("/").at(-1);
-        } else {
-            module.type = "literal";
-            module.name = code.slice(module.start, module.end);
-        }
-        
-
-        this.imports[type].units.push(
-            {
-                id,
-                code: new MagicString(code),
-                c: code, // TODO: remove me
-                module,
-                start,
-                end,
-            }
-        )
-    }
-
-    getDynamicImports() {
-        this.imports.dynamic.count = 0;
-        let id = 3000;
-
-        const dynamicImportCollection = this.blackenedCode.matchAll(/(import\s*\(\s*)(\S+)(\s*\);?)/g);
-        let next = dynamicImportCollection.next();
-
-        while (!next.done) {
-            this.imports.dynamic.count ++;
-            this.#makeImport("dynamic", next.value, id++);
-            next = dynamicImportCollection.next();
-        }
-
-        this.imports.dynamic.searched = true;
-    }
-
+    /**
+     * Collect all es6 imports from a source code.
+     * Destructure the string, and store the findings
+     * in an object which gets stored in the class
+     * instance.
+     */
     getES6Imports() {
         this.imports.es6.count = 0;
-        let id = 2000;
+        let id = 1000;
 
         const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(\-+);?/g);
+        // match[0]: the complete import statement
+        // match[1]: the member part of the statement (can be empty)
+        // match[2]: the module part
+        // found some inspiration here:
+        // https://gist.githubusercontent.com/manekinekko/7e58a17bc62a9be47172/raw/6abd080c9d2b937a509ce85a72309b1eb2e5ddf1/regex-es6-imports.js
         
         let next = es6ImportCollection.next();
         while (!next.done) {
@@ -239,8 +260,12 @@ class ImportManager {
             const match = next.value;
             const start = match.index;
             const end = start + match[0].length;
+
+            // get the equivalent string from the 
+            // original code
             const code = this.code.slice(start, end);
 
+            // separating members
             const members = [];
             const defaultMembers = [];
             const memberStr = match[1] ? match[1].trim() : null;
@@ -249,10 +274,14 @@ class ImportManager {
                 // find position of all members
                 const memberStrStart = code.indexOf(memberStr);
 
-                const nonDefaultMatch = memberStr.match(/{[\s\S]*}/);
-                
+                // initialize default string
                 let defaultStr = null;
 
+                // but begin with non default members, those
+                // are addressed by looking for everything between
+                // the curly braces (if present)
+                const nonDefaultMatch = memberStr.match(/{[\s\S]*}/);
+                
                 if (nonDefaultMatch) {
                     const nonDefaultStart = nonDefaultMatch.index;
                     let nonDefaultStr = nonDefaultMatch[0];
@@ -383,9 +412,68 @@ class ImportManager {
         }
     }
 
+    /**
+     * Generic method to find dynamic and common js
+     * import properties.
+     * @param {string} type - "cjs" or "dynamic" 
+     * @param {Object} match - A match object returned by a regex match fn. 
+     * @param {*} id 
+     */
+     #makeImport(type, match, id) {
+        const start = match.index;
+        const end = start + match[0].length;
+        const code = this.code.slice(start, end);
+        const module = {};
+        module.start = match[1].length;
+        module.end = module.start + match[2].length;
+        const char0 = code.charAt(module.start);
+        if (char0.match(/["'`]/)) {
+            module.type = "string";
+            module.quotes = char0;
+            module.name = code.slice(module.start+1, module.end-1).split("/").at(-1);
+        } else {
+            module.type = "literal";
+            module.name = code.slice(module.start, module.end);
+        }
+        
+
+        this.imports[type].units.push(
+            {
+                id,
+                code: new MagicString(code),
+                c: code, // TODO: remove me
+                module,
+                start,
+                end,
+            }
+        )
+    }
+
+
+    /**
+     * Find all dynamic import statements in the 
+     * (prepared) source code
+     */
+    getDynamicImports() {
+        this.imports.dynamic.count = 0;
+        let id = 2000;
+
+        const dynamicImportCollection = this.blackenedCode.matchAll(/(import\s*\(\s*)(\S+)(\s*\);?)/g);
+        let next = dynamicImportCollection.next();
+
+        while (!next.done) {
+            this.imports.dynamic.count ++;
+            this.#makeImport("dynamic", next.value, id++);
+            next = dynamicImportCollection.next();
+        }
+
+        this.imports.dynamic.searched = true;
+    }
+
+
     getCJSImports() {
         this.imports.cjs.count = 0;
-        let id = 1000;
+        let id = 3000;
 
         const cjsImportCollection = this.blackenedCode.matchAll(/(require\s*\(\s*)(\S+)(\s*\);?)/g);
         let next = cjsImportCollection.next();
