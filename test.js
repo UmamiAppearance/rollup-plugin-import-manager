@@ -9,10 +9,15 @@ import defaultMember,
 from "module-name"
 import defaultMember from "module-name";
 
-/* jdwjd
+/* jdwjd\s*
 oh boy */ import "module-name";
 
 // goodbye
+
+import
+    { Base1 }
+from
+    "./src/base-ex.js";
 
 code 1
 code 2
@@ -42,7 +47,7 @@ import
     }
 from "module-name";
 
-import { stuff } from "../path/test-module";
+import { stuff } from "../path/test-module.js";
 
 const imp = import (
     "bullshit"
@@ -77,10 +82,7 @@ class ImportManager {
         }
 
         this.code = new MagicString(source);
-        this.blackenedCode = {
-            noComments: null,
-            ncNoStrings: null
-        }
+        this.blackenedCode = null;
 
         this.prepareSource();
         if (autoSearch) {
@@ -107,30 +109,26 @@ class ImportManager {
         return line;
     }
 
-    #handleSLC(purgedLine, ncLine) {
+    #handleSLC(purgedLine) {
         const match = purgedLine.match(/\/\/.*/);
         if (match) {
             purgedLine = this.#blacken(purgedLine, match.index, match[0].length);
-            ncLine = this.#blacken(ncLine, match.index, match[0].length);
-        
         }
-        return [ purgedLine, ncLine ];
+        return purgedLine;
     }
 
     // recursive multiline match
-    #handleMLC(purgedLine, ncLine, mlc) {
+    #handleMLC(purgedLine, mlc) {
 
-        const search = (pl, ncl, mlc) => {
+        const search = (pl, mlc) => {
             let plSub = "";
-            let nclSub = "";
 
             if (!mlc) {
                 const match = pl.match(/\/\*/);
                 if (match) {
                     const l = match.index;
-                    [ plSub, nclSub, mlc ] = search(pl.slice(l), ncl.slice(l), true);
+                    [ plSub, mlc ] = search(pl.slice(l), true);
                     pl = pl.slice(0, l);
-                    ncl = ncl.slice(0, l);
                 }
             }
             
@@ -139,30 +137,48 @@ class ImportManager {
                 let l = pl.length;
                 if (match) {
                     l = match.index+2;
-                    [ plSub, nclSub, mlc ] = search(pl.slice(l), ncl.slice(l), false);
+                    [ plSub, mlc ] = search(pl.slice(l), false);
                 }
                 pl = "-".repeat(l);
-                ncl = "-".repeat(l);
             }
 
             pl += plSub;
-            ncl += nclSub;
 
-            return [pl, ncl, mlc];
+            return [pl, mlc];
         }
 
         let pl = purgedLine.toString();
-        let ncl = ncLine.toString();
         let len = pl.length;
 
         if (len) {
-            [ pl, ncl, mlc ] = search(pl, ncl, mlc);
+            [ pl, mlc ] = search(pl, mlc);
             purgedLine = pl;
-            ncLine = ncl;
         }
         
-        return [ purgedLine, ncLine, mlc ];
+        return [ purgedLine, mlc ];
     }
+
+    prepareSource() {
+        let mlc = false;
+        let purgedArray = [];
+        
+        source.split("\n").forEach((line, i) => {
+
+            // with all strings purged 
+            let purgedLine = this.#replaceStrings(line);
+
+            // remove single line comments
+            purgedLine = this.#handleSLC(purgedLine);
+            
+            // remove multi line comments
+            [ purgedLine, mlc ] = this.#handleMLC(purgedLine, mlc);
+
+            purgedArray.push(purgedLine);
+        });
+
+        this.blackenedCode = purgedArray.join("\n");
+    }
+
 
     #makeImport(type, match, id) {
         const start = match.index;
@@ -171,11 +187,13 @@ class ImportManager {
         const module = {};
         module.start = match[1].length;
         module.end = module.start + match[2].length;
-        if (code.charAt(module.start).match(/["'`]/)) {
-            module.type = "str";
-            module.name = code.slice(module.start+1, module.end-1).split("/").at(-1);  
+        const char0 = code.charAt(module.start);
+        if (char0.match(/["'`]/)) {
+            module.type = "string";
+            module.quotes = char0;
+            module.name = code.slice(module.start+1, module.end-1).split("/").at(-1);
         } else {
-            module.type = "lit";
+            module.type = "literal";
             module.name = code.slice(module.start, module.end);
         }
         
@@ -196,7 +214,7 @@ class ImportManager {
         this.imports.dynamic.count = 0;
         let id = 3000;
 
-        const dynamicImportCollection = this.blackenedCode.ncNoStrings.matchAll(/(import\s*\(\s*)(\S+)(\s*\);?)/g);
+        const dynamicImportCollection = this.blackenedCode.matchAll(/(import\s*\(\s*)(\S+)(\s*\);?)/g);
         let next = dynamicImportCollection.next();
 
         while (!next.done) {
@@ -212,8 +230,7 @@ class ImportManager {
         this.imports.es6.count = 0;
         let id = 2000;
 
-        //const es6ImportCollectionO = this.blackenedCode.noComments.matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?["'`\s]*([\.@\w/_-]+)["'`\s]*;?/g);
-        const es6ImportCollection = this.blackenedCode.ncNoStrings.matchAll(/import(?:["'\s]*([\w*{}\n, ]+)from\s*)?(\S+);?/g);
+        const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(\-+);?/g);
         
         let next = es6ImportCollection.next();
         while (!next.done) {
@@ -338,16 +355,9 @@ class ImportManager {
             }
 
             const module = {}
-            module.start = match[0].lastIndexOf(match[2]);
-            module.end = module.start + match[2].length;
-
-            if (code.charAt(module.start).match(/["'`]/)) {
-                module.type = "str";
-                module.name = code.slice(module.start+1, module.end-2).split("/").at(-1);  
-            } else {
-                module.type = "lit";
-                module.name = code.slice(module.start, module.end);
-            }
+            module.start = match[0].indexOf(match[2]) + 1;
+            module.end = module.start + match[2].length - 2;
+            module.name = code.slice(module.start, module.end).split("/").at(-1);
 
             const sepDef = (defaultMembers.length > 1) ? code.slice(defaultMembers[0].absEnd, defaultMembers[0].next) : ", ";
             const sepMem = (members.length > 1) ? code.slice(members[0].absEnd, members[0].next) : ", ";
@@ -377,7 +387,7 @@ class ImportManager {
         this.imports.cjs.count = 0;
         let id = 1000;
 
-        const cjsImportCollection = this.blackenedCode.ncNoStrings.matchAll(/(require\s*\(\s*)(\S+)(\s*\);?)/g);
+        const cjsImportCollection = this.blackenedCode.matchAll(/(require\s*\(\s*)(\S+)(\s*\);?)/g);
         let next = cjsImportCollection.next();
 
         while (!next.done) {
@@ -390,32 +400,6 @@ class ImportManager {
         } 
 
         this.imports.cjs.searched = true;
-    }
-
-    prepareSource() {
-        let mlc = false;
-        let cleanedArray = [];
-        let purgedArray = [];
-        
-        source.split("\n").forEach((line, i) => {
-
-            // copy original line
-            let ncLine = line;
-            // with all strings purged 
-            let purgedLine = this.#replaceStrings(line);
-
-            // remove single line comments
-            [ purgedLine, ncLine ] = this.#handleSLC(purgedLine, ncLine);
-            
-            // remove multi line comments
-            [ purgedLine, ncLine, mlc ] = this.#handleMLC(purgedLine, ncLine, mlc);
-
-            cleanedArray.push(ncLine);
-            purgedArray.push(purgedLine);
-        });
-
-        this.blackenedCode.noComments = cleanedArray.join("\n");
-        this.blackenedCode.ncNoStrings = purgedArray.join("\n");
     }
 
     getAllImports() {
@@ -467,7 +451,7 @@ class ImportManager {
         }
 
         this.#testType(type);
-        const units = this.imports.es6.units.filter(n => n.id == id);
+        const units = this.imports[type].units.filter(n => n.id == id);
 
         if (units.length === 0) {
             let msg = this.#listUnits(this.imports[type].units);
@@ -483,11 +467,10 @@ class ImportManager {
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 
-const node = importManager.selectModById(2010);
-//const node = importManager.selectModByName("\"fs\"", "cjs");
-// TODO: solve string matching, quotes no quotes? - Still Buggy
+//const node = importManager.selectModById(3001, "dynamic");
+const node = importManager.selectModByName("${stuff} yegd", "dynamic");
 console.log(node);
-
+/*
 node.code.remove(node.members[1].start, node.members[1].next);
 node.code.overwrite(node.members[2].start, node.members[2].end, "funny");
 node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "stuff");
@@ -497,3 +480,4 @@ node.code.overwrite(node.module.start, node.module.end, "\"bang!\"");
 importManager.code.overwrite(node.start, node.end, node.code.toString());
 
 console.log(importManager.code.toString());
+*/
