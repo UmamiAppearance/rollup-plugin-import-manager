@@ -93,7 +93,9 @@ class ImportManager {
         this.blackenedCode = this.prepareSource();
 
         if (autoSearch) {
-            this.getAllImports();
+            this.getDynamicImports()
+            this.getES6Imports();
+            this.getCJSImports();
         }
     }
 
@@ -172,8 +174,6 @@ class ImportManager {
         // match[0]: the complete import statement
         // match[1]: the member part of the statement (can be empty)
         // match[2]: the module part
-        // found some inspiration here:
-        // https://gist.githubusercontent.com/manekinekko/7e58a17bc62a9be47172/raw/6abd080c9d2b937a509ce85a72309b1eb2e5ddf1/regex-es6-imports.js
         
         let next = es6ImportCollection.next();
         while (!next.done) {
@@ -211,11 +211,14 @@ class ImportManager {
                     if (nonDefaultStart > 0) {
                         defaultStr = memberStr.slice(0, nonDefaultMatch.index);
                     }
+
+                    // split the individual members
                     const m = memberStr.slice(nonDefaultStart+1, nonDefaultStart+nonDefaultStr.length-2)
                                        .split(",")
                                        .map(m => m.trim())
                                        .filter(m => m);
                     
+                    // get the position of each of each member 
                     let searchIndex = 0;
                     m.forEach((member, index) => {
                         const memberPos = nonDefaultStr.indexOf(member, searchIndex);
@@ -223,6 +226,7 @@ class ImportManager {
                         let name = member;
                         let len;
 
+                        // isolate aliases
                         const aliasMatch = member.match(/(\s+as\s+)/);
                         const newMember = {};
                         if (aliasMatch) {
@@ -244,6 +248,10 @@ class ImportManager {
                         newMember.absEnd = newMember.start + member.length;
                         newMember.index = index;
 
+                        // store the current member start as
+                        // a property of the last and the last
+                        // member end as a property of the 
+                        // current
                         if (index > 0) {
                             newMember.last = members[index-1].absEnd;
                             members[index-1].next = newMember.start;
@@ -258,14 +266,19 @@ class ImportManager {
                     });
                 }
                 
+                // if no non default members were found
+                // the default member string is the whole
+                // member string 
                 else {
                     defaultStr = memberStr;
                 }
 
+                // if a default str is present process
+                // it similarly to the non default members
                 if (defaultStr) {
                     const dm = defaultStr.split(",")
-                                           .map(m => m.trim())
-                                           .filter(m => m);
+                                          .map(m => m.trim())
+                                          .filter(m => m);
                     
                     let searchIndex = 0;
                     dm.forEach((defaultMember, index) => {
@@ -274,6 +287,7 @@ class ImportManager {
                         let len;
                         const newDefMember = {};
                         const aliasMatch = defaultMember.match(/(\s+as\s+)/);
+                        
                         if (aliasMatch) {
                             len = aliasMatch.index;
                             name = defaultMember.slice(0, len);
@@ -305,14 +319,21 @@ class ImportManager {
                 }
             }
 
+            // create a fresh object for the current unit
             const module = {}
+
+            // find the position of the module string
             module.start = match[0].indexOf(match[2]) + 1;
             module.end = module.start + match[2].length - 2;
             module.name = code.slice(module.start, module.end).split("/").at(-1);
 
+            // store the first separator of the non default
+            // and default members for a consistent style
+            // if one wants to add members
             const sepDef = (defaultMembers.length > 1) ? code.slice(defaultMembers[0].absEnd, defaultMembers[0].next) : ", ";
             const sepMem = (members.length > 1) ? code.slice(members[0].absEnd, members[0].next) : ", ";
 
+            // push the fresh unit to es6 unit array
             this.imports.es6.units.push(
                 {
                     id: id++,
@@ -329,7 +350,6 @@ class ImportManager {
             )
             
             next = es6ImportCollection.next();
-            
             this.imports.es6.searched = true;
         }
     }
@@ -339,16 +359,23 @@ class ImportManager {
      * import properties.
      * @param {string} type - "cjs" or "dynamic" 
      * @param {Object} match - A match object returned by a regex match fn. 
-     * @param {*} id 
+     * @param {number} id 
      */
      #makeImport(type, match, id) {
         const start = match.index;
         const end = start + match[0].length;
         const code = this.code.slice(start, end);
+        
         const module = {};
         module.start = match[1].length;
         module.end = module.start + match[2].length;
         const char0 = code.charAt(module.start);
+
+        // as dynamic and cjs imports allow variables
+        // (or even functions) to provide the module
+        // string this type has to be figured out and
+        // stored
+
         if (char0.match(/["'`]/)) {
             module.type = "string";
             module.quotes = char0;
@@ -374,7 +401,7 @@ class ImportManager {
 
     /**
      * Find all dynamic import statements in the 
-     * (prepared) source code
+     * (prepared) source code.
      */
     getDynamicImports() {
         this.imports.dynamic.count = 0;
@@ -393,6 +420,10 @@ class ImportManager {
     }
 
 
+    /**
+     * Find all common js import statements in the 
+     * (prepared) source code.
+     */
     getCJSImports() {
         this.imports.cjs.count = 0;
         let id = 3000;
@@ -412,44 +443,57 @@ class ImportManager {
         this.imports.cjs.searched = true;
     }
 
-    getAllImports() {
-        this.getDynamicImports()
-        this.getES6Imports();
-        this.getCJSImports();
-    }
 
-    #testType(type) {
+//              ___________________              //
+//              select unit methods              //
+
+    /**
+     * Helper method to test if the provided
+     * type is valid
+     * @param {str} type 
+     */
+    #isValidType(type) {
         if (!["cjs", "dynamic", "es6"].includes(type)) {
             throw new TypeError("Invalid. Type must be 'cjs', 'dynamic', or 'es6'.");
         }
     }
 
+
+    /**
+     * Helper method to list available units
+     * in case of an error.
+     * @param {Object[]} units - Array unit objects to list.
+     * @returns {string} - Message for logging.
+     */
     #listUnits(units) {
-        let msg = "";
+        let msg = "\n";
         units.forEach(unit => {
-            msg += `\nID: ${unit.id}\nNAME: ${unit.module.name}\nSTATEMENT: ${unit.code.toString()}\n`;
+            msg += "___\n"
+                 + `ID:   ${unit.id}\n`
+                 + `NAME: ${unit.module.name}\n`
+                 + `STATEMENT:\n${unit.code.toString()}\n\n`;
         });
         return msg;
     }
 
     selectModByName(name, type="es6") {
         if (!name) {
-            throw new Error("The name must be provided");
+            throw new TypeError("The name must be provided");
         }
 
-        this.#testType(type);        
+        this.#isValidType(type);        
         const units = this.imports[type].units.filter(unit => unit.module.name === name);
         
         if (units.length === 0) {
             let msg = this.#listUnits(this.imports[type].units);
             msg += `___\nUnable to locate import statement with name: '${name}'`;
-            throw new Error(msg);
+            throw new MatchError(msg);
         }
         
         else if (units.length > 1) {
             let msg = this.#listUnits(units);
             msg += `___\nFound multiple matches for '${name}'. If no other solution is available you can select by id.`;
-            throw new Error(msg);
+            throw new MatchError(msg);
         }
 
         return units[0];
@@ -457,16 +501,16 @@ class ImportManager {
 
     selectModById(id, type="es6") {
         if (!id) {
-            throw new Error("The id must be provided");
+            throw new TypeError("The id must be provided");
         }
 
-        this.#testType(type);
+        this.#isValidType(type);
         const units = this.imports[type].units.filter(n => n.id == id);
 
         if (units.length === 0) {
             let msg = this.#listUnits(this.imports[type].units);
             msg += `___\nUnable to locate import statement with id: '${id}'`;
-            throw new Error(msg);
+            throw new MatchError(msg);
         }
 
         return units[0];
@@ -474,6 +518,13 @@ class ImportManager {
 
 }
 
+
+class MatchError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "MatchError";
+    }
+}
 
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
