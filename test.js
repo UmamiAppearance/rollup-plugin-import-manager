@@ -346,6 +346,7 @@ class ImportManager {
             this.imports.es6.units.push(
                 {
                     id: id++,
+                    hash: simpleHash(code),
                     code: new MagicString(code),
                     c: code, // TODO: remove me
                     defaultMembers,
@@ -405,6 +406,7 @@ class ImportManager {
         this.imports[type].units.push(
             {
                 id,
+                hash: simpleHash(code),
                 code: new MagicString(code),
                 c: code, // TODO: remove me
                 module,
@@ -488,6 +490,7 @@ class ImportManager {
             msgArray.push(
                 "___",
                 `ID:   ${unit.id}`,
+                `HASH: ${unit.hash}`, 
                 `NAME: ${unit.module.name}`,
                 `STATEMENT:\n${unit.code.toString()}\n`
             );
@@ -527,7 +530,8 @@ class ImportManager {
 
 
     /**
-     * Selects a unit by its id.
+     * Selects a unit by its id. Should only be used
+     * for test purposes.
      * @param {number} id - Unit id. 
      * @param {string} type - "cjs", "dynamic", "es6"
      * @returns {Object} - An explicit node.
@@ -562,11 +566,25 @@ class MatchError extends Error {
     }
 }
 
+/**
+ * Simple as it gets has function.
+ * @see https://gist.github.com/iperelivskiy/4110988?permalink_comment_id=2697447#gistcomment-2697447
+ * @param {*} str 
+ * @returns 
+ */
+function simpleHash(str) {
+    let h = 0xdeadbeef;
+    for(let i=0; i<str.length; i++)
+        h = Math.imul(h ^ str.charCodeAt(i), 2654435761);
+    return (h ^ h >>> 16) >>> 0;
+};
+// TODO: Use input line members, default members ... -> not changing when changing one whitespace
+
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 console.log(source.length, importManager.code.toString().length);
 
-const node = importManager.selectModById(1011);
+const node = importManager.selectModById(101122);
 console.log(node);
 
 node.code.remove(node.members[1].start, node.members[1].next);
