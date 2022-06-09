@@ -117,12 +117,12 @@ class ImportManager {
      * @returns {string} - The processed line.
      */
     #replaceStrings(line) {
-        const strCollection = line.matchAll(/(["'`])(?:(?=(\\?))\2.)*?\1/g);
-        let next = strCollection.next();
+        const collection = line.matchAll(/(["'`])(?:(?=(\\?))\2.)*?\1/g);
+        let next = collection.next();
         while (!next.done) {
             const match = next.value; 
             line = this.#blacken(line, match.index, match[0].length);
-            next = strCollection.next();
+            next = collection.next();
         }
         return line;
     }
@@ -213,6 +213,12 @@ class ImportManager {
         return [ line, mlc ];
     }
 
+    #dashIfNotNL(str) {
+        return str.split("")
+                  .map(c => c === "\n" ? "\n" : "-")
+                  .join("");
+    }
+
     /**
      * Prepares the source by replacing problematic
      * content with dashes by calling the helper methods.
@@ -220,24 +226,56 @@ class ImportManager {
      * @returns {string} - Source code with blackened sections.
      */
     prepareSource(src) {
-        let mlc = false;
-        let purgedArray = [];
+        const code = new MagicString(source);
+
+        let collection = source.matchAll(/([\"'])(?:\\\1|.)*?\1/g);
+        let next = collection.next();
+        while (!next.done) {
+            const match = next.value;
+            const len = match[0].length;
+            const start = match.index;
+            const end = start + len;
+            code.overwrite(start, end, ("-").repeat(len))
+            next = collection.next();
+        }
+
         
-        src.split("\n").forEach((line, i) => {
+        collection = source.matchAll(/`(?:\\`|\s|\S)*?`/g);
+        next = collection.next();
+        while (!next.done) {
+            const match = next.value;
+            const len = match[0].length;
+            const start = match.index;
+            const end = start + len;
+            const blackenedStr = this.#dashIfNotNL(match[0]);
+            code.overwrite(start, end, blackenedStr)
+            next = collection.next();
+        }
 
-            // with all strings purged 
-            let purgedLine = this.#replaceStrings(line);
+        collection = source.matchAll(/\/\/.*/g);
+        next = collection.next();
+        while (!next.done) {
+            const match = next.value;
+            const len = match[0].length;
+            const start = match.index;
+            const end = start + len;
+            code.overwrite(start, end, ("-").repeat(len))
+            next = collection.next();
+        }
 
-            // remove single line comments
-            purgedLine = this.#handleSLC(purgedLine);
-            
-            // remove multi line comments
-            [ purgedLine, mlc ] = this.#handleMLC(purgedLine, mlc);
+        collection = source.matchAll(/\/\*(?:\\\/\*|\s|\S)*?\*\//g);
+        next = collection.next();
+        while (!next.done) {
+            const match = next.value;
+            const len = match[0].length;
+            const start = match.index;
+            const end = start + len;
+            const blackenedStr = this.#dashIfNotNL(match[0]);
+            code.overwrite(start, end, blackenedStr)
+            next = collection.next();
+        }
 
-            purgedArray.push(purgedLine);
-        });
-
-        return purgedArray.join("\n");
+        return code.toString();
     }
 
 
@@ -557,14 +595,19 @@ class ImportManager {
 
 }
 
-/*
+
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
-
+console.log(source.length, importManager.code.toString().length);
 //const node = importManager.selectModById(3001, "dynamic");
 const node = importManager.selectModByName("${stuff} yegd", "dynamic");
-console.log(node);
+//console.log(node);
+node.code.overwrite(node.module.start, node.module.end, "\"bang!\"");
+importManager.code.overwrite(node.start, node.end, node.code.toString());
+//console.log(node);
+console.log(importManager.code.toString());
 
+/*
 node.code.remove(node.members[1].start, node.members[1].next);
 node.code.overwrite(node.members[2].start, node.members[2].end, "funny");
 node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "stuff");
@@ -576,31 +619,4 @@ importManager.code.overwrite(node.start, node.end, node.code.toString());
 console.log(importManager.code.toString());
 */
 
-//const strCollection = source.matchAll(/(["'])(?:(?=(\\?))\2.)*?\1/g);
-
-const code = new MagicString(source);
-const strCollection = source.matchAll(/([\"'])(?:\\\1|.)*?\1/g);
-
-let next = strCollection.next();
-while (!next.done) {
-    const match = next.value;
-    const len = match[0].length;
-    const start = match.index;
-    const end = start + len;
-    code.overwrite(start, end, ("-").repeat(len))
-    next = strCollection.next();
-}
-
-const strCollection2 = source.matchAll(/`(?:\\`|\s|\S)*?`/g);
-
-next = strCollection2.next();
-while (!next.done) {
-    const match = next.value;
-    const len = match[0].length;
-    const start = match.index;
-    const end = start + len;
-    code.overwrite(start, end, ("-").repeat(len))
-    next = strCollection2.next();
-}
-
-console.log(code.toString());
+//const collection = source.matchAll(/(["'])(?:(?=(\\?))\2.)*?\1/g);
