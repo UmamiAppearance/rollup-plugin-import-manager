@@ -86,196 +86,59 @@ class ImportManager {
         }
 
         this.code = new MagicString(source);
-        this.blackenedCode = this.prepareSource(source);
+        this.blackenedCode = this.prepareSource();
 
         if (autoSearch) {
             this.getAllImports();
         }
     }
 
-    /**
-     * Replaces a part of a string from a given
-     * start point with dashes of a given length.  
-     * @param {string} str - Input string. 
-     * @param {number} start - Start index. 
-     * @param {number} len - Amount of chars to replace.  
-     * @returns {string} - The blackened string.
-     */
-    #blacken(str, start, len) {
-        str = str.slice(0, start)
-            + "-".repeat(len)
-            + str.slice(start+len);
-        return str; 
-    }
+    #matchAndPurge(src, regex, nl=false) {
+        
+        let genBlackenedStr = "";
+        if (nl) {
+            genBlackenedStr = str => str.split("")
+                                        .map(c => c === "\n" ? "\n" : "-")
+                                        .join("");
+        } else {
+            genBlackenedStr = str => ("-").repeat(str.length);
+        }
 
-
-    /**
-     * // FIXME: Handle multiline strings !!!
-     * Helper method to blacken all strings in a
-     * row of a file.
-     * @param {string} line - The line to be analyzed and blackened.
-     * @returns {string} - The processed line.
-     */
-    #replaceStrings(line) {
-        const collection = line.matchAll(/(["'`])(?:(?=(\\?))\2.)*?\1/g);
+        const collection = src.toString().matchAll(regex);
         let next = collection.next();
+        
         while (!next.done) {
-            const match = next.value; 
-            line = this.#blacken(line, match.index, match[0].length);
+            const match = next.value;
+            const start = match.index;
+            const end = start + match[0].length;
+            src.overwrite(start, end, genBlackenedStr(match[0]));
             next = collection.next();
         }
-        return line;
-    }
-
-
-    /**
-     * Helper method to find single line comments
-     * in a row of a filename. Matches are getting
-     * blackened.
-     * @param {string} line 
-     * @returns {string} - The processed line.
-     */
-    #handleSLC(line) {
-        const match = line.match(/\/\/.*/);
-        if (match) {
-            line = this.#blacken(line, match.index, match[0].length);
-        }
-        return line;
-    }
-
-
-    /**
-     * Helper method to find multiline comments.
-     * It takes a line of a file as a input and
-     * also the current state of a multiline
-     * comment. ( /° => true | °/ => false)
-     * It contains a recursive multiline search
-     * function.
-     * @param {string} line - The input line of a file. 
-     * @param {boolean} mlc - If a mlc opens true else false (the state must get carried over to the following line).
-     * @returns {string} - The processed line.
-     */
-    #handleMLC(line, mlc) {
-
-        const search = (pl, mlc) => {
-            
-            let plSub = "";
-
-            // if the state if closed (false)
-            // search for the opening chars
-            if (!mlc) {
-                const match = pl.match(/\/\*/);
-                if (match) {
-                    const l = match.index;
-
-                    // if a match is found, feed the
-                    // rest of the string to the search 
-                    // function again
-                    [ plSub, mlc ] = search(pl.slice(l), true);
-
-                    // save the string up until the match
-                    pl = pl.slice(0, l);
-                }
-            }
-            
-            // if the state if open (true)
-            // search for the closing chars
-            else {
-                const match = pl.match(/\*\//);
-                let l = pl.length;
-                if (match) {
-
-                    // if a match is found, feed the
-                    // rest of the string to the search 
-                    // function again
-                    l = match.index+2;
-                    [ plSub, mlc ] = search(pl.slice(l), false);
-                }
-                // save dashes by the amount of characters 
-                // up until the match
-                pl = "-".repeat(l);
-            }
-
-            // join the divided strings
-            pl += plSub;
-
-            return [pl, mlc];
-        }
-
-        let purgedLine = line;
-
-        // don't feed empty lines into the search fn
-        if (purgedLine.trim()) {
-            [ purgedLine, mlc ] = search(purgedLine, mlc);
-            line = purgedLine;
-        }
-        
-        return [ line, mlc ];
-    }
-
-    #dashIfNotNL(str) {
-        return str.split("")
-                  .map(c => c === "\n" ? "\n" : "-")
-                  .join("");
     }
 
     /**
      * Prepares the source by replacing problematic
-     * content with dashes by calling the helper methods.
-     * @param {string} src - Source code.
-     * @returns {string} - Source code with blackened sections.
+     * content.
+     * @returns {string} - The blackened source.
      */
-    prepareSource(src) {
-        const code = new MagicString(source);
+    prepareSource() {
 
-        let collection = source.matchAll(/([\"'])(?:\\\1|.)*?\1/g);
-        let next = collection.next();
-        while (!next.done) {
-            const match = next.value;
-            const len = match[0].length;
-            const start = match.index;
-            const end = start + len;
-            code.overwrite(start, end, ("-").repeat(len))
-            next = collection.next();
-        }
+        // clone the original code
+        const src = this.code.clone();
 
+        // blacken double and single quoted strings
+        this.#matchAndPurge(src, /([\"'])(?:\\\1|.)*?\1/g);
         
-        collection = source.matchAll(/`(?:\\`|\s|\S)*?`/g);
-        next = collection.next();
-        while (!next.done) {
-            const match = next.value;
-            const len = match[0].length;
-            const start = match.index;
-            const end = start + len;
-            const blackenedStr = this.#dashIfNotNL(match[0]);
-            code.overwrite(start, end, blackenedStr)
-            next = collection.next();
-        }
+        // blacken template string literals
+        this.#matchAndPurge(src, /`(?:\\`|\s|\S)*?`/g, true);
 
-        collection = source.matchAll(/\/\/.*/g);
-        next = collection.next();
-        while (!next.done) {
-            const match = next.value;
-            const len = match[0].length;
-            const start = match.index;
-            const end = start + len;
-            code.overwrite(start, end, ("-").repeat(len))
-            next = collection.next();
-        }
+        // blacken single line comments
+        this.#matchAndPurge(src, /\/\/.*/g);
 
-        collection = source.matchAll(/\/\*(?:\\\/\*|\s|\S)*?\*\//g);
-        next = collection.next();
-        while (!next.done) {
-            const match = next.value;
-            const len = match[0].length;
-            const start = match.index;
-            const end = start + len;
-            const blackenedStr = this.#dashIfNotNL(match[0]);
-            code.overwrite(start, end, blackenedStr)
-            next = collection.next();
-        }
-
-        return code.toString();
+        // blacken multi line comments
+        this.#matchAndPurge(src, /\/\*(?:\\\/\*|\s|\S)*?\*\//g, true);
+        
+        return src.toString();
     }
 
 
