@@ -18,7 +18,9 @@ import
     { Base1 }
 from
     "./src/base-ex.js";
-
+const zzz = \`
+import("NO");
+\`
 code 1
 code 2
 /* NO */ // ciao
@@ -58,6 +60,8 @@ const y = "bdwi";
 import("modulePath")
   .then(obj => <module object>)
   .catch(err => <loading error, e.g. if no such module>)
+
+test = \` 'not me!' \`;
 `
 
 const MagicString = require("magic-string");
@@ -106,6 +110,7 @@ class ImportManager {
 
 
     /**
+     * // FIXME: Handle multiline strings !!!
      * Helper method to blacken all strings in a
      * row of a file.
      * @param {string} line - The line to be analyzed and blackened.
@@ -552,13 +557,14 @@ class ImportManager {
 
 }
 
+/*
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 
 //const node = importManager.selectModById(3001, "dynamic");
 const node = importManager.selectModByName("${stuff} yegd", "dynamic");
 console.log(node);
-/*
+
 node.code.remove(node.members[1].start, node.members[1].next);
 node.code.overwrite(node.members[2].start, node.members[2].end, "funny");
 node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "stuff");
@@ -569,3 +575,32 @@ importManager.code.overwrite(node.start, node.end, node.code.toString());
 
 console.log(importManager.code.toString());
 */
+
+//const strCollection = source.matchAll(/(["'])(?:(?=(\\?))\2.)*?\1/g);
+
+const code = new MagicString(source);
+const strCollection = source.matchAll(/([\"'])(?:\\\1|.)*?\1/g);
+
+let next = strCollection.next();
+while (!next.done) {
+    const match = next.value;
+    const len = match[0].length;
+    const start = match.index;
+    const end = start + len;
+    code.overwrite(start, end, ("-").repeat(len))
+    next = strCollection.next();
+}
+
+const strCollection2 = source.matchAll(/`(?:\\`|\s|\S)*?`/g);
+
+next = strCollection2.next();
+while (!next.done) {
+    const match = next.value;
+    const len = match[0].length;
+    const start = match.index;
+    const end = start + len;
+    code.overwrite(start, end, ("-").repeat(len))
+    next = strCollection2.next();
+}
+
+console.log(code.toString());
