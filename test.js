@@ -461,7 +461,7 @@ class ImportManager {
 
     /**
      * Helper method to list available units
-     * in case of an error.
+     * in case of a MatchError.
      * @param {Object[]} units - Array unit objects to list.
      * @returns {string} - Message for logging.
      */
@@ -476,6 +476,12 @@ class ImportManager {
         return msg;
     }
 
+    /**
+     * Selects a unit by its module name.
+     * @param {string} name - Module Name. 
+     * @param {string} type - "cjs", "dynamic", "es6"
+     * @returns {Object} - An explicit node.
+     */
     selectModByName(name, type="es6") {
         if (!name) {
             throw new TypeError("The name must be provided");
@@ -492,13 +498,19 @@ class ImportManager {
         
         else if (units.length > 1) {
             let msg = this.#listUnits(units);
-            msg += `___\nFound multiple matches for '${name}'. If no other solution is available you can select by id.`;
+            msg += `___\nFound multiple matches for '${name}'. If no other solution is available you may select via id.`;
             throw new MatchError(msg);
         }
 
         return units[0];
     }
 
+    /**
+     * Selects a unit by its id.
+     * @param {number} id - Unit id. 
+     * @param {string} type - "cjs", "dynamic", "es6"
+     * @returns {Object} - An explicit node.
+     */
     selectModById(id, type="es6") {
         if (!id) {
             throw new TypeError("The id must be provided");
@@ -518,7 +530,10 @@ class ImportManager {
 
 }
 
-
+/**
+ * Custom error to tell the user, that it is
+ * not possible to select a specific unit.
+ */
 class MatchError extends Error {
     constructor(message) {
         super(message);
