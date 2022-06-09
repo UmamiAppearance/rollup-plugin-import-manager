@@ -29,7 +29,9 @@ code 3
 NO
 */ code4
 code 5
-const bumm = import(\`\${stuff} yegd\`);
+const bumm = import(
+    \`\${stuff} yegd\`
+);
 
 /* NO */ code 6 /* NO */ code + // nope
 code 7
@@ -61,7 +63,9 @@ import("modulePath")
   .then(obj => <module object>)
   .catch(err => <loading error, e.g. if no such module>)
 
-test = \` 'not me!' \`;
+test = \`  'not me!' \`;
+
+/*  // test */ boing
 `
 
 const MagicString = require("magic-string");
@@ -93,7 +97,7 @@ class ImportManager {
         }
     }
 
-    #matchAndPurge(src, regex, nl=false) {
+    #matchAndStrike(src, regex, nl=false) {
         
         let genBlackenedStr = "";
         if (nl) {
@@ -127,20 +131,32 @@ class ImportManager {
         const src = this.code.clone();
 
         // blacken double and single quoted strings
-        this.#matchAndPurge(src, /([\"'])(?:\\\1|.)*?\1/g);
+        this.#matchAndStrike(
+            src,
+            /([\"'])(?:\\\1|.)*?\1/g
+        );
         
         // blacken template string literals
-        this.#matchAndPurge(src, /`(?:\\`|\s|\S)*?`/g, true);
-
-        // blacken single line comments
-        this.#matchAndPurge(src, /\/\/.*/g);
+        this.#matchAndStrike(
+            src,
+            /`(?:\\`|\s|\S)*?`/g,
+            true);
 
         // blacken multi line comments
-        this.#matchAndPurge(src, /\/\*(?:\\\/\*|\s|\S)*?\*\//g, true);
+        this.#matchAndStrike(
+            src,
+            /\/\*[\s\S]*?\*\//g,
+            true
+        );
+
+        // blacken single line comments
+        this.#matchAndStrike(
+            src,
+            /\/\/.*/g
+        );
         
         return src.toString();
     }
-
 
     /**
      * Collect all es6 imports from a source code.
@@ -186,7 +202,7 @@ class ImportManager {
                 // but begin with non default members, those
                 // are addressed by looking for everything between
                 // the curly braces (if present)
-                const nonDefaultMatch = memberStr.match(/{[\s\S]*}/);
+                const nonDefaultMatch = memberStr.match(/{[\s\S]*?}/);
                 
                 if (nonDefaultMatch) {
                     const nonDefaultStart = nonDefaultMatch.index;
@@ -364,7 +380,7 @@ class ImportManager {
         this.imports.dynamic.count = 0;
         let id = 2000;
 
-        const dynamicImportCollection = this.blackenedCode.matchAll(/(import\s*\(\s*)(\S+)(\s*\);?)/g);
+        const dynamicImportCollection = this.blackenedCode.matchAll(/(import\s*?\(\s*?)(\S+)(\s*?\);?)/g);
         let next = dynamicImportCollection.next();
 
         while (!next.done) {
@@ -381,7 +397,7 @@ class ImportManager {
         this.imports.cjs.count = 0;
         let id = 3000;
 
-        const cjsImportCollection = this.blackenedCode.matchAll(/(require\s*\(\s*)(\S+)(\s*\);?)/g);
+        const cjsImportCollection = this.blackenedCode.matchAll(/(require\s*?\(\s*?)(\S+)(\s*?\);?)/g);
         let next = cjsImportCollection.next();
 
         while (!next.done) {
@@ -468,7 +484,7 @@ const node = importManager.selectModByName("${stuff} yegd", "dynamic");
 node.code.overwrite(node.module.start, node.module.end, "\"bang!\"");
 importManager.code.overwrite(node.start, node.end, node.code.toString());
 //console.log(node);
-console.log(importManager.code.toString());
+console.log(importManager.blackenedCode.toString());
 
 /*
 node.code.remove(node.members[1].start, node.members[1].next);
@@ -483,3 +499,5 @@ console.log(importManager.code.toString());
 */
 
 //const collection = source.matchAll(/(["'])(?:(?=(\\?))\2.)*?\1/g);
+
+/* --> *\/ <-- */
