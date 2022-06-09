@@ -93,12 +93,19 @@ class ImportManager {
         this.blackenedCode = this.prepareSource();
 
         if (autoSearch) {
-            this.getDynamicImports()
+            this.getDynamicImports();
             this.getES6Imports();
             this.getCJSImports();
         }
     }
 
+    /**
+     * Find matches in the source for a given regex
+     * and replaces those with consecutive dashes.
+     * @param {Object} src - Source a a MagicString. 
+     * @param {Object} regex - RegExp Object.  
+     * @param {boolean} [nl=false] - True if matches should be able cross lines. 
+     */
     #matchAndStrike(src, regex, nl=false) {
         
         let genBlackenedStr = "";
@@ -121,6 +128,7 @@ class ImportManager {
             next = collection.next();
         }
     }
+
 
     /**
      * Prepares the source by replacing problematic
@@ -159,6 +167,7 @@ class ImportManager {
         
         return src.toString();
     }
+
 
     /**
      * Collect all es6 imports from a source code.
@@ -354,6 +363,7 @@ class ImportManager {
         }
     }
 
+
     /**
      * Generic method to find dynamic and common js
      * import properties.
@@ -462,19 +472,23 @@ class ImportManager {
     /**
      * Helper method to list available units
      * in case of a MatchError.
-     * @param {Object[]} units - Array unit objects to list.
+     * @param {Object[]} units - Array of unit objects to list.
      * @returns {string} - Message for logging.
      */
     #listUnits(units) {
-        let msg = "\n";
+        const msgArray = [""];
+        
         units.forEach(unit => {
-            msg += "___\n"
-                 + `ID:   ${unit.id}\n`
-                 + `NAME: ${unit.module.name}\n`
-                 + `STATEMENT:\n${unit.code.toString()}\n\n`;
+            msgArray.push(
+                "___",
+                `ID:   ${unit.id}`,
+                `NAME: ${unit.module.name}`,
+                `STATEMENT:\n${unit.code.toString()}\n`
+            );
         });
-        return msg;
+        return msgArray.join("\n") + "\n";
     }
+
 
     /**
      * Selects a unit by its module name.
@@ -504,6 +518,7 @@ class ImportManager {
 
         return units[0];
     }
+
 
     /**
      * Selects a unit by its id.
@@ -544,26 +559,16 @@ class MatchError extends Error {
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 console.log(source.length, importManager.code.toString().length);
-//const node = importManager.selectModById(3001, "dynamic");
-const node = importManager.selectModByName("${stuff} yegd", "dynamic");
-//console.log(node);
-node.code.overwrite(node.module.start, node.module.end, "\"bang!\"");
-importManager.code.overwrite(node.start, node.end, node.code.toString());
-//console.log(node);
-console.log(importManager.blackenedCode.toString());
 
-/*
+const node = importManager.selectModById(1011);
+console.log(node);
+
 node.code.remove(node.members[1].start, node.members[1].next);
 node.code.overwrite(node.members[2].start, node.members[2].end, "funny");
 node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "stuff");
 node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "more_stuff");
-node.code.overwrite(node.module.start, node.module.end, "\"bang!\"");
+node.code.overwrite(node.module.start, node.module.end, "bang!");
 
 importManager.code.overwrite(node.start, node.end, node.code.toString());
 
 console.log(importManager.code.toString());
-*/
-
-//const collection = source.matchAll(/(["'])(?:(?=(\\?))\2.)*?\1/g);
-
-/* --> *\/ <-- */
