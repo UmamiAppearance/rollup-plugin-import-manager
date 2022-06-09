@@ -181,7 +181,7 @@ class ImportManager {
 
         const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(\-+);?/g);
         // match[0]: the complete import statement
-        // match[1]: the member part of the statement (can be empty)
+        // match[1]: the member part of the statement (may be empty)
         // match[2]: the module part
         
         let next = es6ImportCollection.next();
@@ -367,6 +367,12 @@ class ImportManager {
     /**
      * Generic method to find dynamic and common js
      * import properties.
+     * Both methods matches have the following children:
+     *  - match[0] - the complete import statement
+     *  - match[1] - index 0 until the beginning of the module
+     *               (the length is the start index of the module string)
+     *  - match[2] - the module string (or more unlikely var/fn)
+     * 
      * @param {string} type - "cjs" or "dynamic" 
      * @param {Object} match - A match object returned by a regex match fn. 
      * @param {number} id 
@@ -417,7 +423,7 @@ class ImportManager {
         this.imports.dynamic.count = 0;
         let id = 2000;
 
-        const dynamicImportCollection = this.blackenedCode.matchAll(/(import\s*?\(\s*?)(\S+)(\s*?\);?)/g);
+        const dynamicImportCollection = this.blackenedCode.matchAll(/(import\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
         let next = dynamicImportCollection.next();
 
         while (!next.done) {
@@ -438,7 +444,7 @@ class ImportManager {
         this.imports.cjs.count = 0;
         let id = 3000;
 
-        const cjsImportCollection = this.blackenedCode.matchAll(/(require\s*?\(\s*?)(\S+)(\s*?\);?)/g);
+        const cjsImportCollection = this.blackenedCode.matchAll(/(require\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
         let next = cjsImportCollection.next();
 
         while (!next.done) {
@@ -572,3 +578,5 @@ node.code.overwrite(node.module.start, node.module.end, "bang!");
 importManager.code.overwrite(node.start, node.end, node.code.toString());
 
 console.log(importManager.code.toString());
+
+console.log(importManager.blackenedCode.match(/(import\s*?\(\s*?)(\S+)(?:\s*?\);?)/));
