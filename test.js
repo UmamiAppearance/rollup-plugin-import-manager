@@ -578,5 +578,3 @@ node.code.overwrite(node.module.start, node.module.end, "bang!");
 importManager.code.overwrite(node.start, node.end, node.code.toString());
 
 console.log(importManager.code.toString());
-
-console.log(importManager.blackenedCode.match(/(import\s*?\(\s*?)(\S+)(?:\s*?\);?)/));
