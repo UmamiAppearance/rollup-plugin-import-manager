@@ -79,27 +79,30 @@ const MagicString = require("magic-string");
 class ImportManager {
 
     constructor(autoSearch=true) {
+
+        this.scopeMulti = 1000;
+
         this.imports = {
             es6: {
-                idRange: 1000,
+                idScope: 1 * this.scopeMulti,
                 searched: false,
                 units: []
             },
             dynamic: {
-                idRange: 2000,
+                idScope: 2 * this.scopeMulti,
                 searched: false,
                 units: []
             },
             cjs: {
-                idRange: 3000,
+                idScope: 3 * this.scopeMulti,
                 searched: false,
                 units: []
             }
 
         }
 
-        // id range with the associated type
-        this.idTypes = Object.fromEntries(Object.entries(this.imports).map(([k, v]) => [v.idRange, k]));
+        // id scope with the associated type
+        this.idTypes = Object.fromEntries(Object.entries(this.imports).map(([k, v]) => [v.idScope, k]));
 
         this.code = new MagicString(source);
         this.blackenedCode = this.prepareSource();
@@ -246,7 +249,7 @@ class ImportManager {
      */
     getES6Imports() {
         this.imports.es6.count = 0;
-        let id = this.imports.es6.idRange;
+        let id = this.imports.es6.idScope;
 
         const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(\-+);?/g);
         // match[0]: the complete import statement
@@ -497,7 +500,7 @@ class ImportManager {
      */
     getDynamicImports() {
         this.imports.dynamic.count = 0;
-        let id = this.imports.dynamic.idRange;
+        let id = this.imports.dynamic.idScope;
 
         const dynamicImportCollection = this.blackenedCode.matchAll(/(import\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
         let next = dynamicImportCollection.next();
@@ -518,7 +521,7 @@ class ImportManager {
      */
     getCJSImports() {
         this.imports.cjs.count = 0;
-        let id = this.imports.cjs.idRange;
+        let id = this.imports.cjs.idScope;
 
         const cjsImportCollection = this.blackenedCode.matchAll(/(require\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
         let next = cjsImportCollection.next();
@@ -639,7 +642,7 @@ class ImportManager {
             throw new TypeError("The id must be provided");
         }
         
-        const type = this.idTypes[ Math.floor(id / 1000) * 1000 ];
+        const type = this.idTypes[ Math.floor(id / this.scopeMulti) * this.scopeMulti ];
         if (!type) {
             const ascIds = Object.keys(this.idTypes).sort();
             throw new TypeError(`Id '${id}' is invalid. Ids range from ${ascIds.at(0)} to ${ascIds.at(-1)}+`);
