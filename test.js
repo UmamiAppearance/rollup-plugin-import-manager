@@ -80,26 +80,26 @@ class ImportManager {
 
     constructor(autoSearch=true) {
         this.imports = {
-            cjs: {
-                searched: false,
-                units: []
-            },
             es6: {
+                idRange: 1000,
                 searched: false,
                 units: []
             },
             dynamic: {
+                idRange: 2000,
+                searched: false,
+                units: []
+            },
+            cjs: {
+                idRange: 3000,
                 searched: false,
                 units: []
             }
 
         }
 
-        this.types = {
-            es6: 1000,
-            dynamic: 2000,
-            cjs: 3000
-        }
+        // id range with the associated type
+        this.idTypes = Object.fromEntries(Object.entries(this.imports).map(([k, v]) => [v.idRange, k]));
 
         this.code = new MagicString(source);
         this.blackenedCode = this.prepareSource();
@@ -246,7 +246,7 @@ class ImportManager {
      */
     getES6Imports() {
         this.imports.es6.count = 0;
-        let id = this.types.es6;
+        let id = this.imports.es6.idRange;
 
         const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(\-+);?/g);
         // match[0]: the complete import statement
@@ -497,7 +497,7 @@ class ImportManager {
      */
     getDynamicImports() {
         this.imports.dynamic.count = 0;
-        let id = this.types.dynamic;
+        let id = this.imports.dynamic.idRange;
 
         const dynamicImportCollection = this.blackenedCode.matchAll(/(import\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
         let next = dynamicImportCollection.next();
@@ -518,7 +518,7 @@ class ImportManager {
      */
     getCJSImports() {
         this.imports.cjs.count = 0;
-        let id = this.types.cjs;
+        let id = this.imports.cjs.idRange;
 
         const cjsImportCollection = this.blackenedCode.matchAll(/(require\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
         let next = cjsImportCollection.next();
@@ -538,18 +538,6 @@ class ImportManager {
 
 //              ___________________              //
 //              select unit methods              //
-
-    /**
-     * Helper method to test if the provided
-     * type is valid
-     * @param {str} type 
-     */
-    #isValidType(type) {
-        if (!["cjs", "dynamic", "es6"].includes(type)) {
-            throw new TypeError("Invalid. Type must be 'cjs', 'dynamic', or 'es6'.");
-        }
-    }
-
 
     /**
      * Helper method to list available units
@@ -572,10 +560,9 @@ class ImportManager {
         return msgArray.join("\n") + "\n";
     }
 
-    #listAllUnits() {
+    listAllUnits() {
         let msg = "";
-        for (const type in this.types) {
-            console.log("ZY", type);
+        for (const type in this.typeIds) {
             msg += this.#listUnits(this.imports[type].units);
         }
         return msg;
@@ -585,20 +572,49 @@ class ImportManager {
     /**
      * Selects a unit by its module name.
      * @param {string} name - Module Name. 
-     * @param {string} type - "cjs", "dynamic", "es6"
+     * @param {string|string[]} [type] - "cjs", "dynamic", "es6" one as a string or multiple as array of strings
      * @returns {Object} - An explicit node.
      */
-    selectModByName(name, type="es6") {
+    selectModByName(name, type) {
         if (!name) {
             throw new TypeError("The name must be provided");
         }
 
-        this.#isValidType(type);        
-        const units = this.imports[type].units.filter(unit => unit.module.name === name);
-        
+        let unitList = [];
+        let units;
+
+        if (!type) {
+            type = Object.keys(this.imports);
+        } else if (typeof type === "string") {
+            type = [type];
+        }
+
+        if (type.length === 0) {
+            type = Object.keys(this.imports);
+        }
+
+        for (const t of type) {
+            if (!(t in this.imports)) {
+                throw new TypeError(`Invalid type: '${t}' - Should be one or more of: 'cjs', 'dynamic', 'es6'.`);
+            }
+            unitList.push(...this.imports[t].units);
+        }
+
+        units = unitList.filter(unit => unit.module.name === name);
+
         if (units.length === 0) {
-            let msg = this.#listUnits(this.imports[type].units);
-            msg += `___\nUnable to locate import statement with name: '${name}'`;
+            let msg = this.#listUnits(unitList);
+            let typeStr;
+
+            if (type.length === 1) {
+                typeStr = type + "-imports";
+            } else if (type.length < Object.keys(this.imports).length) { 
+                typeStr = type.join("-imports or ") + "-imports";
+            } else {
+                typeStr = "any group";
+            }
+
+            msg += `___\nUnable to locate import statement with name: '${name}' in ${typeStr}`;
             throw new MatchError(msg);
         }
         
@@ -616,16 +632,18 @@ class ImportManager {
      * Selects a unit by its id. Should only be used
      * for test purposes.
      * @param {number} id - Unit id. 
-     * @param {string} type - "cjs", "dynamic", "es6"
      * @returns {Object} - An explicit node.
      */
     selectModById(id) {
         if (!id) {
             throw new TypeError("The id must be provided");
         }
-        const range = Math.floor(id / 1000) * 1000;
-        const type = findKey(this.types, range);
-        console.log(type);
+        
+        const type = this.idTypes[ Math.floor(id / 1000) * 1000 ];
+        if (!type) {
+            const ascIds = Object.keys(this.idTypes).sort();
+            throw new TypeError(`Id '${id}' is invalid. Ids range from ${ascIds.at(0)} to ${ascIds.at(-1)}+`);
+        }
         const units = this.imports[type].units.filter(n => n.id == id);
 
         if (units.length === 0) {
@@ -639,7 +657,7 @@ class ImportManager {
 
     selectModByHash(hash) {
         if (!(hash in this.hashList)) {
-            let msg = this.#listAllUnits(); 
+            let msg = this.listAllUnits(); 
             msg += `___\nHash '${hash}' was not found`;
             throw new MatchError(msg);
         }
@@ -649,10 +667,6 @@ class ImportManager {
 
 }
 
-
-function findKey(obj, value) {
-    return Object.entries(obj).find(entry => entry[1] === value)[0];
-}
 
 /**
  * Custom error to tell the user, that it is
@@ -670,7 +684,8 @@ console.log(JSON.stringify(importManager.imports, null, 4));
 console.log(source.length, importManager.code.toString().length);
 
 console.log("____");
-const node = importManager.selectModByHash(3311036531);
+const node = importManager.selectModById(1000);
+//const node = importManager.selectModByName("bullshit", []);
 console.log(node);
 
 /*
