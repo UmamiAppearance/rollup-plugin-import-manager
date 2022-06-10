@@ -72,6 +72,7 @@ d = require( "test" );
 e = require(
     "test"
 );
+f = import("module-name");
 `
 
 const MagicString = require("magic-string");
@@ -101,7 +102,7 @@ class ImportManager {
 
         }
 
-        // id scope with the associated type
+        // id scope lookup table with the associated type
         this.idTypes = Object.fromEntries(Object.entries(this.imports).map(([k, v]) => [v.idScope, k]));
 
         this.code = new MagicString(source);
@@ -116,14 +117,16 @@ class ImportManager {
     }
 
     /**
-     * Find matches in the source for a given regex
-     * and replaces those with consecutive dashes.
+     * Helper function for finding matches in the source
+     * for a given regex and replace those with consecutive
+     * dashes.
      * @param {Object} src - Source a a MagicString. 
      * @param {Object} regex - RegExp Object.  
-     * @param {boolean} [nl=false] - True if matches should be able cross lines. 
+     * @param {boolean} [nl=false] - True if matches should be able to go across multiple lines. 
      */
     #matchAndStrike(src, regex, nl=false) {
         
+        // replacement function
         let genBlackenedStr = "";
         if (nl) {
             genBlackenedStr = str => str.split("")
@@ -184,6 +187,12 @@ class ImportManager {
         return src.toString();
     }
 
+    /**
+     * Helper method to generate a very simple hash
+     * from the unit properties.
+     * @param {Object} unit - Unit to generate a hash from. 
+     * @returns 
+     */
     #makeHash(unit) {
 
         // cf. https://gist.github.com/iperelivskiy/4110988?permalink_comment_id=2697447#gistcomment-2697447
@@ -418,14 +427,16 @@ class ImportManager {
             const unit = {
                 id: id++,
                 code: new MagicString(code),
-                c: code, // TODO: remove me
                 defaultMembers,
                 members,
                 module,
                 start,
                 end,
                 sepDef,
-                sepMem
+                sepMem,
+                get codeString() {
+                    return [ this.code.toString() ];
+                }
             };
 
             // generate a hash
@@ -481,10 +492,12 @@ class ImportManager {
         const unit = {
             id,
             code: new MagicString(code),
-            c: code, // TODO: remove me
             module,
             start,
             end,
+            get codeString() {
+                return [ this.code.toString() ];
+            }
         };
 
         // add hash
@@ -563,12 +576,45 @@ class ImportManager {
         return msgArray.join("\n") + "\n";
     }
 
-    listAllUnits() {
+
+    /**
+     * Helper method to list all available units.
+     * @returns 
+     */
+    #listAllUnits() {
         let msg = "";
-        for (const type in this.typeIds) {
+        for (const type in this.imports) {
             msg += this.#listUnits(this.imports[type].units);
         }
         return msg;
+    }
+
+    /**
+     * Debugging method to stop the building process
+     * and list all import units.
+     */
+    logAllUnits() {
+        throw new DebuggingError(this.#listAllUnits());
+    }
+
+
+    /**
+     * Debugging method to stop the building process
+     * and list a specific unit selected by its id.
+     * @param {number} id - Unit id.
+     */
+    logImportObject(id) {
+        const unit = this.selectModById(id);
+        throw new DebuggingError(JSON.stringify(unit, null, 4));
+    }
+
+
+    /**
+     * Debugging method to stop the building process
+     * and list the complete import object.
+     */
+     logAllImportObjects() {
+        throw new DebuggingError(JSON.stringify(this.imports, null, 4));
     }
 
 
@@ -584,7 +630,6 @@ class ImportManager {
         }
 
         let unitList = [];
-        let units;
 
         if (!type) {
             type = Object.keys(this.imports);
@@ -603,7 +648,7 @@ class ImportManager {
             unitList.push(...this.imports[t].units);
         }
 
-        units = unitList.filter(unit => unit.module.name === name);
+        const units = unitList.filter(unit => unit.module.name === name);
 
         if (units.length === 0) {
             let msg = this.#listUnits(unitList);
@@ -623,7 +668,7 @@ class ImportManager {
         
         else if (units.length > 1) {
             let msg = this.#listUnits(units);
-            msg += `___\nFound multiple matches for '${name}'. If no other solution is available you may select via id.`;
+            msg += `___\nFound multiple matches for '${name}'. If no other solution is available you may select via hash.`;
             throw new MatchError(msg);
         }
 
@@ -660,7 +705,7 @@ class ImportManager {
 
     selectModByHash(hash) {
         if (!(hash in this.hashList)) {
-            let msg = this.listAllUnits(); 
+            let msg = this.#listAllUnits(); 
             msg += `___\nHash '${hash}' was not found`;
             throw new MatchError(msg);
         }
@@ -682,14 +727,26 @@ class MatchError extends Error {
     }
 }
 
+/**
+ * Custom error to abort the building process
+ * for retrieving information.
+ */
+ class DebuggingError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "DebuggingError";
+        console.warn("Intentional Debugging Error was thrown !");
+    }
+}
+
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 console.log(source.length, importManager.code.toString().length);
 
 console.log("____");
-const node = importManager.selectModById(1000);
-//const node = importManager.selectModByName("bullshit", []);
-console.log(node);
+//const node = importManager.selectModById(1000);
+//const node = importManager.selectModByName("module-name");
+//console.log(node);
 
 /*
 node.code.remove(node.members[1].start, node.members[1].next);
@@ -704,3 +761,5 @@ importManager.code.overwrite(node.start, node.end, node.code.toString());
 
 //console.log(importManager.hashList);
 */
+
+importManager.logAllUnits();
