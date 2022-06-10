@@ -66,6 +66,12 @@ import("modulePath")
 test = \`  'not me!' \`;
 
 /*  // test */ boing
+
+c = require('test');
+d = require( "test" );
+e = require(
+    "test"
+);
 `
 
 const MagicString = require("magic-string");
@@ -89,8 +95,15 @@ class ImportManager {
 
         }
 
+        this.types = {
+            es6: 1000,
+            dynamic: 2000,
+            cjs: 3000
+        }
+
         this.code = new MagicString(source);
         this.blackenedCode = this.prepareSource();
+        this.hashList = {};
 
         if (autoSearch) {
             this.getDynamicImports();
@@ -168,6 +181,62 @@ class ImportManager {
         return src.toString();
     }
 
+    #makeHash(unit) {
+
+        // cf. https://gist.github.com/iperelivskiy/4110988?permalink_comment_id=2697447#gistcomment-2697447
+        const simpleHash = (str) => {
+            let h = 0xdeadbeef;
+            for(let i=0; i<str.length; i++)
+                h = Math.imul(h ^ str.charCodeAt(i), 2654435761);
+            return (h ^ h >>> 16) >>> 0;
+        };
+
+        const makeInput = (unit) => {
+            
+            const getProps = list => {
+                list.forEach(member => {
+                    input += member.name;
+                    if (member.alias) {
+                        input += member.alias.name;
+                    };
+                });
+            }; 
+
+            let input = unit.module.name;
+            
+            if (unit.members) {
+                getProps(unit.members);
+            }
+
+            if (unit.defaultMembers) {
+                getProps(unit.defaultMembers);
+            }
+
+            return input;
+        };
+
+        const input = makeInput(unit);
+        console.log(input);
+        let hash = String(simpleHash(input));
+        console.log(hash);
+        if (hash in this.hashList) {
+            console.warn(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
+            let nr = 2;
+            for (;;) {
+                const nHash = `${hash}#${nr}`;
+                if (!(nHash in this.hashList)) {
+                    hash = nHash;
+                    break;
+                }
+                nr ++;
+            }
+        }
+        
+        this.hashList[hash] = unit.id;
+
+        return hash;
+    }
+
 
     /**
      * Collect all es6 imports from a source code.
@@ -177,7 +246,7 @@ class ImportManager {
      */
     getES6Imports() {
         this.imports.es6.count = 0;
-        let id = 1000;
+        let id = this.types.es6;
 
         const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(\-+);?/g);
         // match[0]: the complete import statement
@@ -342,22 +411,25 @@ class ImportManager {
             const sepDef = (defaultMembers.length > 1) ? code.slice(defaultMembers[0].absEnd, defaultMembers[0].next) : ", ";
             const sepMem = (members.length > 1) ? code.slice(members[0].absEnd, members[0].next) : ", ";
 
+            // make a new unit
+            const unit = {
+                id: id++,
+                code: new MagicString(code),
+                c: code, // TODO: remove me
+                defaultMembers,
+                members,
+                module,
+                start,
+                end,
+                sepDef,
+                sepMem
+            };
+
+            // generate a hash
+            unit.hash = this.#makeHash(unit);
+
             // push the fresh unit to es6 unit array
-            this.imports.es6.units.push(
-                {
-                    id: id++,
-                    hash: simpleHash(code),
-                    code: new MagicString(code),
-                    c: code, // TODO: remove me
-                    defaultMembers,
-                    members,
-                    module,
-                    start,
-                    end,
-                    sepDef,
-                    sepMem
-                }
-            )
+            this.imports.es6.units.push(unit)
             
             next = es6ImportCollection.next();
             this.imports.es6.searched = true;
@@ -402,18 +474,20 @@ class ImportManager {
             module.name = code.slice(module.start, module.end);
         }
         
+        // make a fresh unit
+        const unit = {
+            id,
+            code: new MagicString(code),
+            c: code, // TODO: remove me
+            module,
+            start,
+            end,
+        };
 
-        this.imports[type].units.push(
-            {
-                id,
-                hash: simpleHash(code),
-                code: new MagicString(code),
-                c: code, // TODO: remove me
-                module,
-                start,
-                end,
-            }
-        )
+        // add hash
+        unit.hash = this.#makeHash(unit);
+
+        this.imports[type].units.push(unit);
     }
 
 
@@ -423,7 +497,7 @@ class ImportManager {
      */
     getDynamicImports() {
         this.imports.dynamic.count = 0;
-        let id = 2000;
+        let id = this.types.dynamic;
 
         const dynamicImportCollection = this.blackenedCode.matchAll(/(import\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
         let next = dynamicImportCollection.next();
@@ -444,7 +518,7 @@ class ImportManager {
      */
     getCJSImports() {
         this.imports.cjs.count = 0;
-        let id = 3000;
+        let id = this.types.cjs;
 
         const cjsImportCollection = this.blackenedCode.matchAll(/(require\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
         let next = cjsImportCollection.next();
@@ -498,6 +572,15 @@ class ImportManager {
         return msgArray.join("\n") + "\n";
     }
 
+    #listAllUnits() {
+        let msg = "";
+        for (const type in this.types) {
+            console.log("ZY", type);
+            msg += this.#listUnits(this.imports[type].units);
+        }
+        return msg;
+    }
+
 
     /**
      * Selects a unit by its module name.
@@ -536,12 +619,13 @@ class ImportManager {
      * @param {string} type - "cjs", "dynamic", "es6"
      * @returns {Object} - An explicit node.
      */
-    selectModById(id, type="es6") {
+    selectModById(id) {
         if (!id) {
             throw new TypeError("The id must be provided");
         }
-
-        this.#isValidType(type);
+        const range = Math.floor(id / 1000) * 1000;
+        const type = findKey(this.types, range);
+        console.log(type);
         const units = this.imports[type].units.filter(n => n.id == id);
 
         if (units.length === 0) {
@@ -553,6 +637,21 @@ class ImportManager {
         return units[0];
     }
 
+    selectModByHash(hash) {
+        if (!(hash in this.hashList)) {
+            let msg = this.#listAllUnits(); 
+            msg += `___\nHash '${hash}' was not found`;
+            throw new MatchError(msg);
+        }
+
+        return this.selectModById(this.hashList[hash]);
+    }
+
+}
+
+
+function findKey(obj, value) {
+    return Object.entries(obj).find(entry => entry[1] === value)[0];
 }
 
 /**
@@ -566,27 +665,15 @@ class MatchError extends Error {
     }
 }
 
-/**
- * Simple as it gets has function.
- * @see https://gist.github.com/iperelivskiy/4110988?permalink_comment_id=2697447#gistcomment-2697447
- * @param {*} str 
- * @returns 
- */
-function simpleHash(str) {
-    let h = 0xdeadbeef;
-    for(let i=0; i<str.length; i++)
-        h = Math.imul(h ^ str.charCodeAt(i), 2654435761);
-    return (h ^ h >>> 16) >>> 0;
-};
-// TODO: Use input line members, default members ... -> not changing when changing one whitespace
-
 const importManager = new ImportManager();
 console.log(JSON.stringify(importManager.imports, null, 4));
 console.log(source.length, importManager.code.toString().length);
 
-const node = importManager.selectModById(101122);
+console.log("____");
+const node = importManager.selectModByHash(3311036531);
 console.log(node);
 
+/*
 node.code.remove(node.members[1].start, node.members[1].next);
 node.code.overwrite(node.members[2].start, node.members[2].end, "funny");
 node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "stuff");
@@ -595,4 +682,7 @@ node.code.overwrite(node.module.start, node.module.end, "bang!");
 
 importManager.code.overwrite(node.start, node.end, node.code.toString());
 
-console.log(importManager.code.toString());
+//console.log(importManager.code.toString());
+
+//console.log(importManager.hashList);
+*/
