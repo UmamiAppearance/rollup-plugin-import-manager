@@ -153,9 +153,8 @@ class ImportManager {
         };
 
         const input = makeInput(unit);
-        console.log(input);
         let hash = String(simpleHash(input));
-        console.log(hash);
+
         if (hash in this.hashList) {
             console.warn(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
             let nr = 2;
@@ -640,7 +639,7 @@ class ImportManager {
      * and list all import units with its id, hash and
      * import statement.
      */
-     logAllUnitsShort() {
+     logUnits() {
         throw new DebuggingError(this.#listAllUnits());
     }
 
@@ -660,7 +659,7 @@ class ImportManager {
      * Debugging method to stop the building process
      * and list the complete import object.
      */
-     logAllImportObjects() {
+     logUnitObjects() {
         throw new DebuggingError(JSON.stringify(this.imports, null, 4));
     }
 }

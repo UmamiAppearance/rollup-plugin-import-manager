@@ -9,24 +9,6 @@ function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'defau
 
 var MagicString__default = /*#__PURE__*/_interopDefaultLegacy(MagicString);
 
-class ImportManagerUnitMethods {
-    constructor(unit) {
-        this.unit = unit;
-    }
-
-    hello() {
-        console.log("hello");
-    }
-
-    remove() {
-        if (this.unit.type !== "es6") {
-            throw new Error("ES6 only!");
-        }
-
-        this.unit.code.remove(this.unit.start, this.unit.end);
-    }
-}
-
 /**
  * Custom error to tell the user, that it is
  * not possible to select a specific unit.
@@ -47,6 +29,36 @@ class MatchError extends Error {
         super(message);
         this.name = "DebuggingError";
         console.warn("Intentional Debugging Error was thrown !");
+    }
+}
+
+class ImportManagerUnitMethods {
+    constructor(unit) {
+        this.unit = unit;
+    }
+
+    hello() {
+        console.log("hello");
+    }
+
+    remove() {
+        if (this.unit.type !== "es6") {
+            throw new Error("ES6 only!");
+        }
+
+        this.unit.code.remove(this.unit.start, this.unit.end);
+    }
+
+    /**
+     * Debugging method to stop the building process
+     * and list a specific unit selected by its id.
+     * @param {number} id - Unit id.
+     */
+    // TODO: move this to unit debug method
+    log() {
+        const unit = {...this.unit};
+        unit.methods = {};
+        throw new DebuggingError(JSON.stringify(unit, null, 4));
     }
 }
 
@@ -200,9 +212,8 @@ class ImportManager {
         };
 
         const input = makeInput(unit);
-        console.log(input);
         let hash = String(simpleHash(input));
-        console.log(hash);
+
         if (hash in this.hashList) {
             console.warn(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
             let nr = 2;
@@ -687,7 +698,7 @@ class ImportManager {
      * and list all import units with its id, hash and
      * import statement.
      */
-     logAllUnitsShort() {
+     logUnits() {
         throw new DebuggingError(this.#listAllUnits());
     }
 
@@ -707,34 +718,51 @@ class ImportManager {
      * Debugging method to stop the building process
      * and list the complete import object.
      */
-     logAllImportObjects() {
+     logUnitObjects() {
         throw new DebuggingError(JSON.stringify(this.imports, null, 4));
     }
 }
 
 const manager = (options={}) => {
-      
+    console.log("options", options);
+
     const filter = pluginutils.createFilter(options.include, options.exclude);
   
     return {
         name: 'ImportManager',
     
         transform (source, id) {
+            console.log("id", id);
             if (!filter(id)) return;
 
             const importManager = new ImportManager(source);
-            importManager.code.appendLeft(0, "//modified\n");
-            importManager.logAllImportObjects();
+            
+            if (options.debug) {
+                if (options.debug === "units") {
+                    importManager.logUnits();
+                } else if (options.debug === "objects") {
+                    importManager.logUnitObjects();
+                }
+            } else if (options.select) {
+                const obj = options.select;
+                for (const modName in options.select) {
+                    console.log("MOD_NAME", modName);
+                    const unit = importManager.selectModByName("appendix.js");
+                    
+                    if (obj[modName] === "debug") {
+                        unit.methods.log();
+                    }
+                }
+            }
 
             const code = importManager.code.toString();
             let map;
 
             if (options.sourceMap !== false && options.sourcemap !== false) {
-                const magicString = new MagicString__default["default"](code);
-                map = magicString.generateMap({ hires: true });
+                map = importManager.code.generateMap({ hires: true });
             }
 
-            return { code, map }
+            return { code, map };
         }
     };
 };
