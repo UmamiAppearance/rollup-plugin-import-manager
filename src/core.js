@@ -1,6 +1,5 @@
 import ImportManagerUnitMethods from "./unit-methods.js";
 import { DebuggingError, MatchError } from "./errors.js";
-
 import MagicString from "magic-string";
 
 class ImportManager {
