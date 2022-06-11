@@ -1,7 +1,10 @@
 // starting point from rollup-plugin-strip-code
 
-const createFilter = require('rollup-pluginutils').createFilter
-const MagicString = require('magic-string')
+//const createFilter = require('rollup-pluginutils').createFilter
+//import { createFilter } from 'rollup-pluginutils';
+import { createFilter } from '@rollup/pluginutils';
+//const MagicString = require('magic-string')
+import MagicString from 'magic-string';
 
 const START_COMMENT = 'start_comment'
 const END_COMMENT = 'end_comment'
@@ -33,4 +36,4 @@ function stripCode (options = {}) {
   }
 }
 
-module.exports = stripCode
+export default stripCode;

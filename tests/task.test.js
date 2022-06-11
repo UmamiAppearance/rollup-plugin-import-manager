@@ -1,12 +1,20 @@
-// TODO: replace all
-const stripCode = require('../index')
-const rollupPluginUtils = require('../node_modules/rollup-pluginutils')
+import {jest} from '@jest/globals';
+import { createFilter } from 'rollup-pluginutils';
+import stripCode from '../index'
+
 
 const mockedFilter = jest.fn((id) => true)
 
-jest.mock('../node_modules/rollup-pluginutils', () => ({
-  createFilter: jest.fn(() => mockedFilter)
-}))
+jest.mock('rollup-pluginutils', () => {
+  const originalModule = jest.requireActual('rollup-pluginutils');
+  return {
+    __esModule: true,
+    ...originalModule,
+    default: originalModule.default,
+    createFilter: jest.fn(() => mockedFilter)
+  };
+})
+
 
 describe('stripCode.', () => {
 
@@ -19,7 +27,7 @@ describe('stripCode.', () => {
   })
 
   test('should mock createFilter', () => {
-    const filterFn = rollupPluginUtils.createFilter()
+    const filterFn = createFilter()
     expect(typeof filterFn).toBe('function')
     expect(filterFn()).toBe(true)
   })

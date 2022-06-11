@@ -1,85 +1,11 @@
-const source = `import name from "module-name";
-import * as name from "module-name";import { member } from "module-name";
-import { member as alias } from "module-name";
-import { member1 , member2 } from "module-name";
-import { member1, member2 as alias2, member3 as alias3 } from "module-name";
-import defaultMember, { member, member2 } from "module-name";
-import defaultMember,
-       * as alias 
-from "module-name"
-import defaultMember from "module-name";
+import ImportManagerUnitMethods from "./unit-methods.js";
+import { DebuggingError, MatchError } from "./errors.js";
 
-/* jdwjd\s*
-oh boy */ import "module-name";
-
-// goodbye
-
-import
-    { Base1 }
-from
-    "./src/base-ex.js";
-const zzz = \`
-import("NO");
-\`
-code 1
-code 2
-/* NO */ // ciao
-code 3
-/*
-NO
-*/ code4
-code 5
-const bumm = import(
-    \`\${stuff} yegd\`
-);
-
-/* NO */ code 6 /* NO */ code + // nope
-code 7
-code 8 /*
-NO */code 9
-/* sdjiw */const x = import("./module-path");
-// woaannsjfnfknjkews
-
-require("fs");
-
-import 
-    defaultMember,
-    {
-        member1,
-        member2,
-        member3
-    }
-from "module-name";
-
-import { stuff } from "../path/test-module.js";
-
-const imp = import (
-    "bullshit"
-);
-
-const y = "bdwi";
-
-import("modulePath")
-  .then(obj => <module object>)
-  .catch(err => <loading error, e.g. if no such module>)
-
-test = \`  'not me!' \`;
-
-/*  // test */ boing
-
-c = require('test');
-d = require( "test" );
-e = require(
-    "test"
-);
-f = import("module-name");
-`
-
-const MagicString = require("magic-string");
+import MagicString from "magic-string";
 
 class ImportManager {
 
-    constructor(autoSearch=true) {
+    constructor(source, autoSearch=true) {
 
         this.scopeMulti = 1000;
 
@@ -434,6 +360,7 @@ class ImportManager {
                 end,
                 sepDef,
                 sepMem,
+                type: "es6",
                 get codeString() {
                     return [ this.code.toString() ];
                 }
@@ -495,6 +422,7 @@ class ImportManager {
             module,
             start,
             end,
+            type,
             get codeString() {
                 return [ this.code.toString() ];
             }
@@ -552,6 +480,11 @@ class ImportManager {
     }
 
 
+    write() {
+        
+    }
+
+
 //              ___________________              //
 //              select unit methods              //
 
@@ -579,7 +512,7 @@ class ImportManager {
 
     /**
      * Helper method to list all available units.
-     * @returns 
+     * @returns {string} - Message string.
      */
     #listAllUnits() {
         let msg = "";
@@ -589,40 +522,12 @@ class ImportManager {
         return msg;
     }
 
-    /**
-     * Debugging method to stop the building process
-     * and list all import units.
-     */
-    logAllUnits() {
-        throw new DebuggingError(this.#listAllUnits());
-    }
-
-
-    /**
-     * Debugging method to stop the building process
-     * and list a specific unit selected by its id.
-     * @param {number} id - Unit id.
-     */
-    logImportObject(id) {
-        const unit = this.selectModById(id);
-        throw new DebuggingError(JSON.stringify(unit, null, 4));
-    }
-
-
-    /**
-     * Debugging method to stop the building process
-     * and list the complete import object.
-     */
-     logAllImportObjects() {
-        throw new DebuggingError(JSON.stringify(this.imports, null, 4));
-    }
-
-
+    
     /**
      * Selects a unit by its module name.
      * @param {string} name - Module Name. 
      * @param {string|string[]} [type] - "cjs", "dynamic", "es6" one as a string or multiple as array of strings
-     * @returns {Object} - An explicit node.
+     * @returns {Object} - An explicit unit.
      */
     selectModByName(name, type) {
         if (!name) {
@@ -672,7 +577,10 @@ class ImportManager {
             throw new MatchError(msg);
         }
 
-        return units[0];
+        const unit = units[0];
+        unit.methods = new ImportManagerUnitMethods(unit);
+
+        return unit;
     }
 
 
@@ -680,7 +588,7 @@ class ImportManager {
      * Selects a unit by its id. Should only be used
      * for test purposes.
      * @param {number} id - Unit id. 
-     * @returns {Object} - An explicit node.
+     * @returns {Object} - An explicit unit.
      */
     selectModById(id) {
         if (!id) {
@@ -700,9 +608,19 @@ class ImportManager {
             throw new MatchError(msg);
         }
 
-        return units[0];
+        const unit = units[0];
+        unit.methods = new ImportManagerUnitMethods(unit);
+
+        return unit;
     }
 
+    /**
+     * Selects a unit by its hash. The hash will change
+     * if the unit changes its properties like members,
+     * alias, etc.
+     * @param {string} hash - The hash string of the unit. 
+     * @returns {object} - An explicit unit.
+     */
     selectModByHash(hash) {
         if (!(hash in this.hashList)) {
             let msg = this.#listAllUnits(); 
@@ -713,53 +631,39 @@ class ImportManager {
         return this.selectModById(this.hashList[hash]);
     }
 
-}
+
+//                ________________________              //
+//                global debugging methods              //
 
 
-/**
- * Custom error to tell the user, that it is
- * not possible to select a specific unit.
- */
-class MatchError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "MatchError";
+    /**
+     * Debugging method to stop the building process
+     * and list all import units with its id, hash and
+     * import statement.
+     */
+     logAllUnitsShort() {
+        throw new DebuggingError(this.#listAllUnits());
+    }
+
+
+    /**
+     * Debugging method to stop the building process
+     * and list a specific unit selected by its id.
+     * @param {number} id - Unit id.
+     */
+    // TODO: move this to unit debug method
+    logImportObject(unit) {
+        throw new DebuggingError(JSON.stringify(unit, null, 4));
+    }
+
+
+    /**
+     * Debugging method to stop the building process
+     * and list the complete import object.
+     */
+     logAllImportObjects() {
+        throw new DebuggingError(JSON.stringify(this.imports, null, 4));
     }
 }
 
-/**
- * Custom error to abort the building process
- * for retrieving information.
- */
- class DebuggingError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "DebuggingError";
-        console.warn("Intentional Debugging Error was thrown !");
-    }
-}
-
-const importManager = new ImportManager();
-console.log(JSON.stringify(importManager.imports, null, 4));
-console.log(source.length, importManager.code.toString().length);
-
-console.log("____");
-//const node = importManager.selectModById(1000);
-//const node = importManager.selectModByName("module-name");
-//console.log(node);
-
-/*
-node.code.remove(node.members[1].start, node.members[1].next);
-node.code.overwrite(node.members[2].start, node.members[2].end, "funny");
-node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "stuff");
-node.code.appendRight(node.members.at(-1).absEnd, node.sepMem + "more_stuff");
-node.code.overwrite(node.module.start, node.module.end, "bang!");
-
-importManager.code.overwrite(node.start, node.end, node.code.toString());
-
-//console.log(importManager.code.toString());
-
-//console.log(importManager.hashList);
-*/
-
-importManager.logAllUnits();
+export default ImportManager;
