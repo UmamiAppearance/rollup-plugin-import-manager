@@ -2,10 +2,11 @@
   "name": "rollup-plugin-import-manager",
   "version": "0.1.0",
   "description": "A rollup plugin to add and remove imports",
-  "main": "./index.js",
-  "module": "./src/main.js",
+  "main": "./cjs/import-manager.cjs",
+  "module": "./src/index.js",
   "type": "module",
   "scripts": {
+    "build-cjs": "rollup ./src/index.js --file ./cjs/import-manager.cjs --format cjs",
     "lint": "eslint ./index.js",
     "lint:fix": "eslint ./index.js --fix",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"

@@ -14,11 +14,12 @@ const manager = (options={}) => {
 
             const importManager = new ImportManager(source);
             importManager.code.appendLeft(0, "//modified\n");
+            importManager.logAllImportObjects();
 
             const code = importManager.code.toString();
             let map;
 
-            if (sourceMap !== false && sourcemap !== false) {
+            if (options.sourceMap !== false && options.sourcemap !== false) {
                 const magicString = new MagicString(code)
                 map = magicString.generateMap({ hires: true })
             }
@@ -28,5 +29,4 @@ const manager = (options={}) => {
     };
 };
   
-export default manager;
-  
+export { manager };
