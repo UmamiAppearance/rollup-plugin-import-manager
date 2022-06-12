@@ -4,10 +4,12 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 var pluginutils = require('@rollup/pluginutils');
 var MagicString = require('magic-string');
+var picomatch = require('picomatch');
 
 function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
 var MagicString__default = /*#__PURE__*/_interopDefaultLegacy(MagicString);
+var picomatch__default = /*#__PURE__*/_interopDefaultLegacy(picomatch);
 
 /**
  * Custom error to tell the user, that it is
@@ -586,7 +588,7 @@ class ImportManager {
      * @param {string|string[]} [type] - "cjs", "dynamic", "es6" one as a string or multiple as array of strings
      * @returns {Object} - An explicit unit.
      */
-    selectModByName(name, type) {
+    selectModByName(name, type, allowNull) {
         if (!name) {
             throw new TypeError("The name must be provided");
         }
@@ -613,6 +615,9 @@ class ImportManager {
         const units = unitList.filter(unit => unit.module.name === name);
 
         if (units.length === 0) {
+            if (allowNull) {
+                return null;
+            }
             let msg = this.#listUnits(unitList);
             let typeStr;
 
@@ -744,14 +749,20 @@ const manager = (options={}) => {
                     importManager.logUnitObjects();
                 }
             } else if (options.select) {
-                const obj = options.select;
-                for (const modName in options.select) {
-                    console.log("MOD_NAME", modName);
-                    const unit = importManager.selectModByName("appendix.js");
-                    
-                    if (obj[modName] === "debug") {
-                        unit.methods.log();
+                const selection = Array.isArray(options.select) ? options.select : [options.select];
+                let allowNull = true;
+                for (const obj of selection) {
+                    if ("file" in obj) {
+                        console.log(obj.file, "obj.file");
+                        const isMatch = picomatch__default["default"](obj.file);
+                        if (!isMatch(id)) {
+                            console.log(id, "NO!");
+                            return;
+                        }
+                        allowNull = false;
                     }
+                    const unit = importManager.selectModByName(obj["module"], null, allowNull);
+                    console.log(unit);
                 }
             }
 

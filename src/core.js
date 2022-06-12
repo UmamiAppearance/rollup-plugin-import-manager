@@ -527,7 +527,7 @@ class ImportManager {
      * @param {string|string[]} [type] - "cjs", "dynamic", "es6" one as a string or multiple as array of strings
      * @returns {Object} - An explicit unit.
      */
-    selectModByName(name, type) {
+    selectModByName(name, type, allowNull) {
         if (!name) {
             throw new TypeError("The name must be provided");
         }
@@ -554,6 +554,9 @@ class ImportManager {
         const units = unitList.filter(unit => unit.module.name === name);
 
         if (units.length === 0) {
+            if (allowNull) {
+                return null;
+            }
             let msg = this.#listUnits(unitList);
             let typeStr;
 

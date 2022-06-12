@@ -1,6 +1,6 @@
 import { createFilter } from "@rollup/pluginutils";
 import ImportManager from "./core.js";
-
+import picomatch from "picomatch"; 
 
 const manager = (options={}) => {
     console.log("options", options);
@@ -23,14 +23,21 @@ const manager = (options={}) => {
                     importManager.logUnitObjects();
                 }
             } else if (options.select) {
-                const obj = options.select;
-                for (const modName in options.select) {
-                    console.log("MOD_NAME", modName);
-                    const unit = importManager.selectModByName("appendix.js");
-                    
-                    if (obj[modName] === "debug") {
-                        unit.methods.log();
+                const selection = Array.isArray(options.select) ? options.select : [options.select];
+                let allowNull = true;
+                for (const obj of selection) {
+                    if ("file" in obj) {
+                        console.log(obj.file, "obj.file");
+                        const isMatch = picomatch(obj.file);
+                        // FIXME: proper implementation
+                        if (!isMatch(id)) {
+                            console.log(id, "NO!");
+                            return;
+                        }
+                        allowNull = false;
                     }
+                    const unit = importManager.selectModByName(obj["module"], null, allowNull);
+                    console.log(unit);
                 }
             }
 
