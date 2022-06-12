@@ -4,7 +4,7 @@ import MagicString from "magic-string";
 
 class ImportManager {
 
-    constructor(source, autoSearch=true) {
+    constructor(source, filename, autoSearch=true) {
 
         this.scopeMulti = 1000;
 
@@ -33,6 +33,7 @@ class ImportManager {
         this.code = new MagicString(source);
         this.blackenedCode = this.prepareSource();
         this.hashList = {};
+        this.filename = filename;
 
         if (autoSearch) {
             this.getDynamicImports();
@@ -149,10 +150,11 @@ class ImportManager {
                 getProps(unit.defaultMembers);
             }
 
-            return input;
+            return input + this.filename;
         };
 
         const input = makeInput(unit);
+        console.log("INPUT", input);
         let hash = String(simpleHash(input));
 
         if (hash in this.hashList) {
@@ -591,7 +593,7 @@ class ImportManager {
      * @param {number} id - Unit id. 
      * @returns {Object} - An explicit unit.
      */
-    selectModById(id) {
+    selectModById(id, allowNull) {
         if (!id) {
             throw new TypeError("The id must be provided");
         }
@@ -604,6 +606,9 @@ class ImportManager {
         const units = this.imports[type].units.filter(n => n.id == id);
 
         if (units.length === 0) {
+            if (allowNull) {
+                return null;
+            }
             let msg = this.#listUnits(this.imports[type].units);
             msg += `___\nUnable to locate import statement with id: '${id}'`;
             throw new MatchError(msg);
@@ -622,8 +627,11 @@ class ImportManager {
      * @param {string} hash - The hash string of the unit. 
      * @returns {object} - An explicit unit.
      */
-    selectModByHash(hash) {
+    selectModByHash(hash, allowNull) {
         if (!(hash in this.hashList)) {
+            if (allowNull) {
+                return null;
+            }
             let msg = this.#listAllUnits(); 
             msg += `___\nHash '${hash}' was not found`;
             throw new MatchError(msg);

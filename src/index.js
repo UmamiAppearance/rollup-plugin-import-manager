@@ -14,29 +14,48 @@ const manager = (options={}) => {
             console.log("id", id);
             if (!filter(id)) return;
 
-            const importManager = new ImportManager(source);
+            const importManager = new ImportManager(source, id);
             
-            if (options.debug) {
-                if (options.debug === "units") {
-                    importManager.logUnits();
-                } else if (options.debug === "objects") {
-                    importManager.logUnitObjects();
-                }
-            } else if (options.select) {
+            if (options.select) {
                 const selection = Array.isArray(options.select) ? options.select : [options.select];
+                
                 let allowNull = true;
-                for (const obj of selection) {
+                let useId = false;
+
+                for (const obj of selection) { 
+
                     if ("file" in obj) {
                         console.log(obj.file, "obj.file");
-                        const isMatch = picomatch(obj.file);
+
+                        //const isMatch = picomatch(obj.file);
+                        const isMatch = (id) => (id.indexOf(obj.file) > -1);
                         // FIXME: proper implementation
+                        
                         if (!isMatch(id)) {
                             console.log(id, "NO!");
                             return;
                         }
+
+                        if ("debug" in obj) {
+                            if (obj.debug === "objects") {
+                                importManager.logUnitObjects();
+                            } else {
+                                importManager.logUnits();
+                            }       
+                        }
+
                         allowNull = false;
+                        useId = "id" in obj;
                     }
-                    const unit = importManager.selectModByName(obj["module"], null, allowNull);
+
+                    let unit;
+                    if (useId) {
+                        unit = importManager.selectModById(obj.id, allowNull);
+                    } else if ("hash" in obj) {
+                        unit = importManager.selectModByHash(obj.hash, allowNull);
+                    } else if ("module" in obj) {
+                        unit = importManager.selectModByName(obj.module, obj.type, allowNull);
+                    }
                     console.log(unit);
                 }
             }

@@ -4,12 +4,11 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 var pluginutils = require('@rollup/pluginutils');
 var MagicString = require('magic-string');
-var picomatch = require('picomatch');
+require('picomatch');
 
 function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
 var MagicString__default = /*#__PURE__*/_interopDefaultLegacy(MagicString);
-var picomatch__default = /*#__PURE__*/_interopDefaultLegacy(picomatch);
 
 /**
  * Custom error to tell the user, that it is
@@ -66,7 +65,7 @@ class ImportManagerUnitMethods {
 
 class ImportManager {
 
-    constructor(source, autoSearch=true) {
+    constructor(source, filename, autoSearch=true) {
 
         this.scopeMulti = 1000;
 
@@ -95,6 +94,7 @@ class ImportManager {
         this.code = new MagicString__default["default"](source);
         this.blackenedCode = this.prepareSource();
         this.hashList = {};
+        this.filename = filename;
 
         if (autoSearch) {
             this.getDynamicImports();
@@ -210,10 +210,11 @@ class ImportManager {
                 getProps(unit.defaultMembers);
             }
 
-            return input;
+            return input + this.filename;
         };
 
         const input = makeInput(unit);
+        console.log("INPUT", input);
         let hash = String(simpleHash(input));
 
         if (hash in this.hashList) {
@@ -652,7 +653,7 @@ class ImportManager {
      * @param {number} id - Unit id. 
      * @returns {Object} - An explicit unit.
      */
-    selectModById(id) {
+    selectModById(id, allowNull) {
         if (!id) {
             throw new TypeError("The id must be provided");
         }
@@ -665,6 +666,9 @@ class ImportManager {
         const units = this.imports[type].units.filter(n => n.id == id);
 
         if (units.length === 0) {
+            if (allowNull) {
+                return null;
+            }
             let msg = this.#listUnits(this.imports[type].units);
             msg += `___\nUnable to locate import statement with id: '${id}'`;
             throw new MatchError(msg);
@@ -683,8 +687,11 @@ class ImportManager {
      * @param {string} hash - The hash string of the unit. 
      * @returns {object} - An explicit unit.
      */
-    selectModByHash(hash) {
+    selectModByHash(hash, allowNull) {
         if (!(hash in this.hashList)) {
+            if (allowNull) {
+                return null;
+            }
             let msg = this.#listAllUnits(); 
             msg += `___\nHash '${hash}' was not found`;
             throw new MatchError(msg);
@@ -740,28 +747,48 @@ const manager = (options={}) => {
             console.log("id", id);
             if (!filter(id)) return;
 
-            const importManager = new ImportManager(source);
+            const importManager = new ImportManager(source, id);
             
-            if (options.debug) {
-                if (options.debug === "units") {
-                    importManager.logUnits();
-                } else if (options.debug === "objects") {
-                    importManager.logUnitObjects();
-                }
-            } else if (options.select) {
+            if (options.select) {
                 const selection = Array.isArray(options.select) ? options.select : [options.select];
+                
                 let allowNull = true;
-                for (const obj of selection) {
+                let useId = false;
+
+                for (const obj of selection) { 
+
                     if ("file" in obj) {
                         console.log(obj.file, "obj.file");
-                        const isMatch = picomatch__default["default"](obj.file);
+
+                        //const isMatch = picomatch(obj.file);
+                        const isMatch = (id) => (id.indexOf(obj.file) > -1);
+                        // FIXME: proper implementation
+                        
                         if (!isMatch(id)) {
                             console.log(id, "NO!");
                             return;
                         }
+
+                        if ("debug" in obj) {
+                            if (obj.debug === "objects") {
+                                importManager.logUnitObjects();
+                            } else {
+                                importManager.logUnits();
+                            }       
+                        }
+
                         allowNull = false;
+                        useId = "id" in obj;
                     }
-                    const unit = importManager.selectModByName(obj["module"], null, allowNull);
+
+                    let unit;
+                    if (useId) {
+                        unit = importManager.selectModById(obj.id, allowNull);
+                    } else if ("hash" in obj) {
+                        unit = importManager.selectModByHash(obj.hash, allowNull);
+                    } else if ("module" in obj) {
+                        unit = importManager.selectModByName(obj.module, obj.type, allowNull);
+                    }
                     console.log(unit);
                 }
             }
