@@ -38,16 +38,64 @@ class ImportManagerUnitMethods {
         this.unit = unit;
     }
 
-    hello() {
-        console.log("hello");
+    #ES6only() {
+        if (this.unit.type !== "es6") {
+            throw new Error("This method is only available for ES6 imports.");
+        }
     }
 
-    remove() {
+// module methods
+
+    renameModule(name, modType) {
         if (this.unit.type !== "es6") {
-            throw new Error("ES6 only!");
+            if (modType === "string") {
+                const q = this.unit.module.quotes;
+                name = q + name + q;
+            } else if (modType !== "literal") {
+                throw new TypeError(`Unknown modType '${modType}'. Valid types are 'string' and 'literal'.`);
+            }
+        } else if (modType !== "string") {
+            throw new TypeError("modType cannot be changed for es6 imports.");
+        }
+        
+        this.unit.code.overwrite(this.unit.module.start, this.unit.module.end, name);
+        console.log(this.unit.code.toString());
+    }
+
+// member methods
+
+    createMembers() {
+        if (this.unit.defaultMembers.length > 0) {
+            let start = this.unit.defaultMembers.at(-1).absEnd;
+            let sep;
+            
+            if (!this.unit.membersFromScratch) {
+                this.unit.membersFromScratch = true;
+                sep = this.unit.sepDef + "{ ";
+            } else {
+                sep = this.unit.sepMem;            }
+            
+            return [start, sep];
+        } else {
+            throw new Error("Not implemented!");
+            // TODO: implement this
+        }
+    }
+
+    addMember(name) {
+        this.#ES6only();
+
+        if (this.unit.members.length > 0) {
+            const start = this.unit.members.at(-1).absEnd;
+            this.unit.code.appendRight(start, this.unit.sepMem + name);
+        } else {
+            console.log("create members");
+            let start, sep;
+            [ start, sep ] = this.createMembers();
+            console.log(start, sep);
+            this.unit.code.appendRight(start, sep + name);
         }
 
-        this.unit.code.remove(this.unit.start, this.unit.end);
     }
 
     /**
@@ -404,6 +452,7 @@ class ImportManager {
             module.start = match[0].indexOf(match[2]) + 1;
             module.end = module.start + match[2].length - 2;
             module.name = code.slice(module.start, module.end).split("/").at(-1);
+            module.type = "string";
 
             // store the first separator of the non default
             // and default members for a consistent style
@@ -550,7 +599,11 @@ class ImportManager {
     }
 
     commitChanges(unit) {
-        this.code.overwrite(unit.start, unit.end, unit.code.codeString);
+        if (unit.membersFromScratch) {
+            const end = unit.defaultMembers.at(-1).absEnd;
+            unit.code.appendRight(end, " }");
+        }
+        this.code.overwrite(unit.start, unit.end, unit.code.toString());
     }
 
 
@@ -619,7 +672,9 @@ class ImportManager {
             if (!(t in this.imports)) {
                 throw new TypeError(`Invalid type: '${t}' - Should be one or more of: 'cjs', 'dynamic', 'es6'.`);
             }
-            unitList.push(...this.imports[t].units);
+            if (this.imports[t].count > 0) {
+                unitList.push(...this.imports[t].units);
+            }
         }
 
         const units = unitList.filter(unit => unit.module.name === name);
@@ -802,13 +857,36 @@ const manager = (options={}) => {
                     console.log(unit);
                     console.log(importManager.imports);
 
-                    if ("action" in obj) {
-                        if (obj.action === "remove") {
-                            importManager.remove(unit);
-                            continue;
-                        }
+                    if ("actions" in obj) {
+                        console.log("actions in obj");
+                        const actions = Array.isArray(obj.actions) ? obj.actions : [obj.actions];
+                        console.log(actions);
+                        for (const action of actions) {
+                            
+                            if (typeof action === "object" && "select" in action) {
+                                if (action.select === "module") {
+                                    if ("rename" in action) {
+                                        const modType = ("modType" in action) ? action.modType : unit.module.type;
+                                        unit.methods.renameModule(action.rename, modType);
+                                    }
+                                }
 
-                        //importManager.commitChanges(unit);
+                                else if (action.select === "members") {
+                                    if ("add" in action) {
+                                        unit.methods.addMember(action.add);
+                                    }
+                                }
+
+                                else if (action.select === "member") ;
+                            }
+                            
+                            else if (action === "remove") {
+                                importManager.remove(unit);
+                                continue;
+                            }
+
+                            importManager.commitChanges(unit);
+                        }
                     }
 
 
@@ -816,6 +894,9 @@ const manager = (options={}) => {
             }
 
             const code = importManager.code.toString();
+            console.log("CODE >>>>");
+            console.log(code);
+            console.log("<<< CODE");
             let map;
 
             if (options.sourceMap !== false && options.sourcemap !== false) {

@@ -5,16 +5,65 @@ export default class ImportManagerUnitMethods {
         this.unit = unit;
     }
 
-    hello() {
-        console.log("hello");
+    #ES6only() {
+        if (this.unit.type !== "es6") {
+            throw new Error("This method is only available for ES6 imports.");
+        }
     }
 
-    remove() {
+// module methods
+
+    renameModule(name, modType) {
         if (this.unit.type !== "es6") {
-            throw new Error("ES6 only!");
+            if (modType === "string") {
+                const q = this.unit.module.quotes;
+                name = q + name + q;
+            } else if (modType !== "literal") {
+                throw new TypeError(`Unknown modType '${modType}'. Valid types are 'string' and 'literal'.`);
+            }
+        } else if (modType !== "string") {
+            throw new TypeError("modType cannot be changed for es6 imports.");
+        }
+        
+        this.unit.code.overwrite(this.unit.module.start, this.unit.module.end, name);
+        console.log(this.unit.code.toString());
+    }
+
+// member methods
+
+    createMembers() {
+        if (this.unit.defaultMembers.length > 0) {
+            let start = this.unit.defaultMembers.at(-1).absEnd;
+            let sep;
+            
+            if (!this.unit.membersFromScratch) {
+                this.unit.membersFromScratch = true;
+                sep = this.unit.sepDef + "{ ";
+            } else {
+                sep = this.unit.sepMem;;
+            }
+            
+            return [start, sep];
+        } else {
+            throw new Error("Not implemented!");
+            // TODO: implement this
+        }
+    }
+
+    addMember(name) {
+        this.#ES6only();
+
+        if (this.unit.members.length > 0) {
+            const start = this.unit.members.at(-1).absEnd;
+            this.unit.code.appendRight(start, this.unit.sepMem + name);
+        } else {
+            console.log("create members");
+            let start, sep;
+            [ start, sep ] = this.createMembers();
+            console.log(start, sep);
+            this.unit.code.appendRight(start, sep + name);
         }
 
-        this.unit.code.remove(this.unit.start, this.unit.end);
     }
 
     /**

@@ -60,13 +60,40 @@ const manager = (options={}) => {
                     console.log(unit);
                     console.log(importManager.imports);
 
-                    if ("action" in obj) {
-                        if (obj.action === "remove") {
-                            importManager.remove(unit);
-                            continue;
-                        }
+                    if ("actions" in obj) {
+                        console.log("actions in obj");
+                        const actions = Array.isArray(obj.actions) ? obj.actions : [obj.actions];
+                        console.log(actions);
+                        for (const action of actions) {
+                            
+                            if (typeof action === "object" && "select" in action) {
+                                if (action.select === "module") {
+                                    if ("rename" in action) {
+                                        const modType = ("modType" in action) ? action.modType : unit.module.type;
+                                        unit.methods.renameModule(action.rename, modType);
+                                    }
+                                }
 
-                        //importManager.commitChanges(unit);
+                                else if (action.select === "members") {
+                                    if ("add" in action) {
+                                        unit.methods.addMember(action.add);
+                                    }
+                                }
+
+                                else if (action.select === "member") {
+                                    if ("rename" in action) {
+                                        //
+                                    }
+                                }
+                            }
+                            
+                            else if (action === "remove") {
+                                importManager.remove(unit);
+                                continue;
+                            }
+
+                            importManager.commitChanges(unit);
+                        }
                     }
 
 
@@ -74,6 +101,9 @@ const manager = (options={}) => {
             }
 
             const code = importManager.code.toString();
+            console.log("CODE >>>>");
+            console.log(code);
+            console.log("<<< CODE");
             let map;
 
             if (options.sourceMap !== false && options.sourcemap !== false) {

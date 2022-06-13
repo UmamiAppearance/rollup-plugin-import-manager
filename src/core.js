@@ -344,6 +344,7 @@ class ImportManager {
             module.start = match[0].indexOf(match[2]) + 1;
             module.end = module.start + match[2].length - 2;
             module.name = code.slice(module.start, module.end).split("/").at(-1);
+            module.type = "string";
 
             // store the first separator of the non default
             // and default members for a consistent style
@@ -490,7 +491,11 @@ class ImportManager {
     }
 
     commitChanges(unit) {
-        this.code.overwrite(unit.start, unit.end, unit.code.codeString);
+        if (unit.membersFromScratch) {
+            const end = unit.defaultMembers.at(-1).absEnd;
+            unit.code.appendRight(end, " }");
+        }
+        this.code.overwrite(unit.start, unit.end, unit.code.toString());
     }
 
 
@@ -559,7 +564,9 @@ class ImportManager {
             if (!(t in this.imports)) {
                 throw new TypeError(`Invalid type: '${t}' - Should be one or more of: 'cjs', 'dynamic', 'es6'.`);
             }
-            unitList.push(...this.imports[t].units);
+            if (this.imports[t].count > 0) {
+                unitList.push(...this.imports[t].units);
+            }
         }
 
         const units = unitList.filter(unit => unit.module.name === name);
