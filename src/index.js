@@ -2,6 +2,9 @@ import { createFilter } from "@rollup/pluginutils";
 import ImportManager from "./core.js";
 import picomatch from "picomatch"; 
 
+// helper to allow string and array
+const ensureArray = (arr) => Array.isArray(arr) ? arr : [arr];
+
 const manager = (options={}) => {
     console.log("options", options);
 
@@ -17,12 +20,11 @@ const manager = (options={}) => {
             const importManager = new ImportManager(source, id);
             
             if (options.select) {
-                const selection = Array.isArray(options.select) ? options.select : [options.select];
                 
                 let allowNull = true;
                 let useId = false;
 
-                for (const obj of selection) { 
+                for (const obj of ensureArray(options.select)) { 
 
                     if ("file" in obj) {
                         console.log(obj.file, "obj.file");
@@ -61,10 +63,8 @@ const manager = (options={}) => {
                     console.log(importManager.imports);
 
                     if ("actions" in obj) {
-                        console.log("actions in obj");
-                        const actions = Array.isArray(obj.actions) ? obj.actions : [obj.actions];
-                        console.log(actions);
-                        for (const action of actions) {
+
+                        for (const action of ensureArray(obj.actions)) {
                             
                             if (typeof action === "object" && "select" in action) {
                                 if (action.select === "module") {
@@ -76,7 +76,9 @@ const manager = (options={}) => {
 
                                 else if (action.select === "members") {
                                     if ("add" in action) {
-                                        unit.methods.addMember(action.add);
+                                        for (const addition of ensureArray(action.add)) {
+                                            unit.methods.addMember(addition);
+                                        }
                                     }
                                 }
 
