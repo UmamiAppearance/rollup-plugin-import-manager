@@ -10,16 +10,19 @@ class ImportManager {
 
         this.imports = {
             es6: {
+                count: 0,
                 idScope: 1 * this.scopeMulti,
                 searched: false,
                 units: []
             },
             dynamic: {
+                count: 0,
                 idScope: 2 * this.scopeMulti,
                 searched: false,
                 units: []
             },
             cjs: {
+                count: 0,
                 idScope: 3 * this.scopeMulti,
                 searched: false,
                 units: []
@@ -183,7 +186,6 @@ class ImportManager {
      * instance.
      */
     getES6Imports() {
-        this.imports.es6.count = 0;
         let id = this.imports.es6.idScope;
 
         const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(\-+);?/g);
@@ -352,6 +354,7 @@ class ImportManager {
             // make a new unit
             const unit = {
                 id: id++,
+                index: this.imports.es6.count-1,
                 code: new MagicString(code),
                 defaultMembers,
                 members,
@@ -391,7 +394,7 @@ class ImportManager {
      * @param {Object} match - A match object returned by a regex match fn. 
      * @param {number} id 
      */
-     #makeImport(type, match, id) {
+     #makeImport(type, match, id, index) {
         const start = match.index;
         const end = start + match[0].length;
         const code = this.code.slice(start, end);
@@ -418,6 +421,7 @@ class ImportManager {
         // make a fresh unit
         const unit = {
             id,
+            index,
             code: new MagicString(code),
             module,
             start,
@@ -440,7 +444,6 @@ class ImportManager {
      * (prepared) source code.
      */
     getDynamicImports() {
-        this.imports.dynamic.count = 0;
         let id = this.imports.dynamic.idScope;
 
         const dynamicImportCollection = this.blackenedCode.matchAll(/(import\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
@@ -448,7 +451,7 @@ class ImportManager {
 
         while (!next.done) {
             this.imports.dynamic.count ++;
-            this.#makeImport("dynamic", next.value, id++);
+            this.#makeImport("dynamic", next.value, id++, this.imports.dynamic.count-1);
             next = dynamicImportCollection.next();
         }
 
@@ -461,17 +464,15 @@ class ImportManager {
      * (prepared) source code.
      */
     getCJSImports() {
-        this.imports.cjs.count = 0;
         let id = this.imports.cjs.idScope;
 
         const cjsImportCollection = this.blackenedCode.matchAll(/(require\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
         let next = cjsImportCollection.next();
 
         while (!next.done) {
-            this.imports.cjs.count ++;
             while (!next.done) {
-                this.imports.dynamic.count ++;
-                this.#makeImport("cjs", next.value, id++);
+                this.imports.cjs.count ++;
+                this.#makeImport("cjs", next.value, id++, this.imports.cjs.count-1);
                 next = cjsImportCollection.next();
             }
         } 
@@ -479,9 +480,17 @@ class ImportManager {
         this.imports.cjs.searched = true;
     }
 
+    remove(unit) {
+        if (unit.type !== "es6") {
+            throw new Error("Removing units is only available for es6 imports.");
+        }
+        this.code.remove(unit.start, unit.end);
+        this.imports[unit.type].units.splice([unit.index], 1, null);
+        this.imports[unit.type].count --;
+    }
 
-    write() {
-        
+    commitChanges(unit) {
+        this.code.overwrite(unit.start, unit.end, unit.code.codeString);
     }
 
 

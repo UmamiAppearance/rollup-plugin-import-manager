@@ -56,7 +56,20 @@ const manager = (options={}) => {
                     } else if ("module" in obj) {
                         unit = importManager.selectModByName(obj.module, obj.type, allowNull);
                     }
+                    
                     console.log(unit);
+                    console.log(importManager.imports);
+
+                    if ("action" in obj) {
+                        if (obj.action === "remove") {
+                            importManager.remove(unit);
+                            continue;
+                        }
+
+                        //importManager.commitChanges(unit);
+                    }
+
+
                 }
             }
 
