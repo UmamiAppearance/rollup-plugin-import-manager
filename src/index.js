@@ -4,6 +4,7 @@ import picomatch from "picomatch";
 
 // helper to allow string and array
 const ensureArray = (arr) => Array.isArray(arr) ? arr : [arr];
+const bool = (b) => !(Boolean(b) === false || String(b).match(/(?:false|no|0)/, "i"));
 
 const manager = (options={}) => {
     console.log("options", options);
@@ -74,17 +75,23 @@ const manager = (options={}) => {
                                     }
                                 }
 
+                                else if (action.select === "member" || action.select === "defaultMember" ) {
+                                    const memberType = action.select;
+                                    if (!"name" in action) {
+                                        throw new Error(`${memberType} name must be set.`);
+                                    }
+
+                                    if ("rename" in action) {
+                                        const keepAlias = "keepAlias" in action ? bool(action.keepAlias) : false;
+                                        unit.methods.renameMember(memberType, action.name, action.rename, keepAlias);
+                                    }
+                                }
+
                                 else if (action.select === "members") {
                                     if ("add" in action) {
                                         for (const addition of ensureArray(action.add)) {
                                             unit.methods.addMember(addition);
                                         }
-                                    }
-                                }
-
-                                else if (action.select === "member") {
-                                    if ("rename" in action) {
-                                        //
                                     }
                                 }
                             }

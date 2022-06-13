@@ -95,7 +95,27 @@ class ImportManagerUnitMethods {
             console.log(start, sep);
             this.unit.code.appendRight(start, sep + name);
         }
+    }
 
+    #findMember(memberType, name) {
+        const filtered = this.unit[memberType+"s"].filter(m => m.name === name);
+        if (filtered.length !== 1) {
+            throw new MatchError(`Unable to locate ${memberType} with name '${name}'`);
+        }
+        return filtered[0];
+    }
+
+    renameMember(memberType, name, newName, keepAlias) {
+        console.log(memberType, name, newName, keepAlias);
+        const member = this.#findMember(memberType, name);
+        
+        let end;
+        if (keepAlias) {
+            end = member.end;
+        } else {
+            end = member.absEnd;
+        }
+        this.unit.code.overwrite(member.start, end, newName);
     }
 
     /**
@@ -799,7 +819,9 @@ class ImportManager {
     }
 }
 
+// helper to allow string and array
 const ensureArray = (arr) => Array.isArray(arr) ? arr : [arr];
+const bool = (b) => !(Boolean(b) === false || String(b).match(/(?:false|no|0)/, "i"));
 
 const manager = (options={}) => {
     console.log("options", options);
@@ -870,6 +892,18 @@ const manager = (options={}) => {
                                     }
                                 }
 
+                                else if (action.select === "member" || action.select === "defaultMember" ) {
+                                    const memberType = action.select;
+                                    if (!"name" in action) {
+                                        throw new Error(`${memberType} name must be set.`);
+                                    }
+
+                                    if ("rename" in action) {
+                                        const keepAlias = "keepAlias" in action ? bool(action.keepAlias) : false;
+                                        unit.methods.renameMember(memberType, action.name, action.rename, keepAlias);
+                                    }
+                                }
+
                                 else if (action.select === "members") {
                                     if ("add" in action) {
                                         for (const addition of ensureArray(action.add)) {
@@ -877,8 +911,6 @@ const manager = (options={}) => {
                                         }
                                     }
                                 }
-
-                                else if (action.select === "member") ;
                             }
                             
                             else if (action === "remove") {

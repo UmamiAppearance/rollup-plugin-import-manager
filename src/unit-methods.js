@@ -1,4 +1,4 @@
-import { DebuggingError } from "./errors.js";
+import { DebuggingError, MatchError } from "./errors.js";
 
 export default class ImportManagerUnitMethods {
     constructor(unit) {
@@ -63,7 +63,27 @@ export default class ImportManagerUnitMethods {
             console.log(start, sep);
             this.unit.code.appendRight(start, sep + name);
         }
+    }
 
+    #findMember(memberType, name) {
+        const filtered = this.unit[memberType+"s"].filter(m => m.name === name);
+        if (filtered.length !== 1) {
+            throw new MatchError(`Unable to locate ${memberType} with name '${name}'`);
+        }
+        return filtered[0];
+    }
+
+    renameMember(memberType, name, newName, keepAlias) {
+        console.log(memberType, name, newName, keepAlias);
+        const member = this.#findMember(memberType, name);
+        
+        let end;
+        if (keepAlias) {
+            end = member.end;
+        } else {
+            end = member.absEnd;
+        }
+        this.unit.code.overwrite(member.start, end, newName);
     }
 
     /**
