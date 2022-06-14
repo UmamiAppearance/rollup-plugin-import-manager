@@ -1,8 +1,39 @@
 import { DebuggingError, MatchError } from "./errors.js";
 
 export default class ImportManagerUnitMethods {
-    constructor(unit) {
+    constructor(unit, es6StrToObj) {
         this.unit = unit;
+        this.updateUnit = () => {
+
+            if (this.unit.membersFromScratch) {
+                const end = this.unit.defaultMembers.entities.at(-1).absEnd;
+                this.unit.code.appendRight(end, " }");
+                this.unit.membersFromScratch = false;
+            }
+
+            let memberPart = "";
+            const memberPartStart = this.unit.defaultMembers.start || this.unit.members.start || false;
+            if (memberPartStart) {
+                const memberPartEnd = this.unit.members.end || this.unit.defaultMembers.end;
+                memberPart = this.unit.code.slice(memberPartStart, memberPartEnd);
+            }
+
+            const unit = es6StrToObj(
+                this.unit.code.toString(),
+                this.unit.start,
+                this.unit.end,
+                this.unit.code.toString(),
+                memberPart,
+                this.unit.code.slice(this.unit.module)
+            );
+
+            // ignore the getter
+            delete unit.codeString;
+            
+            // copy all other updated properties
+            Object.assign(this.unit, unit);
+
+        }
     }
 
     #ES6only() {
@@ -26,7 +57,7 @@ export default class ImportManagerUnitMethods {
         }
         
         this.unit.code.overwrite(this.unit.module.start, this.unit.module.end, name);
-        console.log(this.unit.code.toString());
+        this.updateUnit();
     }
 
 // member methods
@@ -67,7 +98,7 @@ export default class ImportManagerUnitMethods {
             this.unit.code.appendRight(start, sep + name);
         }
 
-        this.unit.members.count ++;
+        this.updateUnit();
     }
 
     #findMember(memberType, name) {
@@ -86,7 +117,7 @@ export default class ImportManagerUnitMethods {
         this.#ES6only();
 
         const member = this.#findMember(memberType, name);
-        const group = this.unit[memberType+"s"];
+        
         let start;
         let end;
         
@@ -101,9 +132,7 @@ export default class ImportManagerUnitMethods {
             end = member.absEnd;
         }
         this.unit.code.remove(start, end);
-        this.unit[memberType+"s"].entities[member.index].name = null;
-        //this.unit[memberType+"s"].entities.splice(member.index, 1, null);
-        this.unit[memberType+"s"].count --;
+        this.updateUnit();
     }
 
     renameMember(memberType, name, newName, keepAlias) {
@@ -118,6 +147,7 @@ export default class ImportManagerUnitMethods {
             end = member.absEnd;
         }
         this.unit.code.overwrite(member.start, end, newName);
+        this.updateUnit();
     }
 
     /**

@@ -34,8 +34,39 @@ class MatchError extends Error {
 }
 
 class ImportManagerUnitMethods {
-    constructor(unit) {
+    constructor(unit, es6StrToObj) {
         this.unit = unit;
+        this.updateUnit = () => {
+
+            if (this.unit.membersFromScratch) {
+                const end = this.unit.defaultMembers.entities.at(-1).absEnd;
+                this.unit.code.appendRight(end, " }");
+                this.unit.membersFromScratch = false;
+            }
+
+            let memberPart = "";
+            const memberPartStart = this.unit.defaultMembers.start || this.unit.members.start || false;
+            if (memberPartStart) {
+                const memberPartEnd = this.unit.members.end || this.unit.defaultMembers.end;
+                memberPart = this.unit.code.slice(memberPartStart, memberPartEnd);
+            }
+
+            const unit = es6StrToObj(
+                this.unit.code.toString(),
+                this.unit.start,
+                this.unit.end,
+                this.unit.code.toString(),
+                memberPart,
+                this.unit.code.slice(this.unit.module)
+            );
+
+            // ignore the getter
+            delete unit.codeString;
+            
+            // copy all other updated properties
+            Object.assign(this.unit, unit);
+
+        };
     }
 
     #ES6only() {
@@ -59,7 +90,7 @@ class ImportManagerUnitMethods {
         }
         
         this.unit.code.overwrite(this.unit.module.start, this.unit.module.end, name);
-        console.log(this.unit.code.toString());
+        this.updateUnit();
     }
 
 // member methods
@@ -100,7 +131,7 @@ class ImportManagerUnitMethods {
             this.unit.code.appendRight(start, sep + name);
         }
 
-        this.unit.members.count ++;
+        this.updateUnit();
     }
 
     #findMember(memberType, name) {
@@ -119,7 +150,7 @@ class ImportManagerUnitMethods {
         this.#ES6only();
 
         const member = this.#findMember(memberType, name);
-        const group = this.unit[memberType+"s"];
+        
         let start;
         let end;
         
@@ -132,14 +163,9 @@ class ImportManagerUnitMethods {
         } else {
             start = member.start;
             end = member.absEnd;
-            if (group.entities.length === 1 && group.count > 1) {
-                start -= group.separator.length;
-            }
         }
         this.unit.code.remove(start, end);
-        this.unit[memberType+"s"].entities[member.index].name = null;
-        //this.unit[memberType+"s"].entities.splice(member.index, 1, null);
-        this.unit[memberType+"s"].count --;
+        this.updateUnit();
     }
 
     renameMember(memberType, name, newName, keepAlias) {
@@ -154,6 +180,7 @@ class ImportManagerUnitMethods {
             end = member.absEnd;
         }
         this.unit.code.overwrite(member.start, end, newName);
+        this.updateUnit();
     }
 
     /**
@@ -345,6 +372,193 @@ class ImportManager {
     }
 
 
+    es6StrToObj(code, start, end, statement, memberPart, module) {
+        // separating members
+        const members = {
+            count: 0,
+            entities: []
+        };
+
+        const defaultMembers = {
+            count: 0,
+            entities: []
+        };
+
+        const allMembersStr = memberPart ? memberPart.trim() : null;
+        
+        if (allMembersStr) {
+            // find position of all members
+            const relAllMembersStart = code.indexOf(allMembersStr);
+
+            // initialize default string
+            let defaultStr = null;
+
+            // but begin with non default members, those
+            // are addressed by looking for everything between
+            // the curly braces (if present)
+            const nonDefaultMatch = allMembersStr.match(/{[\s\S]*?}/);
+            
+            if (nonDefaultMatch) {
+                const relNonDefaultStart = nonDefaultMatch.index;
+                let nonDefaultStr = nonDefaultMatch[0];
+
+                members.start = relAllMembersStart + relNonDefaultStart;
+                members.end = members.start + nonDefaultStr.length;
+
+                if (relNonDefaultStart > 0) {
+                    defaultStr = allMembersStr.slice(0, nonDefaultMatch.index);
+                }
+
+                // split the individual members
+                const m = allMembersStr.slice(relNonDefaultStart+1, relNonDefaultStart+nonDefaultStr.length-2)
+                                    .split(",")
+                                    .map(m => m.trim())
+                                    .filter(m => m);
+                
+                // get the position of each of each member 
+                let searchIndex = 0;
+                m.forEach((member, index) => {
+                    members.count ++;
+                    const relMemberPos = nonDefaultStr.indexOf(member, searchIndex);
+                    
+                    let name = member;
+                    let len;
+
+                    // isolate aliases
+                    const aliasMatch = member.match(/(\s+as\s+)/);
+                    const newMember = {};
+                    if (aliasMatch) {
+                        len = aliasMatch.index;
+                        name = member.slice(0, len);
+                        newMember.name = name;
+                        const aliasStart = aliasMatch.index + aliasMatch[0].length;
+                        newMember.alias = {
+                            name: member.slice(aliasStart),
+                            start: relAllMembersStart + relNonDefaultStart + relMemberPos + aliasStart,
+                            end: relAllMembersStart + relNonDefaultStart + relMemberPos + member.length
+                        };
+                    } else {
+                        newMember.name = name;
+                        len = member.length;
+                    }
+                    newMember.start = relAllMembersStart + relNonDefaultStart + relMemberPos;
+                    newMember.end = newMember.start + len;
+                    newMember.absEnd = newMember.start + member.length;
+                    newMember.index = index;
+
+                    // store the current member start as
+                    // a property of the last and the last
+                    // member end as a property of the 
+                    // currentindex
+                    if (index > 0) {
+                        newMember.last = members.entities[index-1].absEnd;
+                        members.entities[index-1].next = newMember.start;
+                    }
+
+                    members.entities.push(newMember);
+
+                    // raise the search index by the length
+                    // of the member to ignore the current
+                    // member in the next round
+                    searchIndex = relMemberPos + member.length;
+                });
+            }
+            
+            // if no non default members were found
+            // the default member string is the whole
+            // member string 
+            else {
+                defaultStr = allMembersStr;
+            }
+
+            // if a default str is present process
+            // it similarly to the non default members
+            if (defaultStr) {
+                defaultMembers.start = relAllMembersStart;
+                defaultMembers.end = defaultMembers.start + defaultStr.length;
+
+                const dm = defaultStr.split(",")
+                                        .map(m => m.trim())
+                                        .filter(m => m);
+                
+                let searchIndex = 0;
+                dm.forEach((defaultMember, index) => {
+                    const relDefaultMemberPos = defaultStr.indexOf(defaultMember, searchIndex);
+                    let name = defaultMember;
+                    let len;
+                    const newDefMember = {};
+                    const aliasMatch = defaultMember.match(/(\s+as\s+)/);
+                    
+                    if (aliasMatch) {
+                        len = aliasMatch.index;
+                        name = defaultMember.slice(0, len);
+                        newDefMember.name = name;
+                        const aliasStart = aliasMatch.index + aliasMatch[0].length;
+                        newDefMember.alias = {
+                            name: defaultMember.slice(aliasStart),
+                            start: relAllMembersStart + relDefaultMemberPos + aliasStart,
+                            end: relAllMembersStart + relDefaultMemberPos + defaultMember.length
+                        };
+                    } else {
+                        newDefMember.name = name;
+                        len = defaultMember.length;
+                    }
+
+                    newDefMember.start = relAllMembersStart + relDefaultMemberPos;
+                    newDefMember.end = newDefMember.start + len;
+                    newDefMember.absEnd = newDefMember.start + defaultMember.length;
+                    newDefMember.index = index;
+
+                    if (index > 0) {
+                        newDefMember.last = defaultMembers.entities[index-1].absEnd;
+                        defaultMembers.entities[index-1].next = newDefMember.start;
+                    }
+
+                    defaultMembers.entities.push(newDefMember);
+                    searchIndex = relDefaultMemberPos + len + 1;
+                });
+
+                // if there are default and non default members
+                // add the start position of the non default
+                // members as the next value for the last default
+                // member
+                if (members.count > 1 && defaultMembers.count > 1) {
+                    defaultMembers.entities.at(-1).next = members.start;
+                }
+            }
+        }
+
+        // create a fresh object for the current unit
+        const moduleStr = {};
+
+        // find the position of the module string
+        moduleStr.start = statement.indexOf(module) + 1;
+        moduleStr.end = moduleStr.start + module.length - 2;
+        moduleStr.name = code.slice(moduleStr.start, moduleStr.end).split("/").at(-1);
+        moduleStr.type = "string";
+
+        // store the first separator of the non default
+        // and default members for a consistent style
+        // if one wants to add members
+        defaultMembers.separator = (defaultMembers.entities.length > 1) ? code.slice(defaultMembers.entities[0].absEnd, defaultMembers.entities[0].next) : ", ";
+        members.separator = (members.entities.length > 1) ? code.slice(members.entities[0].absEnd, members.entities[0].next) : ", ";
+
+        // make a new unit
+        const unit = {
+            code: new MagicString__default["default"](code),
+            defaultMembers,
+            members,
+            module: moduleStr,
+            start,
+            end,
+            get codeString() {
+                return [ this.code.toString() ];
+            }
+        };
+
+        return unit;
+    }
+
     /**
      * Collect all es6 imports from a source code.
      * Destructure the string, and store the findings
@@ -352,18 +566,21 @@ class ImportManager {
      * instance.
      */
     getES6Imports() {
-        let id = this.imports.es6.idScope;
-
+        
         const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(\-+);?/g);
         // match[0]: the complete import statement
         // match[1]: the member part of the statement (may be empty)
         // match[2]: the module part
         
+        let id = this.imports.es6.idScope;
         let next = es6ImportCollection.next();
+        let index = 0;
+        
         while (!next.done) {
             this.imports.es6.count ++;
 
             const match = next.value;
+
             const start = match.index;
             const end = start + match[0].length;
 
@@ -371,201 +588,19 @@ class ImportManager {
             // original code
             const code = this.code.slice(start, end);
 
-            // separating members
-            const members = {
-                count: 0,
-                entities: []
-            };
-
-            const defaultMembers = {
-                count: 0,
-                entities: []
-            };
-
-            const allMembersStr = match[1] ? match[1].trim() : null;
+            const unit = this.es6StrToObj(code, start, end, ...match);
             
-            if (allMembersStr) {
-                // find position of all members
-                const relAllMembersStart = code.indexOf(allMembersStr);
-
-                // initialize default string
-                let defaultStr = null;
-
-                // but begin with non default members, those
-                // are addressed by looking for everything between
-                // the curly braces (if present)
-                const nonDefaultMatch = allMembersStr.match(/{[\s\S]*?}/);
-                
-                if (nonDefaultMatch) {
-                    const relNonDefaultStart = nonDefaultMatch.index;
-                    let nonDefaultStr = nonDefaultMatch[0];
-
-                    members.start = relAllMembersStart + relNonDefaultStart;
-                    members.end = members.start + nonDefaultStr.length;
-
-                    if (relNonDefaultStart > 0) {
-                        defaultStr = allMembersStr.slice(0, nonDefaultMatch.index);
-                    }
-
-                    // split the individual members
-                    const m = allMembersStr.slice(relNonDefaultStart+1, relNonDefaultStart+nonDefaultStr.length-2)
-                                       .split(",")
-                                       .map(m => m.trim())
-                                       .filter(m => m);
-                    
-                    // get the position of each of each member 
-                    let searchIndex = 0;
-                    m.forEach((member, index) => {
-                        members.count ++;
-                        const relMemberPos = nonDefaultStr.indexOf(member, searchIndex);
-                        
-                        let name = member;
-                        let len;
-
-                        // isolate aliases
-                        const aliasMatch = member.match(/(\s+as\s+)/);
-                        const newMember = {};
-                        if (aliasMatch) {
-                            len = aliasMatch.index;
-                            name = member.slice(0, len);
-                            newMember.name = name;
-                            const aliasStart = aliasMatch.index + aliasMatch[0].length;
-                            newMember.alias = {
-                                name: member.slice(aliasStart),
-                                start: relAllMembersStart + relNonDefaultStart + relMemberPos + aliasStart,
-                                end: relAllMembersStart + relNonDefaultStart + relMemberPos + member.length
-                            };
-                        } else {
-                            newMember.name = name;
-                            len = member.length;
-                        }
-                        newMember.start = relAllMembersStart + relNonDefaultStart + relMemberPos;
-                        newMember.end = newMember.start + len;
-                        newMember.absEnd = newMember.start + member.length;
-                        newMember.index = index;
-
-                        // store the current member start as
-                        // a property of the last and the last
-                        // member end as a property of the 
-                        // current
-                        if (index > 0) {
-                            newMember.last = members.entities[index-1].absEnd;
-                            members.entities[index-1].next = newMember.start;
-                        }
-
-                        members.entities.push(newMember);
-
-                        // raise the search index by the length
-                        // of the member to ignore the current
-                        // member in the next round
-                        searchIndex = relMemberPos + member.length;
-                    });
-                }
-                
-                // if no non default members were found
-                // the default member string is the whole
-                // member string 
-                else {
-                    defaultStr = allMembersStr;
-                }
-
-                // if a default str is present process
-                // it similarly to the non default members
-                if (defaultStr) {
-                    defaultMembers.start = relAllMembersStart;
-                    defaultMembers.end = defaultMembers.start + defaultStr.length;
-
-                    const dm = defaultStr.split(",")
-                                          .map(m => m.trim())
-                                          .filter(m => m);
-                    
-                    let searchIndex = 0;
-                    dm.forEach((defaultMember, index) => {
-                        const relDefaultMemberPos = defaultStr.indexOf(defaultMember, searchIndex);
-                        let name = defaultMember;
-                        let len;
-                        const newDefMember = {};
-                        const aliasMatch = defaultMember.match(/(\s+as\s+)/);
-                        
-                        if (aliasMatch) {
-                            len = aliasMatch.index;
-                            name = defaultMember.slice(0, len);
-                            newDefMember.name = name;
-                            const aliasStart = aliasMatch.index + aliasMatch[0].length;
-                            newDefMember.alias = {
-                                name: defaultMember.slice(aliasStart),
-                                start: relAllMembersStart + relDefaultMemberPos + aliasStart,
-                                end: relAllMembersStart + relDefaultMemberPos + defaultMember.length
-                            };
-                        } else {
-                            newDefMember.name = name;
-                            len = defaultMember.length;
-                        }
-
-                        newDefMember.start = relAllMembersStart + relDefaultMemberPos;
-                        newDefMember.end = newDefMember.start + len;
-                        newDefMember.absEnd = newDefMember.start + defaultMember.length;
-                        newDefMember.index = index;
-
-                        if (index > 0) {
-                            newDefMember.last = defaultMembers.entities[index-1].absEnd;
-                            defaultMembers.entities[index-1].next = newDefMember.start;
-                        }
-
-                        defaultMembers.entities.push(newDefMember);
-                        searchIndex = relDefaultMemberPos + len + 1;
-                    });
-
-                    // if there are default and non default members
-                    // add the start position of the non default
-                    // members as the next value for the last default
-                    // member
-                    if (members.count > 1 && defaultMembers.count > 1) {
-                        defaultMembers.entities.at(-1).next = members.start;
-                    }
-                }
-            }
-
-            // create a fresh object for the current unit
-            const module = {};
-
-            // find the position of the module string
-            module.start = match[0].indexOf(match[2]) + 1;
-            module.end = module.start + match[2].length - 2;
-            module.name = code.slice(module.start, module.end).split("/").at(-1);
-            module.type = "string";
-
-            // store the first separator of the non default
-            // and default members for a consistent style
-            // if one wants to add members
-            defaultMembers.separator = (defaultMembers.entities.length > 1) ? code.slice(defaultMembers.entities[0].absEnd, defaultMembers.entities[0].next) : ", ";
-            members.separator = (members.entities.length > 1) ? code.slice(members.entities[0].absEnd, members.entities[0].next) : ", ";
-
-            // make a new unit
-            const unit = {
-                id: id++,
-                index: this.imports.es6.count-1,
-                code: new MagicString__default["default"](code),
-                defaultMembers,
-                members,
-                module,
-                start,
-                end,
-                type: "es6",
-                get codeString() {
-                    return [ this.code.toString() ];
-                }
-            };
-
-            // generate a hash
+            unit.type = "es6";
+            unit.id = id++;
+            unit.index = index ++;
             unit.hash = this.#makeHash(unit);
 
             // push the fresh unit to es6 unit array
             this.imports.es6.units.push(unit);
             
             next = es6ImportCollection.next();
-            this.imports.es6.searched = true;
         }
+        this.imports.es6.searched = true;
     }
 
 
@@ -678,10 +713,6 @@ class ImportManager {
     }
 
     commitChanges(unit) {
-        if (unit.membersFromScratch) {
-            const end = unit.defaultMembers.entities.at(-1).absEnd;
-            unit.code.appendRight(end, " }");
-        }
         this.code.overwrite(unit.start, unit.end, unit.code.toString());
     }
 
@@ -784,7 +815,7 @@ class ImportManager {
         }
 
         const unit = units[0];
-        unit.methods = new ImportManagerUnitMethods(unit);
+        unit.methods = new ImportManagerUnitMethods(unit, this.es6StrToObj);
 
         return unit;
     }
