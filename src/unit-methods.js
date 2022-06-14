@@ -32,8 +32,8 @@ export default class ImportManagerUnitMethods {
 // member methods
 
     createMembers() {
-        if (this.unit.defaultMembers.length > 0) {
-            let start = this.unit.defaultMembers.at(-1).absEnd;
+        if (this.unit.defaultMembers.count > 0) {
+            let start = this.unit.defaultMembers.entities.at(-1).absEnd;
             let sep;
             
             if (!this.unit.membersFromScratch) {
@@ -46,15 +46,15 @@ export default class ImportManagerUnitMethods {
             return [start, sep];
         } else {
             throw new Error("Not implemented!");
-            // TODO: implement this
+            // TODO: implement this?
         }
     }
 
     addMember(name) {
         this.#ES6only();
 
-        if (this.unit.members.length > 0) {
-            const start = this.unit.members.at(-1).absEnd;
+        if (this.unit.members.count > 0) {
+            const start = this.unit.members.entities.at(-1).absEnd;
             this.unit.code.appendRight(start, this.unit.sepMem + name);
         } else {
             console.log("create members");
@@ -66,15 +66,29 @@ export default class ImportManagerUnitMethods {
     }
 
     #findMember(memberType, name) {
-        const filtered = this.unit[memberType+"s"].filter(m => m.name === name);
+        this.#ES6only();
+
+        if (!name) {
+            throw new Error(`${memberType} name must be set.`);
+        }
+        const filtered = this.unit[memberType+"s"].entities.filter(m => m.name === name);
         if (filtered.length !== 1) {
             throw new MatchError(`Unable to locate ${memberType} with name '${name}'`);
         }
         return filtered[0];
     }
 
+
+    removeMember(memberType, name) {
+        const member = this.#findMember(memberType, name);
+
+        const end = member.next ? member.next : member.absEnd;
+        this.unit.code.remove(member.start, end);
+        this.unit[memberType+"s"].entities.splice(member.index, 1, null);
+        this.unit[memberType+"s"].count --;
+    }
+
     renameMember(memberType, name, newName, keepAlias) {
-        console.log(memberType, name, newName, keepAlias);
         const member = this.#findMember(memberType, name);
         
         let end;

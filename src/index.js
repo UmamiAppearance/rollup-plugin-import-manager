@@ -4,6 +4,9 @@ import picomatch from "picomatch";
 
 // helper to allow string and array
 const ensureArray = (arr) => Array.isArray(arr) ? arr : [arr];
+
+// makes the life of the user a little bit easier
+// by accepting multiple versions of boolean vars 
 const bool = (b) => !(Boolean(b) === false || String(b).match(/(?:false|no|0)/, "i"));
 
 const manager = (options={}) => {
@@ -20,18 +23,18 @@ const manager = (options={}) => {
 
             const importManager = new ImportManager(source, id);
             
-            if (options.select) {
+            if (options.units) {
                 
                 let allowNull = true;
                 let useId = false;
 
-                for (const obj of ensureArray(options.select)) { 
+                for (const unitSection of ensureArray(options.units)) { 
 
-                    if ("file" in obj) {
-                        console.log(obj.file, "obj.file");
+                    if ("file" in unitSection) {
+                        console.log(unitSection.file, "obj.file");
 
                         //const isMatch = picomatch(obj.file);
-                        const isMatch = (id) => (id.indexOf(obj.file) > -1);
+                        const isMatch = (id) => (id.indexOf(unitSection.file) > -1);
                         // FIXME: proper implementation
                         
                         if (!isMatch(id)) {
@@ -39,8 +42,8 @@ const manager = (options={}) => {
                             return;
                         }
 
-                        if ("debug" in obj) {
-                            if (obj.debug === "objects") {
+                        if ("debug" in unitSection) {
+                            if (unitSection.debug === "objects") {
                                 importManager.logUnitObjects();
                             } else {
                                 importManager.logUnits();
@@ -48,24 +51,24 @@ const manager = (options={}) => {
                         }
 
                         allowNull = false;
-                        useId = "id" in obj;
+                        useId = "id" in unitSection;
                     }
 
                     let unit;
                     if (useId) {
-                        unit = importManager.selectModById(obj.id, allowNull);
-                    } else if ("hash" in obj) {
-                        unit = importManager.selectModByHash(obj.hash, allowNull);
-                    } else if ("module" in obj) {
-                        unit = importManager.selectModByName(obj.module, obj.type, allowNull);
+                        unit = importManager.selectModById(unitSection.id, allowNull);
+                    } else if ("hash" in unitSection) {
+                        unit = importManager.selectModByHash(unitSection.hash, allowNull);
+                    } else if ("module" in unitSection) {
+                        unit = importManager.selectModByName(unitSection.module, unitSection.type, allowNull);
                     }
                     
                     console.log(unit);
                     console.log(importManager.imports);
 
-                    if ("actions" in obj) {
+                    if ("actions" in unitSection) {
 
-                        for (const action of ensureArray(obj.actions)) {
+                        for (const action of ensureArray(unitSection.actions)) {
                             
                             if (typeof action === "object" && "select" in action) {
                                 if (action.select === "module") {
@@ -77,13 +80,14 @@ const manager = (options={}) => {
 
                                 else if (action.select === "member" || action.select === "defaultMember" ) {
                                     const memberType = action.select;
-                                    if (!"name" in action) {
-                                        throw new Error(`${memberType} name must be set.`);
-                                    }
-
+                                    
                                     if ("rename" in action) {
                                         const keepAlias = "keepAlias" in action ? bool(action.keepAlias) : false;
                                         unit.methods.renameMember(memberType, action.name, action.rename, keepAlias);
+                                    }
+
+                                    else if ("remove" in action) {
+                                        unit.methods.removeMember(memberType, action.name);
                                     }
                                 }
 

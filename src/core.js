@@ -146,11 +146,11 @@ class ImportManager {
             let input = unit.module.name;
             
             if (unit.members) {
-                getProps(unit.members);
+                getProps(unit.members.entities);
             }
 
             if (unit.defaultMembers) {
-                getProps(unit.defaultMembers);
+                getProps(unit.defaultMembers.entities);
             }
 
             return input + this.filename;
@@ -206,13 +206,21 @@ class ImportManager {
             const code = this.code.slice(start, end);
 
             // separating members
-            const members = [];
-            const defaultMembers = [];
-            const memberStr = match[1] ? match[1].trim() : null;
+            const members = {
+                count: 0,
+                entities: []
+            };
+
+            const defaultMembers = {
+                count: 0,
+                entities: []
+            }
+
+            const allMembersStr = match[1] ? match[1].trim() : null;
             
-            if (memberStr) {
+            if (allMembersStr) {
                 // find position of all members
-                const memberStrStart = code.indexOf(memberStr);
+                const relAllMembersStart = code.indexOf(allMembersStr);
 
                 // initialize default string
                 let defaultStr = null;
@@ -220,18 +228,21 @@ class ImportManager {
                 // but begin with non default members, those
                 // are addressed by looking for everything between
                 // the curly braces (if present)
-                const nonDefaultMatch = memberStr.match(/{[\s\S]*?}/);
+                const nonDefaultMatch = allMembersStr.match(/{[\s\S]*?}/);
                 
                 if (nonDefaultMatch) {
-                    const nonDefaultStart = nonDefaultMatch.index;
+                    const relNonDefaultStart = nonDefaultMatch.index;
                     let nonDefaultStr = nonDefaultMatch[0];
 
-                    if (nonDefaultStart > 0) {
-                        defaultStr = memberStr.slice(0, nonDefaultMatch.index);
+                    members.start = relAllMembersStart + relNonDefaultStart;
+                    members.end = members.start + nonDefaultStr.length;
+
+                    if (relNonDefaultStart > 0) {
+                        defaultStr = allMembersStr.slice(0, nonDefaultMatch.index);
                     }
 
                     // split the individual members
-                    const m = memberStr.slice(nonDefaultStart+1, nonDefaultStart+nonDefaultStr.length-2)
+                    const m = allMembersStr.slice(relNonDefaultStart+1, relNonDefaultStart+nonDefaultStr.length-2)
                                        .split(",")
                                        .map(m => m.trim())
                                        .filter(m => m);
@@ -239,7 +250,8 @@ class ImportManager {
                     // get the position of each of each member 
                     let searchIndex = 0;
                     m.forEach((member, index) => {
-                        const memberPos = nonDefaultStr.indexOf(member, searchIndex);
+                        members.count ++;
+                        const relMemberPos = nonDefaultStr.indexOf(member, searchIndex);
                         
                         let name = member;
                         let len;
@@ -254,14 +266,14 @@ class ImportManager {
                             const aliasStart = aliasMatch.index + aliasMatch[0].length;
                             newMember.alias = {
                                 name: member.slice(aliasStart),
-                                start: memberStrStart + nonDefaultStart + memberPos + aliasStart,
-                                end: memberStrStart + nonDefaultStart + memberPos + member.length
+                                start: relAllMembersStart + relNonDefaultStart + relMemberPos + aliasStart,
+                                end: relAllMembersStart + relNonDefaultStart + relMemberPos + member.length
                             }
                         } else {
                             newMember.name = name;
                             len = member.length;
                         }
-                        newMember.start = memberStrStart + nonDefaultStart + memberPos;
+                        newMember.start = relAllMembersStart + relNonDefaultStart + relMemberPos;
                         newMember.end = newMember.start + len;
                         newMember.absEnd = newMember.start + member.length;
                         newMember.index = index;
@@ -271,16 +283,16 @@ class ImportManager {
                         // member end as a property of the 
                         // current
                         if (index > 0) {
-                            newMember.last = members[index-1].absEnd;
-                            members[index-1].next = newMember.start;
+                            newMember.last = members.entities[index-1].absEnd;
+                            members.entities[index-1].next = newMember.start;
                         }
 
-                        members.push(newMember);
+                        members.entities.push(newMember);
 
                         // raise the search index by the length
                         // of the member to ignore the current
                         // member in the next round
-                        searchIndex = memberPos + member.length;
+                        searchIndex = relMemberPos + member.length;
                     });
                 }
                 
@@ -288,19 +300,22 @@ class ImportManager {
                 // the default member string is the whole
                 // member string 
                 else {
-                    defaultStr = memberStr;
+                    defaultStr = allMembersStr;
                 }
 
                 // if a default str is present process
                 // it similarly to the non default members
                 if (defaultStr) {
+                    defaultMembers.start = relAllMembersStart;
+                    defaultMembers.end = defaultMembers.start + defaultStr.length;
+
                     const dm = defaultStr.split(",")
                                           .map(m => m.trim())
                                           .filter(m => m);
                     
                     let searchIndex = 0;
                     dm.forEach((defaultMember, index) => {
-                        const defaultMemberPos = defaultStr.indexOf(defaultMember, searchIndex);
+                        const relDefaultMemberPos = defaultStr.indexOf(defaultMember, searchIndex);
                         let name = defaultMember;
                         let len;
                         const newDefMember = {};
@@ -313,27 +328,35 @@ class ImportManager {
                             const aliasStart = aliasMatch.index + aliasMatch[0].length;
                             newDefMember.alias = {
                                 name: defaultMember.slice(aliasStart),
-                                start: memberStrStart + defaultMemberPos + aliasStart,
-                                end: memberStrStart + defaultMemberPos + defaultMember.length
+                                start: relAllMembersStart + relDefaultMemberPos + aliasStart,
+                                end: relAllMembersStart + relDefaultMemberPos + defaultMember.length
                             }
                         } else {
                             newDefMember.name = name;
                             len = defaultMember.length;
                         }
 
-                        newDefMember.start = memberStrStart + defaultMemberPos;
+                        newDefMember.start = relAllMembersStart + relDefaultMemberPos;
                         newDefMember.end = newDefMember.start + len;
                         newDefMember.absEnd = newDefMember.start + defaultMember.length;
                         newDefMember.index = index;
 
                         if (index > 0) {
-                            newDefMember.last = defaultMembers[index-1].absEnd;
-                            defaultMembers[index-1].next = newDefMember.start;
+                            newDefMember.last = defaultMembers.entities[index-1].absEnd;
+                            defaultMembers.entities[index-1].next = newDefMember.start;
                         }
 
-                        defaultMembers.push(newDefMember);
-                        searchIndex = defaultMemberPos + len + 1;
+                        defaultMembers.entities.push(newDefMember);
+                        searchIndex = relDefaultMemberPos + len + 1;
                     });
+
+                    // if there are default and non default members
+                    // add the start position of the non default
+                    // members as the next value for the last default
+                    // member
+                    if (members.count > 1 && defaultMembers.count > 1) {
+                        defaultMembers.entities.at(-1).next = members.start;
+                    }
                 }
             }
 
@@ -349,8 +372,8 @@ class ImportManager {
             // store the first separator of the non default
             // and default members for a consistent style
             // if one wants to add members
-            const sepDef = (defaultMembers.length > 1) ? code.slice(defaultMembers[0].absEnd, defaultMembers[0].next) : ", ";
-            const sepMem = (members.length > 1) ? code.slice(members[0].absEnd, members[0].next) : ", ";
+            const sepDef = (defaultMembers.entities.length > 1) ? code.slice(defaultMembers.entities[0].absEnd, defaultMembers.entities[0].next) : ", ";
+            const sepMem = (members.entities.length > 1) ? code.slice(members.entities[0].absEnd, members.entities[0].next) : ", ";
 
             // make a new unit
             const unit = {
@@ -492,7 +515,7 @@ class ImportManager {
 
     commitChanges(unit) {
         if (unit.membersFromScratch) {
-            const end = unit.defaultMembers.at(-1).absEnd;
+            const end = unit.defaultMembers.entities.at(-1).absEnd;
             unit.code.appendRight(end, " }");
         }
         this.code.overwrite(unit.start, unit.end, unit.code.toString());

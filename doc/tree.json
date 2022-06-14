@@ -1,0 +1,37 @@
+{
+    "units": [
+        {
+            "id": "[1000]", 
+            "hash": ["3511224270"],
+            "file": "[index.js]",
+            "type": "[es6]",
+            "module": "appendix.js",
+            "actions": [
+                {
+                    "select": "member|defaultMember",
+                    "name": "(default) member name",
+                    "rename": "new name",
+                    "keepAlias": "[bool (false|'false','no',0,'0')]"
+                },
+                {
+                    "select": "member|defaultMember",
+                    "name": "(default) member name",
+                    "delete": null
+                },
+                {
+                    "select": "members|defaultMember",
+                    "modType": "literal",
+                    "rename": "./testlibs/appendix2.js",
+                    "add": [
+                        "new member name"
+                    ]
+                },
+                {   
+                    "select": "module",
+                    "modType": "[string|literal]",
+                    "rename": "new mod (path)"
+                }
+            ]
+        }
+    ]   
+}
