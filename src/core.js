@@ -372,8 +372,8 @@ class ImportManager {
             // store the first separator of the non default
             // and default members for a consistent style
             // if one wants to add members
-            const sepDef = (defaultMembers.entities.length > 1) ? code.slice(defaultMembers.entities[0].absEnd, defaultMembers.entities[0].next) : ", ";
-            const sepMem = (members.entities.length > 1) ? code.slice(members.entities[0].absEnd, members.entities[0].next) : ", ";
+            defaultMembers.separator = (defaultMembers.entities.length > 1) ? code.slice(defaultMembers.entities[0].absEnd, defaultMembers.entities[0].next) : ", ";
+            members.separator = (members.entities.length > 1) ? code.slice(members.entities[0].absEnd, members.entities[0].next) : ", ";
 
             // make a new unit
             const unit = {
@@ -385,8 +385,6 @@ class ImportManager {
                 module,
                 start,
                 end,
-                sepDef,
-                sepMem,
                 type: "es6",
                 get codeString() {
                     return [ this.code.toString() ];

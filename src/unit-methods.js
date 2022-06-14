@@ -38,9 +38,9 @@ export default class ImportManagerUnitMethods {
             
             if (!this.unit.membersFromScratch) {
                 this.unit.membersFromScratch = true;
-                sep = this.unit.sepDef + "{ ";
+                sep = this.unit.defaultMembers.separator + "{ ";
             } else {
-                sep = this.unit.sepMem;;
+                sep = this.unit.members.separator;
             }
             
             return [start, sep];
@@ -53,9 +53,12 @@ export default class ImportManagerUnitMethods {
     addMember(name) {
         this.#ES6only();
 
-        if (this.unit.members.count > 0) {
+        if (this.unit.members.entities.length > 0) {
             const start = this.unit.members.entities.at(-1).absEnd;
-            this.unit.code.appendRight(start, this.unit.sepMem + name);
+            if (this.unit.members.count > 0) {
+                name = this.unit.members.separator + name;
+            }
+            this.unit.code.appendRight(start, name);
         } else {
             console.log("create members");
             let start, sep;
@@ -63,11 +66,11 @@ export default class ImportManagerUnitMethods {
             console.log(start, sep);
             this.unit.code.appendRight(start, sep + name);
         }
+
+        this.unit.members.count ++;
     }
 
     #findMember(memberType, name) {
-        this.#ES6only();
-
         if (!name) {
             throw new Error(`${memberType} name must be set.`);
         }
@@ -80,18 +83,35 @@ export default class ImportManagerUnitMethods {
 
 
     removeMember(memberType, name) {
-        const member = this.#findMember(memberType, name);
+        this.#ES6only();
 
-        const end = member.next ? member.next : member.absEnd;
-        this.unit.code.remove(member.start, end);
-        this.unit[memberType+"s"].entities.splice(member.index, 1, null);
+        const member = this.#findMember(memberType, name);
+        const group = this.unit[memberType+"s"];
+        let start;
+        let end;
+        
+        if (member.next) {
+            start = member.start;
+            end = member.next;
+        } else if (member.last) {
+            start = member.last;
+            end = member.absEnd;
+        } else {
+            start = member.start;
+            end = member.absEnd;
+        }
+        this.unit.code.remove(start, end);
+        this.unit[memberType+"s"].entities[member.index].name = null;
+        //this.unit[memberType+"s"].entities.splice(member.index, 1, null);
         this.unit[memberType+"s"].count --;
     }
 
     renameMember(memberType, name, newName, keepAlias) {
+        this.#ES6only();
+
         const member = this.#findMember(memberType, name);
-        
         let end;
+
         if (keepAlias) {
             end = member.end;
         } else {
