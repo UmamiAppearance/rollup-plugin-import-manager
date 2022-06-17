@@ -44,8 +44,6 @@ class ImportManagerUnitMethods {
                 memberPart = this.unit.code.slice(memberPartStart, memberPartEnd);
             }
 
-            console.log("\n\nMEMBER_PART", memberPart, "\n\n");
-
             const unit = es6StrToObj(
                 this.unit.code.toString(),
                 this.unit.start,
@@ -60,8 +58,6 @@ class ImportManagerUnitMethods {
             
             // copy all other updated properties
             Object.assign(this.unit, unit);
-
-            console.log("AFTER UPATE: ", this.unit);
         };
     }
 
@@ -124,8 +120,6 @@ class ImportManagerUnitMethods {
 
     addDefaultMember(names) {
         this.#ES6only();
-
-        console.log("START UNIT FOR ADDING:\n", this.unit);
 
         let start; 
         let defStr;
@@ -215,19 +209,6 @@ class ImportManagerUnitMethods {
             memberPart = "";
         }
 
-        
-        if (membersType === "dwpkkwd") {
-            this.unit.members.count = 0;
-            delete this.unit.members.start;
-            delete this.unit.members.end;
-        }
-
-        console.log("\n\nAFTER REMOVE: ", this.unit[membersType], "\n\n");
-
-
-        console.log(others.count);
-        console.log("CODE NOW ::: ", this.unit.code.toString());
-
         this.updateUnit(memberPart);
     }
 
@@ -243,6 +224,12 @@ class ImportManagerUnitMethods {
             end = member.absEnd;
         }
         this.unit.code.overwrite(member.start, end, newName);
+        this.updateUnit();
+    }
+
+    setAlias(memberType, name, set) {
+        const aliasStr = set ? `${name} as ${set}` : name;
+        this.renameMember(memberType, name, aliasStr, false);
         this.updateUnit();
     }
 
@@ -471,12 +458,12 @@ class ImportManager {
                     defaultStr = allMembersStr.slice(0, nonDefaultMatch.index);
                 }
 
-                // split the individual members
-                const m = allMembersStr.slice(relNonDefaultStart+1, relNonDefaultStart+nonDefaultStr.length-2)
-                                    .split(",")
-                                    .map(m => m.trim())
-                                    .filter(m => m);
-                
+                // split the individual members (ignore curly braces left and right)
+                const m = allMembersStr.slice(relNonDefaultStart+1, relNonDefaultStart+nonDefaultStr.length-1)
+                                       .split(",")
+                                       .map(m => m.trim())
+                                       .filter(m => m);
+
                 // get the position of each of each member 
                 let searchIndex = 0;
                 m.forEach((member, index) => {
@@ -489,6 +476,7 @@ class ImportManager {
                     // isolate aliases
                     const aliasMatch = member.match(/(\s+as\s+)/);
                     const newMember = {};
+
                     if (aliasMatch) {
                         len = aliasMatch.index;
                         name = member.slice(0, len);
@@ -595,7 +583,6 @@ class ImportManager {
         const moduleStr = {};
 
         // find the position of the module string
-        console.log("\n\nstatement", statement, "\n\n");
         moduleStr.start = statement.indexOf(module);
         moduleStr.end = moduleStr.start + module.length;
         moduleStr.name = code.slice(moduleStr.start+1, moduleStr.end-1).split("/").at(-1);
@@ -995,7 +982,13 @@ const manager = (options={}) => {
 
             const importManager = new ImportManager(source, id);
             
-            if (options.units) {
+
+            if (!("units" in options) || "debug" in options) {
+                if (options.debug === "import") {
+                    importManager.logImportObject();
+                } else {
+                    importManager.logUnits();
+                }            } else if (options.units) {
                 
                 let allowNull = true;
                 let useId = false;
@@ -1035,25 +1028,25 @@ const manager = (options={}) => {
                         unit = importManager.selectModByName(unitSection.module, unitSection.type, allowNull);
                     }
                     
-                    console.log(unit);
-                    console.log(importManager.imports);
-
                     if ("actions" in unitSection) {
 
                         for (const action of ensureArray(unitSection.actions)) {
                             
                             if (typeof action === "object" && "select" in action) {
-                                if (action.select === "module") {
-                                    if ("rename" in action) {
-                                        const modType = ("modType" in action) ? action.modType : unit.module.type;
-                                        unit.methods.renameModule(action.rename, modType);
-                                    }
+                                if (action.select === "module" && "rename" in action) {
+                                    const modType = ("modType" in action) ? action.modType : unit.module.type;
+                                    unit.methods.renameModule(action.rename, modType);
                                 }
 
                                 else if (action.select === "member" || action.select === "defaultMember" ) {
                                     const memberType = action.select;
                                     
-                                    if ("rename" in action) {
+                                    if ("alias" in action) {
+                                        const alias = "remove" in action ? null : action.alias;
+                                        unit.methods.setAlias(memberType, action.name, alias);
+                                    }
+                                    
+                                    else if ("rename" in action) {
                                         const keepAlias = "keepAlias" in action ? bool(action.keepAlias) : false;
                                         unit.methods.renameMember(memberType, action.name, action.rename, keepAlias);
                                     }
@@ -1061,6 +1054,7 @@ const manager = (options={}) => {
                                     else if ("remove" in action) {
                                         unit.methods.removeMember(memberType, action.name);
                                     }
+
                                 }
 
                                 else if (action.select === "members" || action.select === "defaultMembers") {
@@ -1068,12 +1062,10 @@ const manager = (options={}) => {
                                         unit.methods.removeMembers(action.select);
                                     }
 
-                                    if (action.select === "members") {
-                                        if ("add" in action) {
+                                    if ("add" in action) {
+                                        if (action.select === "members") {
                                             unit.methods.addMember(ensureArray(action.add));
-                                        }
-                                    } else {
-                                        if ("add" in action) {
+                                        } else if ("add" in action) {
                                             unit.methods.addDefaultMember(ensureArray(action.add));
                                         }
                                     } 
@@ -1088,8 +1080,6 @@ const manager = (options={}) => {
                             importManager.commitChanges(unit);
                         }
                     }
-
-
                 }
             }
 
@@ -1097,6 +1087,7 @@ const manager = (options={}) => {
             console.log("CODE >>>>");
             console.log(code);
             console.log("<<< CODE");
+            
             let map;
 
             if (options.sourceMap !== false && options.sourcemap !== false) {

@@ -23,7 +23,14 @@ const manager = (options={}) => {
 
             const importManager = new ImportManager(source, id);
             
-            if (options.units) {
+
+            if (!("units" in options) || "debug" in options) {
+                if (options.debug === "import") {
+                    importManager.logImportObject();
+                } else {
+                    importManager.logUnits();
+                };
+            } else if (options.units) {
                 
                 let allowNull = true;
                 let useId = false;
@@ -63,25 +70,25 @@ const manager = (options={}) => {
                         unit = importManager.selectModByName(unitSection.module, unitSection.type, allowNull);
                     }
                     
-                    console.log(unit);
-                    console.log(importManager.imports);
-
                     if ("actions" in unitSection) {
 
                         for (const action of ensureArray(unitSection.actions)) {
                             
                             if (typeof action === "object" && "select" in action) {
-                                if (action.select === "module") {
-                                    if ("rename" in action) {
-                                        const modType = ("modType" in action) ? action.modType : unit.module.type;
-                                        unit.methods.renameModule(action.rename, modType);
-                                    }
+                                if (action.select === "module" && "rename" in action) {
+                                    const modType = ("modType" in action) ? action.modType : unit.module.type;
+                                    unit.methods.renameModule(action.rename, modType);
                                 }
 
                                 else if (action.select === "member" || action.select === "defaultMember" ) {
                                     const memberType = action.select;
                                     
-                                    if ("rename" in action) {
+                                    if ("alias" in action) {
+                                        const alias = "remove" in action ? null : action.alias;
+                                        unit.methods.setAlias(memberType, action.name, alias);
+                                    }
+                                    
+                                    else if ("rename" in action) {
                                         const keepAlias = "keepAlias" in action ? bool(action.keepAlias) : false;
                                         unit.methods.renameMember(memberType, action.name, action.rename, keepAlias);
                                     }
@@ -89,6 +96,7 @@ const manager = (options={}) => {
                                     else if ("remove" in action) {
                                         unit.methods.removeMember(memberType, action.name);
                                     }
+
                                 }
 
                                 else if (action.select === "members" || action.select === "defaultMembers") {
@@ -96,12 +104,10 @@ const manager = (options={}) => {
                                         unit.methods.removeMembers(action.select);
                                     }
 
-                                    if (action.select === "members") {
-                                        if ("add" in action) {
+                                    if ("add" in action) {
+                                        if (action.select === "members") {
                                             unit.methods.addMember(ensureArray(action.add));
-                                        }
-                                    } else {
-                                        if ("add" in action) {
+                                        } else if ("add" in action) {
                                             unit.methods.addDefaultMember(ensureArray(action.add));
                                         }
                                     } 
@@ -116,8 +122,6 @@ const manager = (options={}) => {
                             importManager.commitChanges(unit);
                         }
                     }
-
-
                 }
             }
 
@@ -125,6 +129,7 @@ const manager = (options={}) => {
             console.log("CODE >>>>");
             console.log(code);
             console.log("<<< CODE");
+            
             let map;
 
             if (options.sourceMap !== false && options.sourcemap !== false) {

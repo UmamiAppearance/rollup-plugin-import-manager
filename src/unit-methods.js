@@ -11,8 +11,6 @@ export default class ImportManagerUnitMethods {
                 memberPart = this.unit.code.slice(memberPartStart, memberPartEnd);
             }
 
-            console.log("\n\nMEMBER_PART", memberPart, "\n\n");
-
             const unit = es6StrToObj(
                 this.unit.code.toString(),
                 this.unit.start,
@@ -27,8 +25,6 @@ export default class ImportManagerUnitMethods {
             
             // copy all other updated properties
             Object.assign(this.unit, unit);
-
-            console.log("AFTER UPATE: ", this.unit);
         }
     }
 
@@ -91,8 +87,6 @@ export default class ImportManagerUnitMethods {
 
     addDefaultMember(names) {
         this.#ES6only();
-
-        console.log("START UNIT FOR ADDING:\n", this.unit);
 
         let start; 
         let defStr;
@@ -184,19 +178,6 @@ export default class ImportManagerUnitMethods {
             memberPart = "";
         }
 
-        
-        if (membersType === "dwpkkwd") {
-            this.unit.members.count = 0;
-            delete this.unit.members.start;
-            delete this.unit.members.end;
-        }
-
-        console.log("\n\nAFTER REMOVE: ", this.unit[membersType], "\n\n");
-
-
-        console.log(others.count);
-        console.log("CODE NOW ::: ", this.unit.code.toString());
-
         this.updateUnit(memberPart);
     }
 
@@ -212,6 +193,12 @@ export default class ImportManagerUnitMethods {
             end = member.absEnd;
         }
         this.unit.code.overwrite(member.start, end, newName);
+        this.updateUnit();
+    }
+
+    setAlias(memberType, name, set) {
+        const aliasStr = set ? `${name} as ${set}` : name;
+        this.renameMember(memberType, name, aliasStr, false);
         this.updateUnit();
     }
 

@@ -216,12 +216,12 @@ class ImportManager {
                     defaultStr = allMembersStr.slice(0, nonDefaultMatch.index);
                 }
 
-                // split the individual members
-                const m = allMembersStr.slice(relNonDefaultStart+1, relNonDefaultStart+nonDefaultStr.length-2)
-                                    .split(",")
-                                    .map(m => m.trim())
-                                    .filter(m => m);
-                
+                // split the individual members (ignore curly braces left and right)
+                const m = allMembersStr.slice(relNonDefaultStart+1, relNonDefaultStart+nonDefaultStr.length-1)
+                                       .split(",")
+                                       .map(m => m.trim())
+                                       .filter(m => m);
+
                 // get the position of each of each member 
                 let searchIndex = 0;
                 m.forEach((member, index) => {
@@ -234,6 +234,7 @@ class ImportManager {
                     // isolate aliases
                     const aliasMatch = member.match(/(\s+as\s+)/);
                     const newMember = {};
+
                     if (aliasMatch) {
                         len = aliasMatch.index;
                         name = member.slice(0, len);
@@ -340,7 +341,6 @@ class ImportManager {
         const moduleStr = {}
 
         // find the position of the module string
-        console.log("\n\nstatement", statement, "\n\n");
         moduleStr.start = statement.indexOf(module);
         moduleStr.end = moduleStr.start + module.length;
         moduleStr.name = code.slice(moduleStr.start+1, moduleStr.end-1).split("/").at(-1);
