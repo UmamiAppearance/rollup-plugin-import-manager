@@ -91,9 +91,15 @@ const manager = (options={}) => {
                                     }
                                 }
 
-                                else if (action.select === "members") {
-                                    if ("add" in action) {
-                                        unit.methods.addMember(ensureArray(action.add));
+                                else if (action.select === "members" || action.select === "defaultMembers") {
+                                    if ("remove" in action) {
+                                        unit.methods.removeMembers(action.select);
+                                    }
+
+                                    if (action.select === "members") {
+                                        if ("add" in action) {
+                                            unit.methods.addMember(ensureArray(action.add));
+                                        }
                                     }
                                 }
                             }

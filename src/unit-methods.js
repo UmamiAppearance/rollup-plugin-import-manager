@@ -3,13 +3,18 @@ import { DebuggingError, MatchError } from "./errors.js";
 export default class ImportManagerUnitMethods {
     constructor(unit, es6StrToObj) {
         this.unit = unit;
-        this.updateUnit = () => {
+        this.updateUnit = (memberPart=null) => {
 
-            let memberPart = "";
-            const memberPartStart = this.unit.defaultMembers.start || this.unit.members.start || false;
-            if (memberPartStart) {
-                const memberPartEnd = this.unit.members.end || this.unit.defaultMembers.end;
-                memberPart = this.unit.code.slice(memberPartStart, memberPartEnd);
+            if (memberPart === null) {
+                
+                memberPart = "";
+                const memberPartStart = this.unit.defaultMembers.start || this.unit.members.start || false;
+
+                if (memberPartStart) {
+                    const memberPartEnd = this.unit.members.end || this.unit.defaultMembers.end;
+                    console.log("memberPartEnd", memberPartEnd);
+                    memberPart = this.unit.code.slice(memberPartStart, memberPartEnd);
+                }
             }
 
             const unit = es6StrToObj(
@@ -108,7 +113,7 @@ export default class ImportManagerUnitMethods {
         const member = this.#findMember(memberType, name);
 
         if (this.unit[memberType+"s"].count === 1) {
-            this.removeMembers(memberType);
+            this.removeMembers(memberType+"s");
         } 
 
         else {
@@ -132,32 +137,41 @@ export default class ImportManagerUnitMethods {
         }
     }
 
-    removeMembers(memberType) {
+    removeMembers(membersType) {
         this.#ES6only();
 
-        const member = this.unit[memberType+"s"];
-        const others = this.unit[memberType === "member" ? "defaultMembers" : "members"];
+        const members = this.unit[membersType];
+        const others = this.unit[membersType === "members" ? "defaultMembers" : "members"];
 
+        let memberPart = null;
         if (others.count > 0) {
-            const start = (memberType === "member" && this.unit.defaultMembers.count > 0) 
+            
+            const start = (membersType === "members") 
                         ? this.unit.defaultMembers.entities.at(-1).end
-                        : member.start;
+                        : members.start;
 
-            this.unit.code.remove(start, member.end);
+            this.unit.code.remove(start, members.end);
         }
 
         else {
-            this.unit.code.remove(member.start, this.unit.module.start);
+            this.unit.code.remove(members.start, this.unit.module.start);
+            memberPart = "";
         }
 
-        member.count = 0;
-        delete member.start;
-        delete member.end;
+        
+        if (membersType === "dwpkkwd") {
+            this.unit.members.count = 0;
+            delete this.unit.members.start;
+            delete this.unit.members.end;
+        }
+
+        console.log("\n\nAFTER REMOVE: ", this.unit[membersType], "\n\n");
+
 
         console.log(others.count);
         console.log("CODE NOW ::: ", this.unit.code.toString());
 
-        this.updateUnit();
+        this.updateUnit(memberPart);
     }
 
     renameMember(memberType, name, newName, keepAlias) {
