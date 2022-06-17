@@ -93,9 +93,7 @@ const manager = (options={}) => {
 
                                 else if (action.select === "members") {
                                     if ("add" in action) {
-                                        for (const addition of ensureArray(action.add)) {
-                                            unit.methods.addMember(addition);
-                                        }
+                                        unit.methods.addMember(ensureArray(action.add));
                                     }
                                 }
                             }

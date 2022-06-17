@@ -38,12 +38,6 @@ class ImportManagerUnitMethods {
         this.unit = unit;
         this.updateUnit = () => {
 
-            if (this.unit.membersFromScratch) {
-                const end = this.unit.defaultMembers.entities.at(-1).absEnd;
-                this.unit.code.appendRight(end, " }");
-                this.unit.membersFromScratch = false;
-            }
-
             let memberPart = "";
             const memberPartStart = this.unit.defaultMembers.start || this.unit.members.start || false;
             if (memberPartStart) {
@@ -57,7 +51,7 @@ class ImportManagerUnitMethods {
                 this.unit.end,
                 this.unit.code.toString(),
                 memberPart,
-                this.unit.code.slice(this.unit.module)
+                this.unit.code.slice(this.unit.module.start)
             );
 
             // ignore the getter
@@ -65,9 +59,9 @@ class ImportManagerUnitMethods {
             
             // copy all other updated properties
             Object.assign(this.unit, unit);
-
         };
     }
+
 
     #ES6only() {
         if (this.unit.type !== "es6") {
@@ -78,15 +72,11 @@ class ImportManagerUnitMethods {
 // module methods
 
     renameModule(name, modType) {
-        if (this.unit.type !== "es6") {
-            if (modType === "string") {
-                const q = this.unit.module.quotes;
-                name = q + name + q;
-            } else if (modType !== "literal") {
-                throw new TypeError(`Unknown modType '${modType}'. Valid types are 'string' and 'literal'.`);
-            }
-        } else if (modType !== "string") {
-            throw new TypeError("modType cannot be changed for es6 imports.");
+        if (modType === "string") {
+            const q = this.unit.module.quotes;
+            name = q + name + q;
+        } else if (modType !== "literal") {
+            throw new TypeError(`Unknown modType '${modType}'. Valid types are 'string' and 'literal'.`);
         }
         
         this.unit.code.overwrite(this.unit.module.start, this.unit.module.end, name);
@@ -95,41 +85,40 @@ class ImportManagerUnitMethods {
 
 // member methods
 
-    createMembers() {
-        if (this.unit.defaultMembers.count > 0) {
-            let start = this.unit.defaultMembers.entities.at(-1).absEnd;
-            let sep;
-            
-            if (!this.unit.membersFromScratch) {
-                this.unit.membersFromScratch = true;
-                sep = this.unit.defaultMembers.separator + "{ ";
-            } else {
-                sep = this.unit.members.separator;
-            }
-            
-            return [start, sep];
-        } else {
-            throw new Error("Not implemented!");
-            // TODO: implement this?
-        }
-    }
-
-    addMember(name) {
+    addMember(names) {
         this.#ES6only();
 
-        if (this.unit.members.entities.length > 0) {
-            const start = this.unit.members.entities.at(-1).absEnd;
-            if (this.unit.members.count > 0) {
-                name = this.unit.members.separator + name;
-            }
-            this.unit.code.appendRight(start, name);
-        } else {
-            console.log("create members");
-            let start, sep;
-            [ start, sep ] = this.createMembers();
-            console.log(start, sep);
-            this.unit.code.appendRight(start, sep + name);
+        console.log("START UNIT FOR ADDING:\n", this.unit);
+
+        let start; 
+        let memStr;
+
+        if (this.unit.members.count > 0) {
+            start = this.unit.members.entities.at(-1).absEnd;
+            memStr = this.unit.members.separator 
+                   + names.join(this.unit.members.separator);
         }
+
+        else if (this.unit.defaultMembers.count === 0) {
+            console.log("HEEEEEEEEEEEEEERE");
+            start = this.unit.module.start;
+            console.log("start", start);
+            memStr = "{ "
+                   + names.join(this.unit.members.separator)
+                   + " } from ";
+        }
+
+        else {
+            start = this.unit.defaultMembers.end;
+            memStr = this.unit.defaultMembers.separator
+                   + "{ "
+                   + names.join(this.unit.members.separator)
+                   + " }";
+        }
+
+        console.log("names", names);
+        console.log("memStr", memStr, "\n--");
+        this.unit.code.appendRight(start, memStr);
 
         this.updateUnit();
     }
@@ -150,21 +139,57 @@ class ImportManagerUnitMethods {
         this.#ES6only();
 
         const member = this.#findMember(memberType, name);
-        
-        let start;
-        let end;
-        
-        if (member.next) {
-            start = member.start;
-            end = member.next;
-        } else if (member.last) {
-            start = member.last;
-            end = member.absEnd;
-        } else {
-            start = member.start;
-            end = member.absEnd;
+
+        if (this.unit[memberType+"s"].count === 1) {
+            this.removeMembers(memberType);
+        } 
+
+        else {
+            let start;
+            let end;
+            
+            if (member.next) {
+                start = member.start;
+                end = member.next;
+            } else if (member.last) {
+                start = member.last;
+                end = member.absEnd;
+            } else {
+                start = member.start;
+                end = member.absEnd;
+            }
+
+            this.unit.code.remove(start, end);   
+            this.updateUnit();
+
         }
-        this.unit.code.remove(start, end);
+    }
+
+    removeMembers(memberType) {
+        this.#ES6only();
+
+        const member = this.unit[memberType+"s"];
+        const others = this.unit[memberType === "member" ? "defaultMembers" : "members"];
+
+        if (others.count > 0) {
+            const start = (memberType === "member" && this.unit.defaultMembers.count > 0) 
+                        ? this.unit.defaultMembers.entities.at(-1).end
+                        : member.start;
+
+            this.unit.code.remove(start, member.end);
+        }
+
+        else {
+            this.unit.code.remove(member.start, this.unit.module.start);
+        }
+
+        member.count = 0;
+        delete member.start;
+        delete member.end;
+
+        console.log(others.count);
+        console.log("CODE NOW ::: ", this.unit.code.toString());
+
         this.updateUnit();
     }
 
@@ -188,7 +213,6 @@ class ImportManagerUnitMethods {
      * and list a specific unit selected by its id.
      * @param {number} id - Unit id.
      */
-    // TODO: move this to unit debug method
     log() {
         const unit = {...this.unit};
         unit.methods = {};
@@ -292,7 +316,8 @@ class ImportManager {
         this.#matchAndStrike(
             src,
             /`(?:\\`|\s|\S)*?`/g,
-            true);
+            true
+        );
 
         // blacken multi line comments
         this.#matchAndStrike(
@@ -350,7 +375,6 @@ class ImportManager {
         };
 
         const input = makeInput(unit);
-        console.log("INPUT", input);
         let hash = String(simpleHash(input));
 
         if (hash in this.hashList) {
@@ -449,7 +473,7 @@ class ImportManager {
                     // store the current member start as
                     // a property of the last and the last
                     // member end as a property of the 
-                    // currentindex
+                    // current index
                     if (index > 0) {
                         newMember.last = members.entities[index-1].absEnd;
                         members.entities[index-1].next = newMember.start;
@@ -483,6 +507,7 @@ class ImportManager {
                 
                 let searchIndex = 0;
                 dm.forEach((defaultMember, index) => {
+                    defaultMembers.count ++;
                     const relDefaultMemberPos = defaultStr.indexOf(defaultMember, searchIndex);
                     let name = defaultMember;
                     let len;
@@ -532,9 +557,11 @@ class ImportManager {
         const moduleStr = {};
 
         // find the position of the module string
-        moduleStr.start = statement.indexOf(module) + 1;
-        moduleStr.end = moduleStr.start + module.length - 2;
-        moduleStr.name = code.slice(moduleStr.start, moduleStr.end).split("/").at(-1);
+        console.log("\n\nstatement", statement, "\n\n");
+        moduleStr.start = statement.indexOf(module);
+        moduleStr.end = moduleStr.start + module.length;
+        moduleStr.name = code.slice(moduleStr.start+1, moduleStr.end-1).split("/").at(-1);
+        moduleStr.quotes = code.charAt(moduleStr.start);
         moduleStr.type = "string";
 
         // store the first separator of the non default
@@ -1000,9 +1027,7 @@ const manager = (options={}) => {
 
                                 else if (action.select === "members") {
                                     if ("add" in action) {
-                                        for (const addition of ensureArray(action.add)) {
-                                            unit.methods.addMember(addition);
-                                        }
+                                        unit.methods.addMember(ensureArray(action.add));
                                     }
                                 }
                             }

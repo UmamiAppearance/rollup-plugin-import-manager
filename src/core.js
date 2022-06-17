@@ -98,7 +98,8 @@ class ImportManager {
         this.#matchAndStrike(
             src,
             /`(?:\\`|\s|\S)*?`/g,
-            true);
+            true
+        );
 
         // blacken multi line comments
         this.#matchAndStrike(
@@ -157,7 +158,6 @@ class ImportManager {
         };
 
         const input = makeInput(unit);
-        console.log("INPUT", input);
         let hash = String(simpleHash(input));
 
         if (hash in this.hashList) {
@@ -256,7 +256,7 @@ class ImportManager {
                     // store the current member start as
                     // a property of the last and the last
                     // member end as a property of the 
-                    // currentindex
+                    // current index
                     if (index > 0) {
                         newMember.last = members.entities[index-1].absEnd;
                         members.entities[index-1].next = newMember.start;
@@ -290,6 +290,7 @@ class ImportManager {
                 
                 let searchIndex = 0;
                 dm.forEach((defaultMember, index) => {
+                    defaultMembers.count ++;
                     const relDefaultMemberPos = defaultStr.indexOf(defaultMember, searchIndex);
                     let name = defaultMember;
                     let len;
@@ -339,9 +340,11 @@ class ImportManager {
         const moduleStr = {}
 
         // find the position of the module string
-        moduleStr.start = statement.indexOf(module) + 1;
-        moduleStr.end = moduleStr.start + module.length - 2;
-        moduleStr.name = code.slice(moduleStr.start, moduleStr.end).split("/").at(-1);
+        console.log("\n\nstatement", statement, "\n\n");
+        moduleStr.start = statement.indexOf(module);
+        moduleStr.end = moduleStr.start + module.length;
+        moduleStr.name = code.slice(moduleStr.start+1, moduleStr.end-1).split("/").at(-1);
+        moduleStr.quotes = code.charAt(moduleStr.start);
         moduleStr.type = "string";
 
         // store the first separator of the non default
