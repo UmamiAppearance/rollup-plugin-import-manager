@@ -6,16 +6,12 @@ export default class ImportManagerUnitMethods {
         this.updateUnit = (memberPart=null) => {
 
             if (memberPart === null) {
-                
-                memberPart = "";
-                const memberPartStart = this.unit.defaultMembers.start || this.unit.members.start || false;
-
-                if (memberPartStart) {
-                    const memberPartEnd = this.unit.members.end || this.unit.defaultMembers.end;
-                    console.log("memberPartEnd", memberPartEnd);
-                    memberPart = this.unit.code.slice(memberPartStart, memberPartEnd);
-                }
+                const memberPartStart = this.unit.defaultMembers.start || this.unit.members.start;
+                const memberPartEnd = this.unit.members.end || this.unit.defaultMembers.end;
+                memberPart = this.unit.code.slice(memberPartStart, memberPartEnd);
             }
+
+            console.log("\n\nMEMBER_PART", memberPart, "\n\n");
 
             const unit = es6StrToObj(
                 this.unit.code.toString(),
@@ -31,6 +27,8 @@ export default class ImportManagerUnitMethods {
             
             // copy all other updated properties
             Object.assign(this.unit, unit);
+
+            console.log("AFTER UPATE: ", this.unit);
         }
     }
 
@@ -60,10 +58,9 @@ export default class ImportManagerUnitMethods {
     addMember(names) {
         this.#ES6only();
 
-        console.log("START UNIT FOR ADDING:\n", this.unit);
-
         let start; 
         let memStr;
+        let memberPart = null;
 
         if (this.unit.members.count > 0) {
             start = this.unit.members.entities.at(-1).absEnd;
@@ -72,12 +69,12 @@ export default class ImportManagerUnitMethods {
         }
 
         else if (this.unit.defaultMembers.count === 0) {
-            console.log("HEEEEEEEEEEEEEERE");
             start = this.unit.module.start;
-            console.log("start", start);
             memStr = "{ "
                    + names.join(this.unit.members.separator)
-                   + " } from ";
+                   + " }";
+            memberPart = memStr;
+            memStr += " from ";
         }
 
         else {
@@ -88,10 +85,39 @@ export default class ImportManagerUnitMethods {
                    + " }";
         }
 
-        console.log("names", names);
-        console.log("memStr", memStr, "\n--");
         this.unit.code.appendRight(start, memStr);
+        this.updateUnit(memberPart);
+    }
 
+    addDefaultMember(names) {
+        this.#ES6only();
+
+        console.log("START UNIT FOR ADDING:\n", this.unit);
+
+        let start; 
+        let defStr;
+        let memberPart = null;
+
+        if (this.unit.defaultMembers.count > 0) {
+            start = this.unit.defaultMembers.entities.at(-1).absEnd;
+            defStr = this.unit.defaultMembers.separator 
+                   + names.join(this.unit.defaultMembers.separator);
+        }
+
+        else if (this.unit.members.count === 0) {
+            start = this.unit.module.start;
+            defStr = names.join(this.unit.members.separator);
+            memberPart = defStr;
+            defStr += " from ";
+        }
+
+        else {
+            start = this.unit.members.start;
+            defStr = names.join(this.unit.defaultMembers.separator)
+                   + this.unit.members.separator;
+        }
+        
+        this.unit.code.appendRight(start, defStr);
         this.updateUnit();
     }
 
