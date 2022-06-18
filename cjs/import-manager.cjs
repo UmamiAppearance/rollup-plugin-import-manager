@@ -232,11 +232,10 @@ class ImportManagerUnitMethods {
 
     /**
      * Debugging method to stop the building process
-     * and list a specific unit selected by its id.
-     * @param {number} id - Unit id.
+     * and list this unit properties.
      */
     log() {
-        const unit = {...this.unit};
+        const unit = { ...this.unit };
         delete unit.methods;
         unit.code = [ unit.code.toString() ];
         throw new DebuggingError(JSON.stringify(unit, null, 4), "unit");
@@ -754,7 +753,9 @@ class ImportManager {
         if (unit.type !== "es6") {
             throw new Error("Removing units is only available for es6 imports.");
         }
-        this.code.remove(unit.start, unit.end);
+        const charAfter = this.code.slice(unit.end, unit.end+1);
+        const end = (charAfter === "\n") ? unit.end + 1 : unit.end;
+        this.code.remove(unit.start, end);
         this.imports[unit.type].units.splice([unit.index], 1, null);
         this.imports[unit.type].count --;
     }
@@ -952,7 +953,28 @@ class ImportManager {
 }
 
 // helper to allow string and array
-const ensureArray = (arr) => Array.isArray(arr) ? arr : [arr];
+const ensureArray = (input) => Array.isArray(input) ? input : [ String(input) ];
+
+// helper to allow string and object
+const ensureObj = (input) => {
+    
+    const inType = typeof input;
+    let output;
+
+    if (inType === "string") {
+        output = {};
+        output[input] = null;
+    }
+    
+    else if (inType === "object" && !Array.isArray(input) && input !== null) {
+        output = input;
+    }
+    else {
+        throw new TypeError("Only strings and objects are allowed for actions.");
+    }
+    
+    return output;
+};
 
 // makes the life of the user a little bit easier
 // by accepting multiple versions of boolean vars 
@@ -962,6 +984,8 @@ const bool = (b) => !(Boolean(b) === false || String(b).match(/^(?:false|no?|0)$
 // for debugging
 const showObjects = (v) => Boolean(String(v).match(/^(?:objects?|imports?)$/));
 
+
+// main
 const manager = (options={}) => {
     console.log("options", options);
 
@@ -1013,15 +1037,19 @@ const manager = (options={}) => {
                         unit = importManager.selectModByName(unitSection.module, unitSection.type, allowNull);
                     }
                     
-                    if ("debug" in unitSection) {
-                        unit.methods.log();       
-                    }
                     
-                    else if ("actions" in unitSection) {
+                    if ("actions" in unitSection) {
 
-                        for (const action of ensureArray(unitSection.actions)) {
+                        for (let action of ensureArray(unitSection.actions)) {
                             
-                            if (typeof action === "object" && "select" in action) {
+                            action = ensureObj(action);
+                            console.log("action", action);
+
+                            if ("debug" in action) {
+                                unit.methods.log();       
+                            }
+                            
+                            else if ("select" in action) {
                                 if (action.select === "module" && "rename" in action) {
                                     const modType = ("modType" in action) ? action.modType : unit.module.type;
                                     unit.methods.renameModule(action.rename, modType);
@@ -1061,7 +1089,7 @@ const manager = (options={}) => {
                                 }
                             }
                             
-                            else if (action === "remove") {
+                            else if ("remove" in action) {
                                 importManager.remove(unit);
                                 continue;
                             }

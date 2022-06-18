@@ -201,11 +201,10 @@ export default class ImportManagerUnitMethods {
 
     /**
      * Debugging method to stop the building process
-     * and list a specific unit selected by its id.
-     * @param {number} id - Unit id.
+     * and list this unit properties.
      */
     log() {
-        const unit = {...this.unit};
+        const unit = { ...this.unit };
         delete unit.methods;
         unit.code = [ unit.code.toString() ];
         throw new DebuggingError(JSON.stringify(unit, null, 4), "unit");

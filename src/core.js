@@ -514,7 +514,9 @@ class ImportManager {
         if (unit.type !== "es6") {
             throw new Error("Removing units is only available for es6 imports.");
         }
-        this.code.remove(unit.start, unit.end);
+        const charAfter = this.code.slice(unit.end, unit.end+1);
+        const end = (charAfter === "\n") ? unit.end + 1 : unit.end;
+        this.code.remove(unit.start, end);
         this.imports[unit.type].units.splice([unit.index], 1, null);
         this.imports[unit.type].count --;
     }

@@ -3,7 +3,28 @@ import ImportManager from "./core.js";
 import picomatch from "picomatch"; 
 
 // helper to allow string and array
-const ensureArray = (arr) => Array.isArray(arr) ? arr : [arr];
+const ensureArray = (input) => Array.isArray(input) ? input : [ String(input) ];
+
+// helper to allow string and object
+const ensureObj = (input) => {
+    
+    const inType = typeof input;
+    let output;
+
+    if (inType === "string") {
+        output = {};
+        output[input] = null;
+    }
+    
+    else if (inType === "object" && !Array.isArray(input) && input !== null) {
+        output = input;
+    }
+    else {
+        throw new TypeError("Only strings and objects are allowed for actions.");
+    }
+    
+    return output;
+}
 
 // makes the life of the user a little bit easier
 // by accepting multiple versions of boolean vars 
@@ -13,6 +34,8 @@ const bool = (b) => !(Boolean(b) === false || String(b).match(/^(?:false|no?|0)$
 // for debugging
 const showObjects = (v) => Boolean(String(v).match(/^(?:objects?|imports?)$/));
 
+
+// main
 const manager = (options={}) => {
     console.log("options", options);
 
@@ -33,7 +56,9 @@ const manager = (options={}) => {
                 } else {
                     importManager.logUnits();
                 };
-            } else if (options.units) {
+            }
+            
+            else {
                 
                 let allowNull = true;
                 let useId = false;
@@ -65,15 +90,18 @@ const manager = (options={}) => {
                         unit = importManager.selectModByName(unitSection.module, unitSection.type, allowNull);
                     }
                     
-                    if ("debug" in unitSection) {
-                        unit.methods.log();       
-                    }
                     
-                    else if ("actions" in unitSection) {
+                    if ("actions" in unitSection) {
 
-                        for (const action of ensureArray(unitSection.actions)) {
+                        for (let action of ensureArray(unitSection.actions)) {
                             
-                            if (typeof action === "object" && "select" in action) {
+                            action = ensureObj(action);
+                            
+                            if ("debug" in action) {
+                                unit.methods.log();       
+                            }
+                            
+                            else if ("select" in action) {
                                 if (action.select === "module" && "rename" in action) {
                                     const modType = ("modType" in action) ? action.modType : unit.module.type;
                                     unit.methods.renameModule(action.rename, modType);
@@ -113,7 +141,7 @@ const manager = (options={}) => {
                                 }
                             }
                             
-                            else if (action === "remove") {
+                            else if ("remove" in action) {
                                 importManager.remove(unit);
                                 continue;
                             }

@@ -2,16 +2,17 @@
     "units": [
         {
             "id": "[1000]", 
-            "hash": ["3511224270"],
+            "hash": "[3511224270]",
             "file": "[index.js]",
             "type": "[es6]",
             "module": "module name",
+            "[debug]": null,
             "actions": [
                 {
                     "select": "member|defaultMember",
                     "name": "(default) member name",
                     "rename": "new name",
-                    "keepAlias": "[bool (false|'false','no',0,'0')]"
+                    "keepAlias": "[bool (false|'false','no','n',0,'0')]"
                 },
                 {
                     "select": "member|defaultMember",
@@ -44,7 +45,27 @@
                     "select": "module",
                     "modType": "[string|literal]",
                     "rename": "new mod (path)"
-                }
+                },
+
+                {
+                    "add": [
+                        {
+                            "module": "module",
+                            "defaultMembers": [
+                                "dmA"
+                            ],
+                            "members": [
+                                "memA",
+                                "memB",
+                                "..."
+                            ]
+                        }
+                    ]
+                },
+
+                "debug",
+
+                "remove"
             ]
         }
     ]   
