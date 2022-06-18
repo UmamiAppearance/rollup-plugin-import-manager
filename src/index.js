@@ -52,14 +52,6 @@ const manager = (options={}) => {
                             return;
                         }
 
-                        if ("debug" in unitSection) {
-                            if (showObjects(unitSection.debug)) {
-                                importManager.logUnitObjects();
-                            } else {
-                                importManager.logUnits();
-                            }       
-                        }
-
                         allowNull = false;
                         useId = "id" in unitSection;
                     }
@@ -73,7 +65,11 @@ const manager = (options={}) => {
                         unit = importManager.selectModByName(unitSection.module, unitSection.type, allowNull);
                     }
                     
-                    if ("actions" in unitSection) {
+                    if ("debug" in unitSection) {
+                        unit.methods.log();       
+                    }
+                    
+                    else if ("actions" in unitSection) {
 
                         for (const action of ensureArray(unitSection.actions)) {
                             

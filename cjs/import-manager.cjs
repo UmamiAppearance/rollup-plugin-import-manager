@@ -26,10 +26,10 @@ class MatchError extends Error {
  * for retrieving information.
  */
  class DebuggingError extends Error {
-    constructor(message) {
+    constructor(message, key="imports") {
         super("You can find information above ^");
         this.name = "DebuggingError";
-        console.log("imports", message);
+        console.log(key, message);
     }
 }
 
@@ -237,8 +237,9 @@ class ImportManagerUnitMethods {
      */
     log() {
         const unit = {...this.unit};
-        unit.methods = {};
-        throw new DebuggingError(JSON.stringify(unit, null, 4));
+        delete unit.methods;
+        unit.code = [ unit.code.toString() ];
+        throw new DebuggingError(JSON.stringify(unit, null, 4), "unit");
     }
 }
 
@@ -940,8 +941,7 @@ class ImportManager {
      * and list the complete import object.
      */
      logUnitObjects() {
-        const imports = Object.assign({}, this.imports);
-        console.log(imports);
+        const imports = {...this.imports};
         for (const key in imports) {
             imports[key].units.forEach(unit => {
                 unit.code = [ unit.code.toString() ];
@@ -1000,14 +1000,6 @@ const manager = (options={}) => {
                             return;
                         }
 
-                        if ("debug" in unitSection) {
-                            if (showObjects(unitSection.debug)) {
-                                importManager.logUnitObjects();
-                            } else {
-                                importManager.logUnits();
-                            }       
-                        }
-
                         allowNull = false;
                         useId = "id" in unitSection;
                     }
@@ -1021,7 +1013,11 @@ const manager = (options={}) => {
                         unit = importManager.selectModByName(unitSection.module, unitSection.type, allowNull);
                     }
                     
-                    if ("actions" in unitSection) {
+                    if ("debug" in unitSection) {
+                        unit.methods.log();       
+                    }
+                    
+                    else if ("actions" in unitSection) {
 
                         for (const action of ensureArray(unitSection.actions)) {
                             

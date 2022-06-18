@@ -701,8 +701,7 @@ class ImportManager {
      * and list the complete import object.
      */
      logUnitObjects() {
-        const imports = Object.assign({}, this.imports);
-        console.log(imports);
+        const imports = {...this.imports};
         for (const key in imports) {
             imports[key].units.forEach(unit => {
                 unit.code = [ unit.code.toString() ];

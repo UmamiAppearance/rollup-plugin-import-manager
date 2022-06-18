@@ -14,10 +14,10 @@ class MatchError extends Error {
  * for retrieving information.
  */
  class DebuggingError extends Error {
-    constructor(message) {
+    constructor(message, key="imports") {
         super("You can find information above ^");
         this.name = "DebuggingError";
-        console.log("imports", message);
+        console.log(key, message);
     }
 }
 
