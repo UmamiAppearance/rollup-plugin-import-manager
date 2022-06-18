@@ -7,7 +7,11 @@ const ensureArray = (arr) => Array.isArray(arr) ? arr : [arr];
 
 // makes the life of the user a little bit easier
 // by accepting multiple versions of boolean vars 
-const bool = (b) => !(Boolean(b) === false || String(b).match(/(?:false|no|0)/, "i"));
+const bool = (b) => !(Boolean(b) === false || String(b).match(/^(?:false|no?|0)$/, "i"));
+
+// allow some variations to enable object mode 
+// for debugging
+const showObjects = (v) => Boolean(String(v).match(/^(?:objects?|imports?)$/));
 
 const manager = (options={}) => {
     console.log("options", options);
@@ -21,12 +25,11 @@ const manager = (options={}) => {
             console.log("id", id);
             if (!filter(id)) return;
 
-            const importManager = new ImportManager(source, id);
-            
+            const importManager = new ImportManager(source, id);       
 
             if (!("units" in options) || "debug" in options) {
-                if (options.debug === "import") {
-                    importManager.logImportObject();
+                if (showObjects(options.debug)) {
+                    importManager.logUnitObjects();
                 } else {
                     importManager.logUnits();
                 };
@@ -50,7 +53,7 @@ const manager = (options={}) => {
                         }
 
                         if ("debug" in unitSection) {
-                            if (unitSection.debug === "objects") {
+                            if (showObjects(unitSection.debug)) {
                                 importManager.logUnitObjects();
                             } else {
                                 importManager.logUnits();

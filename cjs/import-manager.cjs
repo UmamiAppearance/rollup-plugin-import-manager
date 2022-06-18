@@ -27,9 +27,9 @@ class MatchError extends Error {
  */
  class DebuggingError extends Error {
     constructor(message) {
-        super(message);
+        super("You can find information above ^");
         this.name = "DebuggingError";
-        console.warn("Intentional Debugging Error was thrown !");
+        console.log("imports", message);
     }
 }
 
@@ -52,9 +52,6 @@ class ImportManagerUnitMethods {
                 memberPart,
                 this.unit.code.slice(this.unit.module.start)
             );
-
-            // ignore the getter
-            delete unit.codeString;
             
             // copy all other updated properties
             Object.assign(this.unit, unit);
@@ -602,10 +599,7 @@ class ImportManager {
             members,
             module: moduleStr,
             start,
-            end,
-            get codeString() {
-                return [ this.code.toString() ];
-            }
+            end
         };
 
         return unit;
@@ -943,21 +937,17 @@ class ImportManager {
 
     /**
      * Debugging method to stop the building process
-     * and list a specific unit selected by its id.
-     * @param {number} id - Unit id.
-     */
-    // TODO: move this to unit debug method
-    logImportObject(unit) {
-        throw new DebuggingError(JSON.stringify(unit, null, 4));
-    }
-
-
-    /**
-     * Debugging method to stop the building process
      * and list the complete import object.
      */
      logUnitObjects() {
-        throw new DebuggingError(JSON.stringify(this.imports, null, 4));
+        const imports = Object.assign({}, this.imports);
+        console.log(imports);
+        for (const key in imports) {
+            imports[key].units.forEach(unit => {
+                unit.code = [ unit.code.toString() ];
+            });
+        }
+        throw new DebuggingError(JSON.stringify(imports, null, 4));
     }
 }
 
@@ -966,7 +956,11 @@ const ensureArray = (arr) => Array.isArray(arr) ? arr : [arr];
 
 // makes the life of the user a little bit easier
 // by accepting multiple versions of boolean vars 
-const bool = (b) => !(Boolean(b) === false || String(b).match(/(?:false|no|0)/, "i"));
+const bool = (b) => !(Boolean(b) === false || String(b).match(/^(?:false|no?|0)$/, "i"));
+
+// allow some variations to enable object mode 
+// for debugging
+const showObjects = (v) => Boolean(String(v).match(/^(?:objects?|imports?)$/));
 
 const manager = (options={}) => {
     console.log("options", options);
@@ -980,12 +974,11 @@ const manager = (options={}) => {
             console.log("id", id);
             if (!filter(id)) return;
 
-            const importManager = new ImportManager(source, id);
-            
+            const importManager = new ImportManager(source, id);       
 
             if (!("units" in options) || "debug" in options) {
-                if (options.debug === "import") {
-                    importManager.logImportObject();
+                if (showObjects(options.debug)) {
+                    importManager.logUnitObjects();
                 } else {
                     importManager.logUnits();
                 }            } else if (options.units) {
@@ -1008,7 +1001,7 @@ const manager = (options={}) => {
                         }
 
                         if ("debug" in unitSection) {
-                            if (unitSection.debug === "objects") {
+                            if (showObjects(unitSection.debug)) {
                                 importManager.logUnitObjects();
                             } else {
                                 importManager.logUnits();

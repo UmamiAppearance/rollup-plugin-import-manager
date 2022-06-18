@@ -15,9 +15,9 @@ class MatchError extends Error {
  */
  class DebuggingError extends Error {
     constructor(message) {
-        super(message);
+        super("You can find information above ^");
         this.name = "DebuggingError";
-        console.warn("Intentional Debugging Error was thrown !");
+        console.log("imports", message);
     }
 }
 

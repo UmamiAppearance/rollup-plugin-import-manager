@@ -19,9 +19,6 @@ export default class ImportManagerUnitMethods {
                 memberPart,
                 this.unit.code.slice(this.unit.module.start)
             );
-
-            // ignore the getter
-            delete unit.codeString;
             
             // copy all other updated properties
             Object.assign(this.unit, unit);

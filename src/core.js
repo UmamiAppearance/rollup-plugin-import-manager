@@ -360,10 +360,7 @@ class ImportManager {
             members,
             module: moduleStr,
             start,
-            end,
-            get codeString() {
-                return [ this.code.toString() ];
-            }
+            end
         };
 
         return unit;
@@ -701,21 +698,17 @@ class ImportManager {
 
     /**
      * Debugging method to stop the building process
-     * and list a specific unit selected by its id.
-     * @param {number} id - Unit id.
-     */
-    // TODO: move this to unit debug method
-    logImportObject(unit) {
-        throw new DebuggingError(JSON.stringify(unit, null, 4));
-    }
-
-
-    /**
-     * Debugging method to stop the building process
      * and list the complete import object.
      */
      logUnitObjects() {
-        throw new DebuggingError(JSON.stringify(this.imports, null, 4));
+        const imports = Object.assign({}, this.imports);
+        console.log(imports);
+        for (const key in imports) {
+            imports[key].units.forEach(unit => {
+                unit.code = [ unit.code.toString() ];
+            });
+        }
+        throw new DebuggingError(JSON.stringify(imports, null, 4));
     }
 }
 
