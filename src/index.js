@@ -35,25 +35,6 @@ const bool = (b) => !(Boolean(b) === false || String(b).match(/^(?:false|no?|0)$
 const showObjects = (v) => Boolean(String(v).match(/^(?:objects?|imports?)$/));
 
 
-const selectModule = (section, manager, useId, allowNull) => {
-    if (!isObject(section)) {
-        throw new TypeError("Input must be an object.");
-    }
-
-    let unit;
-
-    if (useId) {
-        unit = manager.selectModById(section.id, allowNull);
-    } else if ("hash" in section) {
-        unit = manager.selectModByHash(section.hash, allowNull);
-    } else if ("module" in section) {
-        unit = manager.selectModByName(section.module, section.type, allowNull);
-    }
-    
-    return unit;
-}
-
-
 // main
 const manager = (options={}) => {
     console.log("options", options);
@@ -102,7 +83,25 @@ const manager = (options={}) => {
                         useId = "id" in unitSection;
                     }
 
-                    let unit;
+                    const selectModule = (section) => {
+                        if (!isObject(section)) {
+                            throw new TypeError("Input must be an object.");
+                        }
+                    
+                        let unit;
+                    
+                        if (useId) {
+                            unit = importManager.selectModById(section.id, allowNull);
+                        } else if ("hash" in section) {
+                            unit = importManager.selectModByHash(section.hash, allowNull);
+                        } else if ("module" in section) {
+                            unit = importManager.selectModByName(section.module, section.type, allowNull);
+                        }
+
+                        console.log("UNIT", unit);
+                    
+                        return unit;
+                    }
                     
                     if ("createModule" in unitSection) {
                         // new unit
@@ -121,24 +120,28 @@ const manager = (options={}) => {
 
                         const statement = importManager.makeES6Statement(module, defaultMembers, members);
                         
-                        if ("insert" in unitSection) {
-                            importManager.insertStatement(statement, unitSection.insert);
-                        } else if ("append" in unitSection || "prepend" in unitSection) {
-                            const mode = "append" in unitSection ? "append" : "prepend";
-                            const section = unitSection[mode]; 
-                            const target = selectModule(
-                                section,
-                                importManager,
-                                "id" in section,
-                                false
-                            );
+                        let mode;
+                        for (const key in unitSection) {
+                            const targetMatch = key.match(/^(?:(?:ap|pre)pend|replace)$/);
+                            if (targetMatch) {
+                                mode = targetMatch.at(0);
+                                break;
+                            }
+                        }
+                        
+                        if (mode) {
+                            const target = selectModule(unitSection[mode]);
                             importManager.insertAtUnit(target, mode, statement);
+                        }
+
+                        else {
+                            importManager.insertStatement(statement, unitSection.insert);
                         }
 
                         continue;
                     }
                     
-                    unit = selectModule(
+                    const unit = selectModule(
                         unitSection,
                         importManager,
                         useId,

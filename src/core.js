@@ -517,7 +517,7 @@ class ImportManager {
         const charAfter = this.code.slice(unit.end, unit.end+1);
         const end = (charAfter === "\n") ? unit.end + 1 : unit.end;
         this.code.remove(unit.start, end);
-        this.imports[unit.type].units.splice([unit.index], 1, null);
+        unit.methods.makeUntraceable();
         this.imports[unit.type].count --;
     }
 
@@ -567,10 +567,22 @@ class ImportManager {
             if (this.code.slice(index, index+1) === "\n") {
                 index ++;
             }
-        } else {
-            index = unit.start;
+            this.code.appendRight(index, statement);
         }
-        this.code.appendRight(index, statement);        
+        
+        else if (mode === "prepend") {
+            index = unit.start;
+            this.code.prependRight(index, statement);
+        }
+
+        else if (mode === "replace") {
+            // remove new line from statement
+            statement = statement.slice(0, -1);
+            this.code.overwrite(unit.start, unit.end, statement);
+            unit.methods.makeUntraceable();
+            this.imports[unit.type].count --;
+            return;
+        }
     }
 
 
@@ -706,7 +718,7 @@ class ImportManager {
         }
 
         const unit = units[0];
-        unit.methods = new ImportManagerUnitMethods(unit);
+        unit.methods = new ImportManagerUnitMethods(unit, this.es6StrToObj);
 
         return unit;
     }
@@ -724,7 +736,7 @@ class ImportManager {
                 return null;
             }
             let msg = this.#listAllUnits(); 
-            msg += `___\nHash '${hash}' was not found`;
+            msg += `___\nUnable to locate import statement with hash '${hash}'`;
             throw new MatchError(msg);
         }
 

@@ -230,6 +230,12 @@ class ImportManagerUnitMethods {
         this.updateUnit();
     }
 
+    makeUntraceable() {
+        this.unit.id = `(deleted) ${this.unit.id}`;
+        this.unit.hash = `(deleted) ${this.unit.hash}`;
+        this.unit.module.name = `(deleted) ${this.unit.module.name}`;
+    }
+
     /**
      * Debugging method to stop the building process
      * and list this unit properties.
@@ -756,7 +762,7 @@ class ImportManager {
         const charAfter = this.code.slice(unit.end, unit.end+1);
         const end = (charAfter === "\n") ? unit.end + 1 : unit.end;
         this.code.remove(unit.start, end);
-        this.imports[unit.type].units.splice([unit.index], 1, null);
+        unit.methods.makeUntraceable();
         this.imports[unit.type].count --;
     }
 
@@ -806,10 +812,22 @@ class ImportManager {
             if (this.code.slice(index, index+1) === "\n") {
                 index ++;
             }
-        } else {
-            index = unit.start;
+            this.code.appendRight(index, statement);
         }
-        this.code.appendRight(index, statement);        
+        
+        else if (mode === "prepend") {
+            index = unit.start;
+            this.code.prependRight(index, statement);
+        }
+
+        else if (mode === "replace") {
+            // remove new line from statement
+            statement = statement.slice(0, -1);
+            this.code.overwrite(unit.start, unit.end, statement);
+            unit.methods.makeUntraceable();
+            this.imports[unit.type].count --;
+            return;
+        }
     }
 
 
@@ -945,7 +963,7 @@ class ImportManager {
         }
 
         const unit = units[0];
-        unit.methods = new ImportManagerUnitMethods(unit);
+        unit.methods = new ImportManagerUnitMethods(unit, this.es6StrToObj);
 
         return unit;
     }
@@ -963,7 +981,7 @@ class ImportManager {
                 return null;
             }
             let msg = this.#listAllUnits(); 
-            msg += `___\nHash '${hash}' was not found`;
+            msg += `___\nUnable to locate import statement with hash '${hash}'`;
             throw new MatchError(msg);
         }
 
@@ -1033,25 +1051,6 @@ const bool = (b) => !(Boolean(b) === false || String(b).match(/^(?:false|no?|0)$
 const showObjects = (v) => Boolean(String(v).match(/^(?:objects?|imports?)$/));
 
 
-const selectModule = (section, manager, useId, allowNull) => {
-    if (!isObject(section)) {
-        throw new TypeError("Input must be an object.");
-    }
-
-    let unit;
-
-    if (useId) {
-        unit = manager.selectModById(section.id, allowNull);
-    } else if ("hash" in section) {
-        unit = manager.selectModByHash(section.hash, allowNull);
-    } else if ("module" in section) {
-        unit = manager.selectModByName(section.module, section.type, allowNull);
-    }
-    
-    return unit;
-};
-
-
 // main
 const manager = (options={}) => {
     console.log("options", options);
@@ -1095,7 +1094,25 @@ const manager = (options={}) => {
                         useId = "id" in unitSection;
                     }
 
-                    let unit;
+                    const selectModule = (section) => {
+                        if (!isObject(section)) {
+                            throw new TypeError("Input must be an object.");
+                        }
+                    
+                        let unit;
+                    
+                        if (useId) {
+                            unit = importManager.selectModById(section.id, allowNull);
+                        } else if ("hash" in section) {
+                            unit = importManager.selectModByHash(section.hash, allowNull);
+                        } else if ("module" in section) {
+                            unit = importManager.selectModByName(section.module, section.type, allowNull);
+                        }
+
+                        console.log("UNIT", unit);
+                    
+                        return unit;
+                    };
                     
                     if ("createModule" in unitSection) {
                         // new unit
@@ -1114,29 +1131,29 @@ const manager = (options={}) => {
 
                         const statement = importManager.makeES6Statement(module, defaultMembers, members);
                         
-                        if ("insert" in unitSection) {
-                            importManager.insertStatement(statement, unitSection.insert);
-                        } else if ("append" in unitSection || "prepend" in unitSection) {
-                            const mode = "append" in unitSection ? "append" : "prepend";
-                            const section = unitSection[mode]; 
-                            const target = selectModule(
-                                section,
-                                importManager,
-                                "id" in section,
-                                false
-                            );
+                        let mode;
+                        for (const key in unitSection) {
+                            const targetMatch = key.match(/^(?:(?:ap|pre)pend|replace)$/);
+                            if (targetMatch) {
+                                mode = targetMatch.at(0);
+                                break;
+                            }
+                        }
+                        
+                        if (mode) {
+                            const target = selectModule(unitSection[mode]);
                             importManager.insertAtUnit(target, mode, statement);
+                        }
+
+                        else {
+                            importManager.insertStatement(statement, unitSection.insert);
                         }
 
                         continue;
                     }
                     
-                    unit = selectModule(
-                        unitSection,
-                        importManager,
-                        useId,
-                        allowNull
-                    );
+                    const unit = selectModule(
+                        unitSection);
                     
                     
                     if ("actions" in unitSection) {

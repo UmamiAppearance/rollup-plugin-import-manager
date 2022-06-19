@@ -199,6 +199,12 @@ export default class ImportManagerUnitMethods {
         this.updateUnit();
     }
 
+    makeUntraceable() {
+        this.unit.id = `(deleted) ${this.unit.id}`;
+        this.unit.hash = `(deleted) ${this.unit.hash}`;
+        this.unit.module.name = `(deleted) ${this.unit.module.name}`;
+    }
+
     /**
      * Debugging method to stop the building process
      * and list this unit properties.
