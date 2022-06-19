@@ -764,6 +764,54 @@ class ImportManager {
         this.code.overwrite(unit.start, unit.end, unit.code.toString());
     }
 
+    makeES6Statement(module, defaultMembers, members) {
+        const memberStrArray = [];
+        
+        if (defaultMembers.length) {
+            memberStrArray.push(
+                defaultMembers.join(", ")
+            );
+        }
+
+        if (members.length) {
+            memberStrArray.push(
+                "{ " + members.join(", ") + " }"
+            );
+        }
+
+        let memberPart = memberStrArray.join(", ");
+        if (memberPart) {
+            memberPart += " from ";
+        }
+
+        return `import ${memberPart}'${module}';\n`;
+    }
+
+    insertStatement(statement, pos) {
+        if (pos === "top") {
+            this.code.appendRight(0, statement);
+        } else {
+            let index = this.imports.es6.units.at(-1).end;
+            if (this.code.slice(index, index+1) === "\n") {
+                index ++;
+            }
+            this.code.appendRight(index, statement);
+        }
+    }
+
+    insertAtUnit(unit, mode, statement) {
+        let index;
+        if (mode === "append") {
+            index = unit.end;
+            if (this.code.slice(index, index+1) === "\n") {
+                index ++;
+            }
+        } else {
+            index = unit.start;
+        }
+        this.code.appendRight(index, statement);        
+    }
+
 
 //              ___________________              //
 //              select unit methods              //
@@ -952,21 +1000,21 @@ class ImportManager {
     }
 }
 
+const isObject = input => typeof input === "object" && !Array.isArray(input) && input !== null;
+
 // helper to allow string and array
 const ensureArray = (input) => Array.isArray(input) ? input : [ String(input) ];
 
 // helper to allow string and object
 const ensureObj = (input) => {
-    
-    const inType = typeof input;
     let output;
 
-    if (inType === "string") {
+    if (typeof input === "string") {
         output = {};
         output[input] = null;
     }
     
-    else if (inType === "object" && !Array.isArray(input) && input !== null) {
+    else if (isObject(input)) {
         output = input;
     }
     else {
@@ -983,6 +1031,25 @@ const bool = (b) => !(Boolean(b) === false || String(b).match(/^(?:false|no?|0)$
 // allow some variations to enable object mode 
 // for debugging
 const showObjects = (v) => Boolean(String(v).match(/^(?:objects?|imports?)$/));
+
+
+const selectModule = (section, manager, useId, allowNull) => {
+    if (!isObject(section)) {
+        throw new TypeError("Input must be an object.");
+    }
+
+    let unit;
+
+    if (useId) {
+        unit = manager.selectModById(section.id, allowNull);
+    } else if ("hash" in section) {
+        unit = manager.selectModByHash(section.hash, allowNull);
+    } else if ("module" in section) {
+        unit = manager.selectModByName(section.module, section.type, allowNull);
+    }
+    
+    return unit;
+};
 
 
 // main
@@ -1005,8 +1072,9 @@ const manager = (options={}) => {
                     importManager.logUnitObjects();
                 } else {
                     importManager.logUnits();
-                }            } else if (options.units) {
-                
+                }            }
+            
+            else {
                 let allowNull = true;
                 let useId = false;
 
@@ -1023,19 +1091,52 @@ const manager = (options={}) => {
                             console.log(id, "NO!");
                             return;
                         }
-
                         allowNull = false;
                         useId = "id" in unitSection;
                     }
 
                     let unit;
-                    if (useId) {
-                        unit = importManager.selectModById(unitSection.id, allowNull);
-                    } else if ("hash" in unitSection) {
-                        unit = importManager.selectModByHash(unitSection.hash, allowNull);
-                    } else if ("module" in unitSection) {
-                        unit = importManager.selectModByName(unitSection.module, unitSection.type, allowNull);
+                    
+                    if ("createModule" in unitSection) {
+                        // new unit
+
+                        const module = unitSection.createModule;
+                        let defaultMembers = [];
+                        let members = [];
+                        
+                        if ("defaultMembers" in unitSection) {
+                            defaultMembers = ensureArray(unitSection.defaultMembers);
+                        }
+
+                        if ("members" in unitSection) {
+                            members = ensureArray(unitSection.members);
+                        }
+
+                        const statement = importManager.makeES6Statement(module, defaultMembers, members);
+                        
+                        if ("insert" in unitSection) {
+                            importManager.insertStatement(statement, unitSection.insert);
+                        } else if ("append" in unitSection || "prepend" in unitSection) {
+                            const mode = "append" in unitSection ? "append" : "prepend";
+                            const section = unitSection[mode]; 
+                            const target = selectModule(
+                                section,
+                                importManager,
+                                "id" in section,
+                                false
+                            );
+                            importManager.insertAtUnit(target, mode, statement);
+                        }
+
+                        continue;
                     }
+                    
+                    unit = selectModule(
+                        unitSection,
+                        importManager,
+                        useId,
+                        allowNull
+                    );
                     
                     
                     if ("actions" in unitSection) {
@@ -1043,8 +1144,7 @@ const manager = (options={}) => {
                         for (let action of ensureArray(unitSection.actions)) {
                             
                             action = ensureObj(action);
-                            console.log("action", action);
-
+                            
                             if ("debug" in action) {
                                 unit.methods.log();       
                             }

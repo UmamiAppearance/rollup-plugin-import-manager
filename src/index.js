@@ -2,21 +2,21 @@ import { createFilter } from "@rollup/pluginutils";
 import ImportManager from "./core.js";
 import picomatch from "picomatch"; 
 
+const isObject = input => typeof input === "object" && !Array.isArray(input) && input !== null;
+
 // helper to allow string and array
 const ensureArray = (input) => Array.isArray(input) ? input : [ String(input) ];
 
 // helper to allow string and object
 const ensureObj = (input) => {
-    
-    const inType = typeof input;
     let output;
 
-    if (inType === "string") {
+    if (typeof input === "string") {
         output = {};
         output[input] = null;
     }
     
-    else if (inType === "object" && !Array.isArray(input) && input !== null) {
+    else if (isObject(input)) {
         output = input;
     }
     else {
@@ -33,6 +33,25 @@ const bool = (b) => !(Boolean(b) === false || String(b).match(/^(?:false|no?|0)$
 // allow some variations to enable object mode 
 // for debugging
 const showObjects = (v) => Boolean(String(v).match(/^(?:objects?|imports?)$/));
+
+
+const selectModule = (section, manager, useId, allowNull) => {
+    if (!isObject(section)) {
+        throw new TypeError("Input must be an object.");
+    }
+
+    let unit;
+
+    if (useId) {
+        unit = manager.selectModById(section.id, allowNull);
+    } else if ("hash" in section) {
+        unit = manager.selectModByHash(section.hash, allowNull);
+    } else if ("module" in section) {
+        unit = manager.selectModByName(section.module, section.type, allowNull);
+    }
+    
+    return unit;
+}
 
 
 // main
@@ -60,6 +79,7 @@ const manager = (options={}) => {
             
             else {
                 
+                let allowCreation = false;
                 let allowNull = true;
                 let useId = false;
 
@@ -77,18 +97,53 @@ const manager = (options={}) => {
                             return;
                         }
 
+                        allowCreation = true;
                         allowNull = false;
                         useId = "id" in unitSection;
                     }
 
                     let unit;
-                    if (useId) {
-                        unit = importManager.selectModById(unitSection.id, allowNull);
-                    } else if ("hash" in unitSection) {
-                        unit = importManager.selectModByHash(unitSection.hash, allowNull);
-                    } else if ("module" in unitSection) {
-                        unit = importManager.selectModByName(unitSection.module, unitSection.type, allowNull);
+                    
+                    if ("createModule" in unitSection) {
+                        // new unit
+
+                        const module = unitSection.createModule;
+                        let defaultMembers = [];
+                        let members = [];
+                        
+                        if ("defaultMembers" in unitSection) {
+                            defaultMembers = ensureArray(unitSection.defaultMembers);
+                        }
+
+                        if ("members" in unitSection) {
+                            members = ensureArray(unitSection.members);
+                        }
+
+                        const statement = importManager.makeES6Statement(module, defaultMembers, members);
+                        
+                        if ("insert" in unitSection) {
+                            importManager.insertStatement(statement, unitSection.insert);
+                        } else if ("append" in unitSection || "prepend" in unitSection) {
+                            const mode = "append" in unitSection ? "append" : "prepend";
+                            const section = unitSection[mode]; 
+                            const target = selectModule(
+                                section,
+                                importManager,
+                                "id" in section,
+                                false
+                            );
+                            importManager.insertAtUnit(target, mode, statement);
+                        }
+
+                        continue;
                     }
+                    
+                    unit = selectModule(
+                        unitSection,
+                        importManager,
+                        useId,
+                        allowNull
+                    );
                     
                     
                     if ("actions" in unitSection) {

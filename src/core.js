@@ -525,6 +525,54 @@ class ImportManager {
         this.code.overwrite(unit.start, unit.end, unit.code.toString());
     }
 
+    makeES6Statement(module, defaultMembers, members) {
+        const memberStrArray = [];
+        
+        if (defaultMembers.length) {
+            memberStrArray.push(
+                defaultMembers.join(", ")
+            );
+        }
+
+        if (members.length) {
+            memberStrArray.push(
+                "{ " + members.join(", ") + " }"
+            );
+        }
+
+        let memberPart = memberStrArray.join(", ");
+        if (memberPart) {
+            memberPart += " from "
+        }
+
+        return `import ${memberPart}'${module}';\n`;
+    }
+
+    insertStatement(statement, pos) {
+        if (pos === "top") {
+            this.code.appendRight(0, statement);
+        } else {
+            let index = this.imports.es6.units.at(-1).end;
+            if (this.code.slice(index, index+1) === "\n") {
+                index ++;
+            }
+            this.code.appendRight(index, statement);
+        }
+    }
+
+    insertAtUnit(unit, mode, statement) {
+        let index;
+        if (mode === "append") {
+            index = unit.end;
+            if (this.code.slice(index, index+1) === "\n") {
+                index ++;
+            }
+        } else {
+            index = unit.start;
+        }
+        this.code.appendRight(index, statement);        
+    }
+
 
 //              ___________________              //
 //              select unit methods              //
