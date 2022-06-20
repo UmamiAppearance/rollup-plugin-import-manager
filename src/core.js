@@ -557,6 +557,13 @@ class ImportManager {
             if (this.code.slice(index, index+1) === "\n") {
                 index ++;
             }
+        } else {
+            // find description part if present and
+            // move the index
+            const description = this.code.toString().match(/^\s*?\/\*[\s\S]*?\*\/\s?/);
+            if (description) {
+                index += description[0].length;
+            }
         }
         
         this.code.appendRight(index, statement);
@@ -574,7 +581,7 @@ class ImportManager {
         
         else if (mode === "prepend") {
             index = unit.start;
-            this.code.prependRight(index, statement);
+            this.code.prependLeft(index, statement);
         }
 
         else if (mode === "replace") {
@@ -583,7 +590,6 @@ class ImportManager {
             this.code.overwrite(unit.start, unit.end, statement);
             unit.methods.makeUntraceable();
             this.imports[unit.type].count --;
-            return;
         }
     }
 

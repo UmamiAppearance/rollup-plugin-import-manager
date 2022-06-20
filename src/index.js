@@ -1,11 +1,9 @@
 import { createFilter } from "@rollup/pluginutils";
+import { ensureArray, includeMatchers } from "./pluginutils-methods.js";
 import ImportManager from "./core.js";
-import picomatch from "picomatch"; 
 
 const isObject = input => typeof input === "object" && !Array.isArray(input) && input !== null;
 
-// helper to allow string and array
-const ensureArray = (input) => Array.isArray(input) ? input : [ String(input) ];
 
 // helper to allow string and object
 const ensureObj = (input) => {
@@ -68,8 +66,10 @@ const manager = (options={}) => {
                     if ("file" in unitSection) {
                         console.log(unitSection.file, "obj.file");
 
-                        //const isMatch = picomatch(obj.file);
-                        const isMatch = (id) => (id.indexOf(unitSection.file) > -1);
+                        const isMatch = (id) => includeMatchers(id, options && options.resolve);
+                        console.log("isMatch", isMatch(id));
+                        //const isMatch = (id) => (id.indexOf(unitSection.file) > -1);
+                        
                         // FIXME: proper implementation
                         
                         if (!isMatch(id)) {
