@@ -3,55 +3,11 @@
 Object.defineProperty(exports, '__esModule', { value: true });
 
 var pluginutils = require('@rollup/pluginutils');
-var path = require('path');
-var picomatch = require('picomatch');
 var MagicString = require('magic-string');
 
 function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
-var picomatch__default = /*#__PURE__*/_interopDefaultLegacy(picomatch);
 var MagicString__default = /*#__PURE__*/_interopDefaultLegacy(MagicString);
-
-/**
- * Text
- * 
- * @ 
- */
-
-function ensureArray(thing) {
-    if (Array.isArray(thing))
-        return thing;
-    if (thing == undefined)
-        return [];
-    return [thing];
-}
-
-function getMatcherString(id, resolutionBase) {
-    if (resolutionBase === false) {
-        return id;
-    }
-    return path.resolve(...(typeof resolutionBase === 'string' ? [resolutionBase, id] : [id]));
-}
-
-
-
-const includeMatchers = (include, resolutionBase) => {
-    
-    console.log("include", "resolutionBase");
-    console.log(include, resolutionBase);
-
-    const getMatcher = (id) => {
-        return id instanceof RegExp
-            ? id
-            : {
-                test: picomatch__default["default"](getMatcherString(id, resolutionBase)
-                    .split(path.sep)
-                    .join('/'), { dot: true })
-            };
-    };
-    
-    return ensureArray(include).map(getMatcher);
-};
 
 /**
  * Custom error to tell the user, that it is
@@ -1071,6 +1027,8 @@ class ImportManager {
 
 const isObject = input => typeof input === "object" && !Array.isArray(input) && input !== null;
 
+// helper to allow string and array
+const ensureArray = (arr) => Array.isArray(arr) ? arr : [arr];
 
 // helper to allow string and object
 const ensureObj = (input) => {
@@ -1131,12 +1089,7 @@ const manager = (options={}) => {
 
                     if ("file" in unitSection) {
                         console.log(unitSection.file, "obj.file");
-
-                        const isMatch = (id) => includeMatchers(id, options && options.resolve);
-                        console.log("isMatch", isMatch(id));
-                        //const isMatch = (id) => (id.indexOf(unitSection.file) > -1);
-                        
-                        // FIXME: proper implementation
+                        const isMatch = pluginutils.createFilter(unitSection.file);
                         
                         if (!isMatch(id)) {
                             console.log(id, "NO!");

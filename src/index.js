@@ -1,9 +1,10 @@
 import { createFilter } from "@rollup/pluginutils";
-import { ensureArray, includeMatchers } from "./pluginutils-methods.js";
 import ImportManager from "./core.js";
 
 const isObject = input => typeof input === "object" && !Array.isArray(input) && input !== null;
 
+// helper to allow string and array
+const ensureArray = (arr) => Array.isArray(arr) ? arr : [arr];
 
 // helper to allow string and object
 const ensureObj = (input) => {
@@ -65,15 +66,9 @@ const manager = (options={}) => {
 
                     if ("file" in unitSection) {
                         console.log(unitSection.file, "obj.file");
-
-                        const isMatch = (id) => includeMatchers(id, options && options.resolve);
-                        console.log("isMatch", isMatch(id));
-                        //const isMatch = (id) => (id.indexOf(unitSection.file) > -1);
-                        
-                        // FIXME: proper implementation
+                        const isMatch = createFilter(unitSection.file);
                         
                         if (!isMatch(id)) {
-                            console.log(id, "NO!");
                             continue;
                         }
 
