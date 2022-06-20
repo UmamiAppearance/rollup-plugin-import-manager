@@ -17,7 +17,7 @@ export default class ImportManagerUnitMethods {
                 this.unit.end,
                 this.unit.code.toString(),
                 memberPart,
-                this.unit.code.slice(this.unit.module.start)
+                this.unit.code.slice(this.unit.module.start, this.unit.module.end)
             );
             
             // copy all other updated properties

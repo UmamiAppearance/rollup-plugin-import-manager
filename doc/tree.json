@@ -48,18 +48,15 @@
                 },
 
                 {
-                    "add": [
-                        {
-                            "module": "module",
-                            "defaultMembers": [
-                                "dmA"
-                            ],
-                            "members": [
-                                "memA",
-                                "memB",
-                                "..."
-                            ]
-                        }
+                    "createModule": "module path",
+                    "file": "filename",
+                    "defaultMembers": [
+                        "dmA"
+                    ],
+                    "members": [
+                        "memA",
+                        "memB",
+                        "..."
                     ]
                 },
 

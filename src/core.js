@@ -549,15 +549,17 @@ class ImportManager {
     }
 
     insertStatement(statement, pos) {
-        if (pos === "top") {
-            this.code.appendRight(0, statement);
-        } else {
-            let index = this.imports.es6.units.at(-1).end;
+
+        let index = 0;
+
+        if (pos !== "top" && this.imports.es6.count > 0) {
+            index = this.imports.es6.units.at(-1).end;
             if (this.code.slice(index, index+1) === "\n") {
                 index ++;
             }
-            this.code.appendRight(index, statement);
         }
+        
+        this.code.appendRight(index, statement);
     }
 
     insertAtUnit(unit, mode, statement) {

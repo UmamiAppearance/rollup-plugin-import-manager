@@ -50,7 +50,7 @@ class ImportManagerUnitMethods {
                 this.unit.end,
                 this.unit.code.toString(),
                 memberPart,
-                this.unit.code.slice(this.unit.module.start)
+                this.unit.code.slice(this.unit.module.start, this.unit.module.end)
             );
             
             // copy all other updated properties
@@ -794,15 +794,17 @@ class ImportManager {
     }
 
     insertStatement(statement, pos) {
-        if (pos === "top") {
-            this.code.appendRight(0, statement);
-        } else {
-            let index = this.imports.es6.units.at(-1).end;
+
+        let index = 0;
+
+        if (pos !== "top" && this.imports.es6.count > 0) {
+            index = this.imports.es6.units.at(-1).end;
             if (this.code.slice(index, index+1) === "\n") {
                 index ++;
             }
-            this.code.appendRight(index, statement);
         }
+        
+        this.code.appendRight(index, statement);
     }
 
     insertAtUnit(unit, mode, statement) {
@@ -1074,6 +1076,7 @@ const manager = (options={}) => {
                 }            }
             
             else {
+                
                 let allowNull = true;
                 let useId = false;
 
@@ -1088,8 +1091,9 @@ const manager = (options={}) => {
                         
                         if (!isMatch(id)) {
                             console.log(id, "NO!");
-                            return;
+                            continue;
                         }
+
                         allowNull = false;
                         useId = "id" in unitSection;
                     }
@@ -1108,14 +1112,18 @@ const manager = (options={}) => {
                         } else if ("module" in section) {
                             unit = importManager.selectModByName(section.module, section.type, allowNull);
                         }
-
-                        console.log("UNIT", unit);
                     
                         return unit;
                     };
                     
                     if ("createModule" in unitSection) {
-                        // new unit
+
+                        if (allowNull) {
+                            console.warn(
+                                "\x1b[1;33m%s\x1b[0m",
+                                "(!) No file specified for import statement creation! If the build fails, this is the reason."
+                            );
+                        }
 
                         const module = unitSection.createModule;
                         let defaultMembers = [];

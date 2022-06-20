@@ -60,7 +60,6 @@ const manager = (options={}) => {
             
             else {
                 
-                let allowCreation = false;
                 let allowNull = true;
                 let useId = false;
 
@@ -75,10 +74,9 @@ const manager = (options={}) => {
                         
                         if (!isMatch(id)) {
                             console.log(id, "NO!");
-                            return;
+                            continue;
                         }
 
-                        allowCreation = true;
                         allowNull = false;
                         useId = "id" in unitSection;
                     }
@@ -97,14 +95,18 @@ const manager = (options={}) => {
                         } else if ("module" in section) {
                             unit = importManager.selectModByName(section.module, section.type, allowNull);
                         }
-
-                        console.log("UNIT", unit);
                     
                         return unit;
                     }
                     
                     if ("createModule" in unitSection) {
-                        // new unit
+
+                        if (allowNull) {
+                            console.warn(
+                                "\x1b[1;33m%s\x1b[0m",
+                                "(!) No file specified for import statement creation! If the build fails, this is the reason."
+                            );
+                        }
 
                         const module = unitSection.createModule;
                         let defaultMembers = [];
