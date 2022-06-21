@@ -1,5 +1,5 @@
 import { createFilter } from "@rollup/pluginutils";
-import ImportManager from "./core.js";
+import ImportManager, { warning } from "./core.js";
 
 const isObject = input => typeof input === "object" && !Array.isArray(input) && input !== null;
 
@@ -97,10 +97,7 @@ const manager = (options={}) => {
                     if ("createModule" in unitSection) {
 
                         if (allowNull) {
-                            console.warn(
-                                "\x1b[1;33m%s\x1b[0m",
-                                "(!) No file specified for import statement creation! If the build fails, this is the reason."
-                            );
+                            warning("No file specified for import statement creation! If the build fails, this is the reason.");
                         }
 
                         const module = unitSection.createModule;

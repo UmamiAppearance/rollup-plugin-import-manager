@@ -2,6 +2,7 @@ import ImportManagerUnitMethods from "./unit-methods.js";
 import { DebuggingError, MatchError } from "./errors.js";
 import MagicString from "magic-string";
 
+
 class ImportManager {
 
     constructor(source, filename, autoSearch=true) {
@@ -161,7 +162,7 @@ class ImportManager {
         let hash = String(simpleHash(input));
 
         if (hash in this.hashList) {
-            console.warn(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
+            warning(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
             let nr = 2;
             for (;;) {
                 const nHash = `${hash}#${nr}`;
@@ -510,90 +511,6 @@ class ImportManager {
         this.imports.cjs.searched = true;
     }
 
-    remove(unit) {
-        if (unit.type !== "es6") {
-            throw new Error("Removing units is only available for es6 imports.");
-        }
-        const charAfter = this.code.slice(unit.end, unit.end+1);
-        const end = (charAfter === "\n") ? unit.end + 1 : unit.end;
-        this.code.remove(unit.start, end);
-        unit.methods.makeUntraceable();
-        this.imports[unit.type].count --;
-    }
-
-    commitChanges(unit) {
-        this.code.overwrite(unit.start, unit.end, unit.code.toString());
-    }
-
-    makeES6Statement(module, defaultMembers, members) {
-        const memberStrArray = [];
-        
-        if (defaultMembers.length) {
-            memberStrArray.push(
-                defaultMembers.join(", ")
-            );
-        }
-
-        if (members.length) {
-            memberStrArray.push(
-                "{ " + members.join(", ") + " }"
-            );
-        }
-
-        let memberPart = memberStrArray.join(", ");
-        if (memberPart) {
-            memberPart += " from "
-        }
-
-        return `import ${memberPart}'${module}';\n`;
-    }
-
-    insertStatement(statement, pos) {
-
-        let index = 0;
-
-        if (pos !== "top" && this.imports.es6.count > 0) {
-            index = this.imports.es6.units.at(-1).end;
-            if (this.code.slice(index, index+1) === "\n") {
-                index ++;
-            }
-        } else {
-            // find description part if present and
-            // move the index
-            const description = this.code.toString().match(/^\s*?\/\*[\s\S]*?\*\/\s?/);
-            if (description) {
-                index += description[0].length;
-            }
-        }
-        
-        this.code.appendRight(index, statement);
-    }
-
-    insertAtUnit(unit, mode, statement) {
-        let index;
-        if (mode === "append") {
-            index = unit.end;
-            if (this.code.slice(index, index+1) === "\n") {
-                index ++;
-            }
-            this.code.appendRight(index, statement);
-        }
-        
-        else if (mode === "prepend") {
-            index = unit.start;
-            this.code.prependLeft(index, statement);
-        }
-
-        else if (mode === "replace") {
-            // remove new line from statement
-            statement = statement.slice(0, -1);
-            this.code.overwrite(unit.start, unit.end, statement);
-            unit.methods.makeUntraceable();
-            this.imports[unit.type].count --;
-        }
-    }
-
-
 //              ___________________              //
 //              select unit methods              //
 
@@ -709,8 +626,10 @@ class ImportManager {
             throw new TypeError("The id must be provided");
         }
         
+        // get the type by the id scope
         const type = this.idTypes[ Math.floor(id / this.scopeMulti) * this.scopeMulti ];
         if (!type) {
+            // generate an ascending list of valid ids
             const ascIds = Object.keys(this.idTypes).sort();
             throw new TypeError(`Id '${id}' is invalid. Ids range from ${ascIds.at(0)} to ${ascIds.at(-1)}+`);
         }
@@ -733,8 +652,8 @@ class ImportManager {
 
     /**
      * Selects a unit by its hash. The hash will change
-     * if the unit changes its properties like members,
-     * alias, etc.
+     * if the unit changes its properties in the source
+     * code (like members, alias, etc.)
      * @param {string} hash - The hash string of the unit. 
      * @returns {object} - An explicit unit.
      */
@@ -749,6 +668,142 @@ class ImportManager {
         }
 
         return this.selectModById(this.hashList[hash]);
+    }
+
+//         ___________________________________________        //
+//         methods for unit creation, replacement, etc.       //
+
+    /**
+     * Makes sure, that the processed unit is of type 'es6'.
+     * @param {Object} unit - Unit Object. 
+     */
+    #ES6only(unit) {
+        if (unit.type !== "es6") {
+            throw new Error("This method is only available for ES6 imports.");
+        }
+    }
+
+    
+    /**
+     * All manipulation via unit method is made on the
+     * code slice of the unit. This methods writes it
+     * to the code instance. 
+     * @param {Object} unit - Unit Object. 
+     */
+    commitChanges(unit) {
+        this.code.overwrite(unit.start, unit.end, unit.code.toString());
+    }
+
+
+    /**
+     * Removes a unit from the code instance.
+     * The action must not be committed. 
+     * @param {Object} unit - Unit Object.
+     */
+    remove(unit) {
+        this.#ES6only(unit);
+
+        const charAfter = this.code.slice(unit.end, unit.end+1);
+        const end = (charAfter === "\n") ? unit.end + 1 : unit.end;
+        this.code.remove(unit.start, end);
+        unit.methods.makeUntraceable();
+        this.imports[unit.type].count --;
+    }
+
+
+    /**
+     * Generates an ES6 Import Statement.
+     * @param {string} module - Module (path).
+     * @param {string[]} defaultMembers - Default Member Part.
+     * @param {string[]} members - Member Part.
+     * @returns {string} - ES6 Import Statement.
+     */
+    makeES6Statement(module, defaultMembers, members) {
+        const memberStrArray = [];
+        
+        if (defaultMembers.length) {
+            memberStrArray.push(
+                defaultMembers.join(", ")
+            );
+        }
+
+        if (members.length) {
+            memberStrArray.push(
+                "{ " + members.join(", ") + " }"
+            );
+        }
+
+        let memberPart = memberStrArray.join(", ");
+        if (memberPart) {
+            memberPart += " from "
+        }
+
+        return `import ${memberPart}'${module}';\n`;
+    }
+
+
+    /**
+     * Inserts an ES6 Import Statement to the top
+     * of the file or after the last found import
+     * statement.
+     * @param {string} statement - ES6 Import Statement.
+     * @param {number} pos - 'top' or 'bottom'
+     */
+    insertStatement(statement, pos) {
+
+        let index = 0;
+
+        if (pos !== "top" && this.imports.es6.count > 0) {
+            index = this.imports.es6.units.at(-1).end;
+            if (this.code.slice(index, index+1) === "\n") {
+                index ++;
+            }
+        } else {
+            // find description part if present and
+            // move the index
+            const description = this.code.toString().match(/^\s*?\/\*[\s\S]*?\*\/\s?/);
+            if (description) {
+                index += description[0].length;
+            }
+        }
+        
+        this.code.appendRight(index, statement);
+    }
+
+
+    /**
+     * Inserts an ES6 Import Statement before or after
+     * a given unit. Also an existing statement can be
+     * replaced.
+     * @param {Object} unit - Unit Object 
+     * @param {string} mode - 'append'|'prepend'|'replace' 
+     * @param {string} statement - ES6 Import Statement. 
+     */
+    insertAtUnit(unit, mode, statement) {
+        this.#ES6only(unit);
+        
+        let index;
+        if (mode === "append") {
+            index = unit.end;
+            if (this.code.slice(index, index+1) === "\n") {
+                index ++;
+            }
+            this.code.appendRight(index, statement);
+        }
+        
+        else if (mode === "prepend") {
+            index = unit.start;
+            this.code.prependLeft(index, statement);
+        }
+
+        else if (mode === "replace") {
+            // remove new line from statement
+            statement = statement.slice(0, -1);
+            
+            this.code.overwrite(unit.start, unit.end, statement);
+            unit.methods.makeUntraceable();
+            this.imports[unit.type].count --;
+        }
     }
 
 
@@ -781,4 +836,16 @@ class ImportManager {
     }
 }
 
+/**
+ * Warning messages in the mould of rollup warnings. 
+ * @param {string} msg - Warning Message. 
+ */
+ const warning = (msg) => {
+    console.warn(
+        "\x1b[1;33m%s\x1b[0m",
+        `(!) ${msg}`
+    );
+}
+
 export default ImportManager;
+export { warning };

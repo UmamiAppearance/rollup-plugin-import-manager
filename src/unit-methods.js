@@ -25,7 +25,9 @@ export default class ImportManagerUnitMethods {
         }
     }
 
-
+    /**
+     * Makes sure, that the processed unit is of type 'es6'. 
+     */
     #ES6only() {
         if (this.unit.type !== "es6") {
             throw new Error("This method is only available for ES6 imports.");
