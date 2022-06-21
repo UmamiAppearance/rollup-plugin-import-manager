@@ -101,7 +101,7 @@ const manager = (options={}) => {
                     if ("createModule" in unitSection) {
 
                         if (allowNull) {
-                            importManager.warning("No file specified for import statement creation! If the build fails, this is the reason.");
+                            importManager.warning("No file specified for import statement creation! If the build fails, this could be the reason.");
                         }
 
                         const module = unitSection.createModule;
