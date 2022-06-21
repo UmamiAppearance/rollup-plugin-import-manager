@@ -260,7 +260,7 @@ class ImportManagerUnitMethods {
 
 class ImportManager {
 
-    constructor(source, filename, autoSearch=true) {
+    constructor(source, filename, warnSpamProtection, autoSearch=true) {
 
         this.scopeMulti = 1000;
 
@@ -293,6 +293,7 @@ class ImportManager {
         this.blackenedCode = this.prepareSource();
         this.hashList = {};
         this.filename = filename;
+        this.warnSpamProtection = warnSpamProtection;
 
         if (autoSearch) {
             this.getDynamicImports();
@@ -381,14 +382,6 @@ class ImportManager {
      */
     #makeHash(unit) {
 
-        // cf. https://gist.github.com/iperelivskiy/4110988?permalink_comment_id=2697447#gistcomment-2697447
-        const simpleHash = (str) => {
-            let h = 0xdeadbeef;
-            for(let i=0; i<str.length; i++)
-                h = Math.imul(h ^ str.charCodeAt(i), 2654435761);
-            return (h ^ h >>> 16) >>> 0;
-        };
-
         const makeInput = (unit) => {
             
             const getProps = list => {
@@ -416,7 +409,7 @@ class ImportManager {
         let hash = String(simpleHash(input));
 
         if (hash in this.hashList) {
-            warning(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
+            this.warning(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
             let nr = 2;
             for (;;) {
                 const nHash = `${hash}#${nr}`;
@@ -433,7 +426,17 @@ class ImportManager {
         return hash;
     }
 
-
+    /**
+     * Method to generate a unit object from a
+     * ES6 Import Statement.
+     * @param {string} code - The complete import statement. 
+     * @param {number} start - Start index of the source code file.
+     * @param {number} end - End index of the source code file. 
+     * @param {string} statement - The complete statement from the regex match in the prepared source code.  
+     * @param {string} memberPart - The member part (default and non default).
+     * @param {string} module - The module part. 
+     * @returns {Object} - Unit Object.
+     */
     es6StrToObj(code, start, end, statement, memberPart, module) {
         // separating members
         const members = {
@@ -1088,18 +1091,37 @@ class ImportManager {
         }
         throw new DebuggingError(JSON.stringify(imports, null, 4));
     }
+
+
+    /**
+     * Bold, yellow warning messages in the mould
+     * of rollup warnings. With spam protection.
+     * @param {string} msg - Warning Message. 
+     */
+    warning(msg) {
+        const hash = simpleHash(msg);
+
+        if (this.warnSpamProtection.has(hash)) {
+            return;
+        }
+
+        this.warnSpamProtection.add(hash);
+
+        console.warn(
+            "\x1b[1;33m%s\x1b[0m",
+            `(!) ${msg}`
+        );
+    }
 }
 
-/**
- * Bold, yellow warning messages in the mould
- * of rollup warnings. 
- * @param {string} msg - Warning Message. 
- */
- const warning = (msg) => {
-    console.warn(
-        "\x1b[1;33m%s\x1b[0m",
-        `(!) ${msg}`
-    );
+
+// cf. https://gist.github.com/iperelivskiy/4110988?permalink_comment_id=2697447#gistcomment-2697447
+const simpleHash = (str) => {
+    let h = 0xdeadbeef;
+    for (let i=0; i<str.length; i++) {
+        h = Math.imul(h ^ str.charCodeAt(i), 2654435761);
+    }
+    return (h ^ h >>> 16) >>> 0;
 };
 
 const isObject = input => typeof input === "object" && !Array.isArray(input) && input !== null;
@@ -1140,15 +1162,15 @@ const manager = (options={}) => {
     console.log("options", options);
 
     const filter = pluginutils.createFilter(options.include, options.exclude);
+    const warnSpamProtection = new Set();
   
     return {
         name: 'ImportManager',
     
         transform (source, id) {
-            console.log("id", id);
             if (!filter(id)) return;
 
-            const importManager = new ImportManager(source, id);       
+            const importManager = new ImportManager(source, id, warnSpamProtection);       
 
             if (!("units" in options) || "debug" in options) {
                 if (showObjects(options.debug)) {
@@ -1184,7 +1206,7 @@ const manager = (options={}) => {
                     
                         if ("id" in section) {
                             if (allowId) {
-                                warning("Selecting modules via Id should not be used in production.");
+                                importManager.warning("Selecting modules via Id should only be used for testing.");
                                 unit = importManager.selectModById(section.id, allowNull);
                             } else {
                                 throw new Error("Filename must be specified for selecting via Id.");
@@ -1201,7 +1223,7 @@ const manager = (options={}) => {
                     if ("createModule" in unitSection) {
 
                         if (allowNull) {
-                            warning("No file specified for import statement creation! If the build fails, this is the reason.");
+                            importManager.warning("No file specified for import statement creation! If the build fails, this is the reason.");
                         }
 
                         const module = unitSection.createModule;

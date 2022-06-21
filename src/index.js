@@ -1,5 +1,5 @@
 import { createFilter } from "@rollup/pluginutils";
-import ImportManager, { warning } from "./core.js";
+import ImportManager from "./core.js";
 
 const isObject = input => typeof input === "object" && !Array.isArray(input) && input !== null;
 
@@ -39,6 +39,7 @@ const manager = (options={}) => {
     console.log("options", options);
 
     const filter = createFilter(options.include, options.exclude);
+    const warnSpamProtection = new Set();
   
     return {
         name: 'ImportManager',
@@ -46,7 +47,7 @@ const manager = (options={}) => {
         transform (source, id) {
             if (!filter(id)) return;
 
-            const importManager = new ImportManager(source, id);       
+            const importManager = new ImportManager(source, id, warnSpamProtection);       
 
             if (!("units" in options) || "debug" in options) {
                 if (showObjects(options.debug)) {
@@ -83,7 +84,7 @@ const manager = (options={}) => {
                     
                         if ("id" in section) {
                             if (allowId) {
-                                warning("Selecting modules via Id should not be used in production.")
+                                importManager.warning("Selecting modules via Id should only be used for testing.")
                                 unit = importManager.selectModById(section.id, allowNull);
                             } else {
                                 throw new Error("Filename must be specified for selecting via Id.");
@@ -100,7 +101,7 @@ const manager = (options={}) => {
                     if ("createModule" in unitSection) {
 
                         if (allowNull) {
-                            warning("No file specified for import statement creation! If the build fails, this is the reason.");
+                            importManager.warning("No file specified for import statement creation! If the build fails, this is the reason.");
                         }
 
                         const module = unitSection.createModule;
