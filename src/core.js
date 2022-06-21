@@ -861,11 +861,16 @@ export default class ImportManager {
 }
 
 
-// cf. https://gist.github.com/iperelivskiy/4110988?permalink_comment_id=2697447#gistcomment-2697447
-const simpleHash = (str) => {
+/**
+ * A (simple as it gets) hash from string function.
+ * @see https://gist.github.com/iperelivskiy/4110988?permalink_comment_id=2697447#gistcomment-2697447
+ * @param {string} input 
+ * @returns {number} - Hash number.
+ */
+const simpleHash = (input) => {
     let h = 0xdeadbeef;
-    for (let i=0; i<str.length; i++) {
-        h = Math.imul(h ^ str.charCodeAt(i), 2654435761);
+    for (let i=0; i<input.length; i++) {
+        h = Math.imul(h ^ input.charCodeAt(i), 2654435761);
     }
     return (h ^ h >>> 16) >>> 0;
 };
