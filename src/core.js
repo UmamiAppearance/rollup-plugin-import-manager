@@ -837,7 +837,8 @@ class ImportManager {
 }
 
 /**
- * Warning messages in the mould of rollup warnings. 
+ * Bold, yellow warning messages in the mould
+ * of rollup warnings. 
  * @param {string} msg - Warning Message. 
  */
  const warning = (msg) => {

@@ -44,7 +44,6 @@ const manager = (options={}) => {
         name: 'ImportManager',
     
         transform (source, id) {
-            console.log("id", id);
             if (!filter(id)) return;
 
             const importManager = new ImportManager(source, id);       
@@ -58,33 +57,37 @@ const manager = (options={}) => {
             }
             
             else {
-                
-                let allowNull = true;
-                let useId = false;
 
-                for (const unitSection of ensureArray(options.units)) { 
+                for (const unitSection of ensureArray(options.units)) {
+
+                    let allowId = false; 
+                    let allowNull = true;
 
                     if ("file" in unitSection) {
-                        console.log(unitSection.file, "obj.file");
                         const isMatch = createFilter(unitSection.file);
-                        
+
                         if (!isMatch(id)) {
                             continue;
                         }
 
+                        allowId = true;
                         allowNull = false;
-                        useId = "id" in unitSection;
                     }
 
                     const selectModule = (section) => {
                         if (!isObject(section)) {
                             throw new TypeError("Input must be an object.");
                         }
+
+                        let unit = null;
                     
-                        let unit;
-                    
-                        if (useId) {
-                            unit = importManager.selectModById(section.id, allowNull);
+                        if ("id" in section) {
+                            if (allowId) {
+                                warning("Selecting modules via Id should not be used in production.")
+                                unit = importManager.selectModById(section.id, allowNull);
+                            } else {
+                                throw new Error("Filename must be specified for selecting via Id.");
+                            }
                         } else if ("hash" in section) {
                             unit = importManager.selectModByHash(section.hash, allowNull);
                         } else if ("module" in section) {
@@ -124,8 +127,17 @@ const manager = (options={}) => {
                         }
                         
                         if (mode) {
-                            const target = selectModule(unitSection[mode]);
-                            importManager.insertAtUnit(target, mode, statement);
+                            // look for the target with the values at key 'append|prepend|replace'
+                            const targetUnitSection = unitSection[mode];
+                            targetUnitSection.type = "es6";
+
+                            const target = selectModule(targetUnitSection);
+                            
+                            // insert if match is found
+                            // (which can be undefined if no file specified)
+                            if (target) {
+                                importManager.insertAtUnit(target, mode, statement);
+                            }
                         }
 
                         else {
@@ -135,12 +147,10 @@ const manager = (options={}) => {
                         continue;
                     }
                     
-                    const unit = selectModule(
-                        unitSection,
-                        importManager,
-                        useId,
-                        allowNull
-                    );
+                    const unit = selectModule(unitSection);
+                    if (!unit) {
+                        continue;
+                    }
                     
                     
                     if ("actions" in unitSection) {

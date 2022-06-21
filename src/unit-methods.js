@@ -1,8 +1,17 @@
 import { DebuggingError, MatchError } from "./errors.js";
 
 export default class ImportManagerUnitMethods {
+
     constructor(unit, es6StrToObj) {
         this.unit = unit;
+
+        // After a change in the code of a unit is made
+        // it gets analyzed again, which is very verbose,
+        // but prevents errors. The "MagicString" does not
+        // contain multiple changes at a time. The analysis
+        // function is the same as for the initial file
+        // analyses and gets handed over by the main class.
+
         this.updateUnit = (memberPart=null) => {
 
             if (memberPart === null) {

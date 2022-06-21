@@ -33,8 +33,17 @@ class MatchError extends Error {
 }
 
 class ImportManagerUnitMethods {
+
     constructor(unit, es6StrToObj) {
         this.unit = unit;
+
+        // After a change in the code of a unit is made
+        // it gets analyzed again, which is very verbose,
+        // but prevents errors. The "MagicString" does not
+        // contain multiple changes at a time. The analysis
+        // function is the same as for the initial file
+        // analyses and gets handed over by the main class.
+
         this.updateUnit = (memberPart=null) => {
 
             if (memberPart === null) {
@@ -871,8 +880,10 @@ class ImportManager {
             throw new TypeError("The id must be provided");
         }
         
+        // get the type by the id scope
         const type = this.idTypes[ Math.floor(id / this.scopeMulti) * this.scopeMulti ];
         if (!type) {
+            // generate an ascending list of valid ids
             const ascIds = Object.keys(this.idTypes).sort();
             throw new TypeError(`Id '${id}' is invalid. Ids range from ${ascIds.at(0)} to ${ascIds.at(-1)}+`);
         }
@@ -926,6 +937,7 @@ class ImportManager {
         }
     }
 
+    
     /**
      * All manipulation via unit method is made on the
      * code slice of the unit. This methods writes it
@@ -938,7 +950,8 @@ class ImportManager {
 
 
     /**
-     * Removes a unit from the code instance. 
+     * Removes a unit from the code instance.
+     * The action must not be committed. 
      * @param {Object} unit - Unit Object.
      */
     remove(unit) {
@@ -1040,6 +1053,7 @@ class ImportManager {
         else if (mode === "replace") {
             // remove new line from statement
             statement = statement.slice(0, -1);
+            
             this.code.overwrite(unit.start, unit.end, statement);
             unit.methods.makeUntraceable();
             this.imports[unit.type].count --;
@@ -1077,7 +1091,8 @@ class ImportManager {
 }
 
 /**
- * Warning messages in the mould of rollup warnings. 
+ * Bold, yellow warning messages in the mould
+ * of rollup warnings. 
  * @param {string} msg - Warning Message. 
  */
  const warning = (msg) => {
@@ -1143,33 +1158,37 @@ const manager = (options={}) => {
                 }            }
             
             else {
-                
-                let allowNull = true;
-                let useId = false;
 
-                for (const unitSection of ensureArray(options.units)) { 
+                for (const unitSection of ensureArray(options.units)) {
+
+                    let allowId = false; 
+                    let allowNull = true;
 
                     if ("file" in unitSection) {
-                        console.log(unitSection.file, "obj.file");
                         const isMatch = pluginutils.createFilter(unitSection.file);
-                        
+
                         if (!isMatch(id)) {
                             continue;
                         }
 
+                        allowId = true;
                         allowNull = false;
-                        useId = "id" in unitSection;
                     }
 
                     const selectModule = (section) => {
                         if (!isObject(section)) {
                             throw new TypeError("Input must be an object.");
                         }
+
+                        let unit = null;
                     
-                        let unit;
-                    
-                        if (useId) {
-                            unit = importManager.selectModById(section.id, allowNull);
+                        if ("id" in section) {
+                            if (allowId) {
+                                warning("Selecting modules via Id should not be used in production.");
+                                unit = importManager.selectModById(section.id, allowNull);
+                            } else {
+                                throw new Error("Filename must be specified for selecting via Id.");
+                            }
                         } else if ("hash" in section) {
                             unit = importManager.selectModByHash(section.hash, allowNull);
                         } else if ("module" in section) {
@@ -1209,8 +1228,17 @@ const manager = (options={}) => {
                         }
                         
                         if (mode) {
-                            const target = selectModule(unitSection[mode]);
-                            importManager.insertAtUnit(target, mode, statement);
+                            // look for the target with the values at key 'append|prepend|replace'
+                            const targetUnitSection = unitSection[mode];
+                            targetUnitSection.type = "es6";
+
+                            const target = selectModule(targetUnitSection);
+                            
+                            // insert if match is found
+                            // (which can be undefined if no file specified)
+                            if (target) {
+                                importManager.insertAtUnit(target, mode, statement);
+                            }
                         }
 
                         else {
@@ -1220,8 +1248,10 @@ const manager = (options={}) => {
                         continue;
                     }
                     
-                    const unit = selectModule(
-                        unitSection);
+                    const unit = selectModule(unitSection);
+                    if (!unit) {
+                        continue;
+                    }
                     
                     
                     if ("actions" in unitSection) {
