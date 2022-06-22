@@ -242,6 +242,7 @@ const manager = (options={}) => {
             const code = importManager.code.toString();
             
             if ("showCode" in options) {
+                //TODO: default diff only
                 if (importManager.code.hasChanged()) {
                     importManager.warning(`altered code for file '${id}':`);
                     console.log("\x1b[2m%s\x1b[0m", "BEGIN >>>");
