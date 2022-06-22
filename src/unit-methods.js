@@ -292,17 +292,31 @@ export default class ImportManagerUnitMethods {
         this.updateUnit();
     }
 
+
+    /**
+     * Changes the alias. Changing can be renaming
+     * setting it initially or removing. 
+     * @param {string} memberType - member|defaultMember
+     * @param {string} name - (default) member name
+     * @param {string} [set] - A new name or nothing for removal
+     */
     setAlias(memberType, name, set) {
         const aliasStr = set ? `${name} as ${set}` : name;
         this.renameMember(memberType, name, aliasStr, false);
         this.updateUnit();
     }
 
+
+    /**
+     * Method to call after a unit was completely removed
+     * or replaced, to prevent matching it again afterwards.
+     */
     makeUntraceable() {
         this.unit.id = `(deleted) ${this.unit.id}`;
         this.unit.hash = `(deleted) ${this.unit.hash}`;
         this.unit.module.name = `(deleted) ${this.unit.module.name}`;
     }
+
 
     /**
      * Debugging method to stop the building process
