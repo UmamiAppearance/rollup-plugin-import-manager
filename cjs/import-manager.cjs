@@ -97,56 +97,10 @@ class ImportManagerUnitMethods {
         }
         
         this.unit.code.overwrite(this.unit.module.start, this.unit.module.end, name);
-        
+
         if (this.unit.type === "es6") {
             this.updateUnit();
         }
-    }
-
-
-    /**
-     * Adds non default members to the import statement.
-     * @param {string[]} names - A list of members to add. 
-     */
-    addMembers(names) {
-        this.#ES6only();
-
-        let start; 
-        let memStr;
-        let memberPart = null;
-        
-        // handle the case if members already exist
-        if (this.unit.members.count > 0) {
-            start = this.unit.members.entities.at(-1).absEnd;
-            memStr = this.unit.members.separator 
-                   + names.join(this.unit.members.separator);
-            this.unit.code.appendRight(start, memStr);
-        }
-
-        // handle the case if members do not exist, 
-        // and also no default members
-        else if (this.unit.defaultMembers.count === 0) {
-            start = this.unit.module.start;
-            memStr = "{ "
-                   + names.join(this.unit.members.separator)
-                   + " }";
-            memberPart = memStr;
-            memStr += " from ";
-            this.unit.code.appendLeft(start, memStr);
-        }
-
-        // handle the case if members do not exist, 
-        // but default members
-        else {
-            start = this.unit.defaultMembers.end;
-            memStr = this.unit.defaultMembers.separator
-                   + "{ "
-                   + names.join(this.unit.members.separator)
-                   + " }";
-            this.unit.code.appendRight(start, memStr);
-        }
-
-        this.updateUnit(memberPart);
     }
 
 
@@ -170,7 +124,9 @@ class ImportManagerUnitMethods {
         }
 
         // handle the case if default members do not exist, 
-        // and also no non default members
+        // and also no non default members (the addition
+        // needs to be appended left, otherwise is
+        // interferes with the module part)
         else if (this.unit.members.count === 0) {
             start = this.unit.module.start;
             defStr = names.join(this.unit.members.separator);
@@ -188,6 +144,54 @@ class ImportManagerUnitMethods {
             this.unit.code.appendRight(start, defStr);
         }
         
+        this.updateUnit(memberPart);
+    }
+
+    
+    /**
+     * Adds non default members to the import statement.
+     * @param {string[]} names - A list of members to add. 
+     */
+     addMembers(names) {
+        this.#ES6only();
+
+        let start; 
+        let memStr;
+        let memberPart = null;
+        
+        // handle the case if members already exist
+        if (this.unit.members.count > 0) {
+            start = this.unit.members.entities.at(-1).absEnd;
+            memStr = this.unit.members.separator 
+                   + names.join(this.unit.members.separator);
+            this.unit.code.appendRight(start, memStr);
+        }
+
+        // handle the case if members do not exist, 
+        // and also no default members (the addition
+        // needs to be appended left, otherwise is
+        // interferes with the module part)
+        else if (this.unit.defaultMembers.count === 0) {
+            start = this.unit.module.start;
+            memStr = "{ "
+                   + names.join(this.unit.members.separator)
+                   + " }";
+            memberPart = memStr;
+            memStr += " from ";
+            this.unit.code.appendLeft(start, memStr);
+        }
+
+        // handle the case if members do not exist, 
+        // but default members
+        else {
+            start = this.unit.defaultMembers.end;
+            memStr = this.unit.defaultMembers.separator
+                   + "{ "
+                   + names.join(this.unit.members.separator)
+                   + " }";
+            this.unit.code.appendRight(start, memStr);
+        }
+
         this.updateUnit(memberPart);
     }
 
