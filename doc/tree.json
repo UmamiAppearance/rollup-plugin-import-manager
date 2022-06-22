@@ -2,35 +2,67 @@
     "units": [
         {
             "id": "[1000]", 
-            "hash": ["3511224270"],
+            "hash": "[3511224270]",
             "file": "[index.js]",
             "type": "[es6]",
-            "module": "appendix.js",
+            "module": "module name",
+            "[debug]": null,
             "actions": [
                 {
                     "select": "member|defaultMember",
                     "name": "(default) member name",
                     "rename": "new name",
-                    "keepAlias": "[bool (false|'false','no',0,'0')]"
+                    "keepAlias": "[bool (false|'false','no','n',0,'0')]"
                 },
                 {
                     "select": "member|defaultMember",
                     "name": "(default) member name",
-                    "delete": null
+                    "remove": null
+                },
+
+                {
+                    "select": "member|defaultMember",
+                    "name": "(default) member name",
+                    "alias": "alias name",
+                    "[remove]": null
+                },
+                
+                
+                {
+                    "select": "members|defaultMembers",
+                    "remove": null
                 },
                 {
-                    "select": "members|defaultMember",
-                    "modType": "literal",
-                    "rename": "./testlibs/appendix2.js",
+                    "select": "members|defaultMembers",
                     "add": [
-                        "new member name"
+                        "new (default) member name 1",
+                        "new (default) member name 2",
+                        "..."
                     ]
                 },
+             
                 {   
                     "select": "module",
                     "modType": "[string|literal]",
                     "rename": "new mod (path)"
-                }
+                },
+
+                {
+                    "createModule": "module path",
+                    "file": "filename",
+                    "defaultMembers": [
+                        "dmA"
+                    ],
+                    "members": [
+                        "memA",
+                        "memB",
+                        "..."
+                    ]
+                },
+
+                "debug",
+
+                "remove"
             ]
         }
     ]   

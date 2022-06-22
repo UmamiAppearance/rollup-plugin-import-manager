@@ -2,9 +2,10 @@ import ImportManagerUnitMethods from "./unit-methods.js";
 import { DebuggingError, MatchError } from "./errors.js";
 import MagicString from "magic-string";
 
-class ImportManager {
 
-    constructor(source, filename, autoSearch=true) {
+export default class ImportManager {
+
+    constructor(source, filename, warnSpamProtection, autoSearch=true) {
 
         this.scopeMulti = 1000;
 
@@ -37,6 +38,7 @@ class ImportManager {
         this.blackenedCode = this.prepareSource();
         this.hashList = {};
         this.filename = filename;
+        this.warnSpamProtection = warnSpamProtection;
 
         if (autoSearch) {
             this.getDynamicImports();
@@ -98,7 +100,8 @@ class ImportManager {
         this.#matchAndStrike(
             src,
             /`(?:\\`|\s|\S)*?`/g,
-            true);
+            true
+        );
 
         // blacken multi line comments
         this.#matchAndStrike(
@@ -120,17 +123,9 @@ class ImportManager {
      * Helper method to generate a very simple hash
      * from the unit properties.
      * @param {Object} unit - Unit to generate a hash from. 
-     * @returns 
+     * @returns {string} - a hash as a string 
      */
     #makeHash(unit) {
-
-        // cf. https://gist.github.com/iperelivskiy/4110988?permalink_comment_id=2697447#gistcomment-2697447
-        const simpleHash = (str) => {
-            let h = 0xdeadbeef;
-            for(let i=0; i<str.length; i++)
-                h = Math.imul(h ^ str.charCodeAt(i), 2654435761);
-            return (h ^ h >>> 16) >>> 0;
-        };
 
         const makeInput = (unit) => {
             
@@ -157,11 +152,11 @@ class ImportManager {
         };
 
         const input = makeInput(unit);
-        console.log("INPUT", input);
         let hash = String(simpleHash(input));
 
+        // handle duplicates (which should not exist in reality)
         if (hash in this.hashList) {
-            console.warn(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
+            this.warning(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
             let nr = 2;
             for (;;) {
                 const nHash = `${hash}#${nr}`;
@@ -178,6 +173,203 @@ class ImportManager {
         return hash;
     }
 
+    /**
+     * Method to generate a unit object from a
+     * ES6 Import Statement.
+     * @param {string} code - The complete import statement. 
+     * @param {number} start - Start index of the source code file.
+     * @param {number} end - End index of the source code file. 
+     * @param {string} statement - The complete statement from the regex match in the prepared source code.  
+     * @param {string} memberPart - The member part (default and non default).
+     * @param {string} module - The module part. 
+     * @returns {Object} - Unit Object.
+     */
+    es6StrToObj(code, start, end, statement, memberPart, module) {
+        // separating members
+        const members = {
+            count: 0,
+            entities: []
+        };
+
+        const defaultMembers = {
+            count: 0,
+            entities: []
+        }
+
+        const allMembersStr = memberPart ? memberPart.trim() : null;
+        
+        if (allMembersStr) {
+            // find position of all members
+            const relAllMembersStart = code.indexOf(allMembersStr);
+
+            // initialize default string
+            let defaultStr = null;
+
+            // but begin with non default members, those
+            // are addressed by looking for everything between
+            // the curly braces (if present)
+            const nonDefaultMatch = allMembersStr.match(/{[\s\S]*?}/);
+            
+            if (nonDefaultMatch) {
+                const relNonDefaultStart = nonDefaultMatch.index;
+                let nonDefaultStr = nonDefaultMatch[0];
+
+                members.start = relAllMembersStart + relNonDefaultStart;
+                members.end = members.start + nonDefaultStr.length;
+
+                if (relNonDefaultStart > 0) {
+                    defaultStr = allMembersStr.slice(0, nonDefaultMatch.index);
+                }
+
+                // split the individual members (ignore curly braces left and right)
+                const m = allMembersStr.slice(relNonDefaultStart+1, relNonDefaultStart+nonDefaultStr.length-1)
+                                       .split(",")
+                                       .map(m => m.trim())
+                                       .filter(m => m);
+
+                // get the position of each of each member 
+                let searchIndex = 0;
+                m.forEach((member, index) => {
+                    members.count ++;
+                    const relMemberPos = nonDefaultStr.indexOf(member, searchIndex);
+                    
+                    let name = member;
+                    let len;
+
+                    // isolate aliases
+                    const aliasMatch = member.match(/(\s+as\s+)/);
+                    const newMember = {};
+
+                    if (aliasMatch) {
+                        len = aliasMatch.index;
+                        name = member.slice(0, len);
+                        newMember.name = name;
+                        const aliasStart = aliasMatch.index + aliasMatch[0].length;
+                        newMember.alias = {
+                            name: member.slice(aliasStart),
+                            start: relAllMembersStart + relNonDefaultStart + relMemberPos + aliasStart,
+                            end: relAllMembersStart + relNonDefaultStart + relMemberPos + member.length
+                        }
+                    } else {
+                        newMember.name = name;
+                        len = member.length;
+                    }
+                    newMember.start = relAllMembersStart + relNonDefaultStart + relMemberPos;
+                    newMember.end = newMember.start + len;
+                    newMember.absEnd = newMember.start + member.length;
+                    newMember.index = index;
+
+                    // store the current member start as
+                    // a property of the last and the last
+                    // member end as a property of the 
+                    // current index
+                    if (index > 0) {
+                        newMember.last = members.entities[index-1].absEnd;
+                        members.entities[index-1].next = newMember.start;
+                    }
+
+                    members.entities.push(newMember);
+
+                    // raise the search index by the length
+                    // of the member to ignore the current
+                    // member in the next round
+                    searchIndex = relMemberPos + member.length;
+                });
+            }
+            
+            // if no non default members were found
+            // the default member string is the whole
+            // member string 
+            else {
+                defaultStr = allMembersStr;
+            }
+
+            // if a default str is present process
+            // it similarly to the non default members
+            if (defaultStr) {
+                defaultMembers.start = relAllMembersStart;
+                defaultMembers.end = defaultMembers.start + defaultStr.length;
+
+                const dm = defaultStr.split(",")
+                                        .map(m => m.trim())
+                                        .filter(m => m);
+                
+                let searchIndex = 0;
+                dm.forEach((defaultMember, index) => {
+                    defaultMembers.count ++;
+                    const relDefaultMemberPos = defaultStr.indexOf(defaultMember, searchIndex);
+                    let name = defaultMember;
+                    let len;
+                    const newDefMember = {};
+                    const aliasMatch = defaultMember.match(/(\s+as\s+)/);
+                    
+                    if (aliasMatch) {
+                        len = aliasMatch.index;
+                        name = defaultMember.slice(0, len);
+                        newDefMember.name = name;
+                        const aliasStart = aliasMatch.index + aliasMatch[0].length;
+                        newDefMember.alias = {
+                            name: defaultMember.slice(aliasStart),
+                            start: relAllMembersStart + relDefaultMemberPos + aliasStart,
+                            end: relAllMembersStart + relDefaultMemberPos + defaultMember.length
+                        }
+                    } else {
+                        newDefMember.name = name;
+                        len = defaultMember.length;
+                    }
+
+                    newDefMember.start = relAllMembersStart + relDefaultMemberPos;
+                    newDefMember.end = newDefMember.start + len;
+                    newDefMember.absEnd = newDefMember.start + defaultMember.length;
+                    newDefMember.index = index;
+
+                    if (index > 0) {
+                        newDefMember.last = defaultMembers.entities[index-1].absEnd;
+                        defaultMembers.entities[index-1].next = newDefMember.start;
+                    }
+
+                    defaultMembers.entities.push(newDefMember);
+                    searchIndex = relDefaultMemberPos + len + 1;
+                });
+
+                // if there are default and non default members
+                // add the start position of the non default
+                // members as the next value for the last default
+                // member
+                if (members.count > 1 && defaultMembers.count > 1) {
+                    defaultMembers.entities.at(-1).next = members.start;
+                }
+            }
+        }
+
+        // create a fresh object for the current unit
+        const moduleStr = {}
+
+        // find the position of the module string
+        moduleStr.start = statement.indexOf(module);
+        moduleStr.end = moduleStr.start + module.length;
+        moduleStr.name = code.slice(moduleStr.start+1, moduleStr.end-1).split("/").at(-1);
+        moduleStr.quotes = code.charAt(moduleStr.start);
+        moduleStr.type = "string";
+
+        // store the first separator of the non default
+        // and default members for a consistent style
+        // if one wants to add members
+        defaultMembers.separator = (defaultMembers.entities.length > 1) ? code.slice(defaultMembers.entities[0].absEnd, defaultMembers.entities[0].next) : ", ";
+        members.separator = (members.entities.length > 1) ? code.slice(members.entities[0].absEnd, members.entities[0].next) : ", ";
+
+        // make a new unit
+        const unit = {
+            code: new MagicString(code),
+            defaultMembers,
+            members,
+            module: moduleStr,
+            start,
+            end
+        };
+
+        return unit;
+    }
 
     /**
      * Collect all es6 imports from a source code.
@@ -186,18 +378,21 @@ class ImportManager {
      * instance.
      */
     getES6Imports() {
-        let id = this.imports.es6.idScope;
-
+        
         const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(\-+);?/g);
         // match[0]: the complete import statement
         // match[1]: the member part of the statement (may be empty)
         // match[2]: the module part
         
+        let id = this.imports.es6.idScope;
         let next = es6ImportCollection.next();
+        let index = 0;
+        
         while (!next.done) {
             this.imports.es6.count ++;
 
             const match = next.value;
+
             const start = match.index;
             const end = start + match[0].length;
 
@@ -205,201 +400,19 @@ class ImportManager {
             // original code
             const code = this.code.slice(start, end);
 
-            // separating members
-            const members = {
-                count: 0,
-                entities: []
-            };
-
-            const defaultMembers = {
-                count: 0,
-                entities: []
-            }
-
-            const allMembersStr = match[1] ? match[1].trim() : null;
+            const unit = this.es6StrToObj(code, start, end, ...match);
             
-            if (allMembersStr) {
-                // find position of all members
-                const relAllMembersStart = code.indexOf(allMembersStr);
-
-                // initialize default string
-                let defaultStr = null;
-
-                // but begin with non default members, those
-                // are addressed by looking for everything between
-                // the curly braces (if present)
-                const nonDefaultMatch = allMembersStr.match(/{[\s\S]*?}/);
-                
-                if (nonDefaultMatch) {
-                    const relNonDefaultStart = nonDefaultMatch.index;
-                    let nonDefaultStr = nonDefaultMatch[0];
-
-                    members.start = relAllMembersStart + relNonDefaultStart;
-                    members.end = members.start + nonDefaultStr.length;
-
-                    if (relNonDefaultStart > 0) {
-                        defaultStr = allMembersStr.slice(0, nonDefaultMatch.index);
-                    }
-
-                    // split the individual members
-                    const m = allMembersStr.slice(relNonDefaultStart+1, relNonDefaultStart+nonDefaultStr.length-2)
-                                       .split(",")
-                                       .map(m => m.trim())
-                                       .filter(m => m);
-                    
-                    // get the position of each of each member 
-                    let searchIndex = 0;
-                    m.forEach((member, index) => {
-                        members.count ++;
-                        const relMemberPos = nonDefaultStr.indexOf(member, searchIndex);
-                        
-                        let name = member;
-                        let len;
-
-                        // isolate aliases
-                        const aliasMatch = member.match(/(\s+as\s+)/);
-                        const newMember = {};
-                        if (aliasMatch) {
-                            len = aliasMatch.index;
-                            name = member.slice(0, len);
-                            newMember.name = name;
-                            const aliasStart = aliasMatch.index + aliasMatch[0].length;
-                            newMember.alias = {
-                                name: member.slice(aliasStart),
-                                start: relAllMembersStart + relNonDefaultStart + relMemberPos + aliasStart,
-                                end: relAllMembersStart + relNonDefaultStart + relMemberPos + member.length
-                            }
-                        } else {
-                            newMember.name = name;
-                            len = member.length;
-                        }
-                        newMember.start = relAllMembersStart + relNonDefaultStart + relMemberPos;
-                        newMember.end = newMember.start + len;
-                        newMember.absEnd = newMember.start + member.length;
-                        newMember.index = index;
-
-                        // store the current member start as
-                        // a property of the last and the last
-                        // member end as a property of the 
-                        // current
-                        if (index > 0) {
-                            newMember.last = members.entities[index-1].absEnd;
-                            members.entities[index-1].next = newMember.start;
-                        }
-
-                        members.entities.push(newMember);
-
-                        // raise the search index by the length
-                        // of the member to ignore the current
-                        // member in the next round
-                        searchIndex = relMemberPos + member.length;
-                    });
-                }
-                
-                // if no non default members were found
-                // the default member string is the whole
-                // member string 
-                else {
-                    defaultStr = allMembersStr;
-                }
-
-                // if a default str is present process
-                // it similarly to the non default members
-                if (defaultStr) {
-                    defaultMembers.start = relAllMembersStart;
-                    defaultMembers.end = defaultMembers.start + defaultStr.length;
-
-                    const dm = defaultStr.split(",")
-                                          .map(m => m.trim())
-                                          .filter(m => m);
-                    
-                    let searchIndex = 0;
-                    dm.forEach((defaultMember, index) => {
-                        const relDefaultMemberPos = defaultStr.indexOf(defaultMember, searchIndex);
-                        let name = defaultMember;
-                        let len;
-                        const newDefMember = {};
-                        const aliasMatch = defaultMember.match(/(\s+as\s+)/);
-                        
-                        if (aliasMatch) {
-                            len = aliasMatch.index;
-                            name = defaultMember.slice(0, len);
-                            newDefMember.name = name;
-                            const aliasStart = aliasMatch.index + aliasMatch[0].length;
-                            newDefMember.alias = {
-                                name: defaultMember.slice(aliasStart),
-                                start: relAllMembersStart + relDefaultMemberPos + aliasStart,
-                                end: relAllMembersStart + relDefaultMemberPos + defaultMember.length
-                            }
-                        } else {
-                            newDefMember.name = name;
-                            len = defaultMember.length;
-                        }
-
-                        newDefMember.start = relAllMembersStart + relDefaultMemberPos;
-                        newDefMember.end = newDefMember.start + len;
-                        newDefMember.absEnd = newDefMember.start + defaultMember.length;
-                        newDefMember.index = index;
-
-                        if (index > 0) {
-                            newDefMember.last = defaultMembers.entities[index-1].absEnd;
-                            defaultMembers.entities[index-1].next = newDefMember.start;
-                        }
-
-                        defaultMembers.entities.push(newDefMember);
-                        searchIndex = relDefaultMemberPos + len + 1;
-                    });
-
-                    // if there are default and non default members
-                    // add the start position of the non default
-                    // members as the next value for the last default
-                    // member
-                    if (members.count > 1 && defaultMembers.count > 1) {
-                        defaultMembers.entities.at(-1).next = members.start;
-                    }
-                }
-            }
-
-            // create a fresh object for the current unit
-            const module = {}
-
-            // find the position of the module string
-            module.start = match[0].indexOf(match[2]) + 1;
-            module.end = module.start + match[2].length - 2;
-            module.name = code.slice(module.start, module.end).split("/").at(-1);
-            module.type = "string";
-
-            // store the first separator of the non default
-            // and default members for a consistent style
-            // if one wants to add members
-            defaultMembers.separator = (defaultMembers.entities.length > 1) ? code.slice(defaultMembers.entities[0].absEnd, defaultMembers.entities[0].next) : ", ";
-            members.separator = (members.entities.length > 1) ? code.slice(members.entities[0].absEnd, members.entities[0].next) : ", ";
-
-            // make a new unit
-            const unit = {
-                id: id++,
-                index: this.imports.es6.count-1,
-                code: new MagicString(code),
-                defaultMembers,
-                members,
-                module,
-                start,
-                end,
-                type: "es6",
-                get codeString() {
-                    return [ this.code.toString() ];
-                }
-            };
-
-            // generate a hash
+            unit.type = "es6";
+            unit.id = id++;
+            unit.index = index ++;
             unit.hash = this.#makeHash(unit);
 
             // push the fresh unit to es6 unit array
             this.imports.es6.units.push(unit)
             
             next = es6ImportCollection.next();
-            this.imports.es6.searched = true;
         }
+        this.imports.es6.searched = true;
     }
 
 
@@ -502,24 +515,6 @@ class ImportManager {
         this.imports.cjs.searched = true;
     }
 
-    remove(unit) {
-        if (unit.type !== "es6") {
-            throw new Error("Removing units is only available for es6 imports.");
-        }
-        this.code.remove(unit.start, unit.end);
-        this.imports[unit.type].units.splice([unit.index], 1, null);
-        this.imports[unit.type].count --;
-    }
-
-    commitChanges(unit) {
-        if (unit.membersFromScratch) {
-            const end = unit.defaultMembers.entities.at(-1).absEnd;
-            unit.code.appendRight(end, " }");
-        }
-        this.code.overwrite(unit.start, unit.end, unit.code.toString());
-    }
-
-
 //              ___________________              //
 //              select unit methods              //
 
@@ -571,27 +566,36 @@ class ImportManager {
 
         let unitList = [];
 
+        // if the type is not specified use all types (cjs|dynamic|es6)
         if (!type) {
             type = Object.keys(this.imports);
-        } else if (typeof type === "string") {
+        } else if (!Array.isArray(type)) {
             type = [type];
         }
 
-        if (type.length === 0) {
+        // if an empty array was passed, also use all types
+        if (!type.length) {
             type = Object.keys(this.imports);
         }
 
+        // test types for validity
         for (const t of type) {
             if (!(t in this.imports)) {
                 throw new TypeError(`Invalid type: '${t}' - Should be one or more of: 'cjs', 'dynamic', 'es6'.`);
             }
+
+            // push all available imports in one list
             if (this.imports[t].count > 0) {
                 unitList.push(...this.imports[t].units);
             }
         }
 
+        // filter for unit name
         const units = unitList.filter(unit => unit.module.name === name);
 
+        // throw errors if the match is not one
+        // (if no filename was set a null match
+        // is also valid)
         if (units.length === 0) {
             if (allowNull) {
                 return null;
@@ -617,8 +621,9 @@ class ImportManager {
             throw new MatchError(msg);
         }
 
+        // finally add methods for manipulation to the unit
         const unit = units[0];
-        unit.methods = new ImportManagerUnitMethods(unit);
+        unit.methods = new ImportManagerUnitMethods(unit, this.es6StrToObj);
 
         return unit;
     }
@@ -635,13 +640,23 @@ class ImportManager {
             throw new TypeError("The id must be provided");
         }
         
+        // get the type by the id scope
         const type = this.idTypes[ Math.floor(id / this.scopeMulti) * this.scopeMulti ];
+
+        // if it is not possible to extract a type by the scope,
+        // the id is invalid 
         if (!type) {
+            // generate an ascending list of valid ids
             const ascIds = Object.keys(this.idTypes).sort();
             throw new TypeError(`Id '${id}' is invalid. Ids range from ${ascIds.at(0)} to ${ascIds.at(-1)}+`);
         }
+
+        // filter the units of the given type for the id
         const units = this.imports[type].units.filter(n => n.id == id);
 
+        // if null matches are allowed return null 
+        // if no match was found, otherwise raise
+        // a match error
         if (units.length === 0) {
             if (allowNull) {
                 return null;
@@ -651,16 +666,20 @@ class ImportManager {
             throw new MatchError(msg);
         }
 
+        // add unit methods
         const unit = units[0];
-        unit.methods = new ImportManagerUnitMethods(unit);
+        unit.methods = new ImportManagerUnitMethods(unit, this.es6StrToObj);
 
         return unit;
     }
 
     /**
      * Selects a unit by its hash. The hash will change
-     * if the unit changes its properties like members,
-     * alias, etc.
+     * if the unit changes its properties in the source
+     * code (like members, alias, etc.)
+     * All hashes for one file are stored in a list, with
+     * the corresponding id. The id-match method can there-
+     * fore be used, to find the unit.
      * @param {string} hash - The hash string of the unit. 
      * @returns {object} - An explicit unit.
      */
@@ -670,11 +689,147 @@ class ImportManager {
                 return null;
             }
             let msg = this.#listAllUnits(); 
-            msg += `___\nHash '${hash}' was not found`;
+            msg += `___\nUnable to locate import statement with hash '${hash}'`;
             throw new MatchError(msg);
         }
 
         return this.selectModById(this.hashList[hash]);
+    }
+
+//         ___________________________________________        //
+//         methods for unit creation, replacement, etc.       //
+
+    /**
+     * Makes sure, that the processed unit is of type 'es6'.
+     * @param {Object} unit - Unit Object. 
+     */
+    #ES6only(unit) {
+        if (unit.type !== "es6") {
+            throw new Error("This method is only available for ES6 imports.");
+        }
+    }
+
+    
+    /**
+     * All manipulation via unit method is made on the
+     * code slice of the unit. This methods writes it
+     * to the code instance. 
+     * @param {Object} unit - Unit Object. 
+     */
+    commitChanges(unit) {
+        this.code.overwrite(unit.start, unit.end, unit.code.toString());
+    }
+
+
+    /**
+     * Removes a unit from the code instance.
+     * The action must not be committed. 
+     * @param {Object} unit - Unit Object.
+     */
+    remove(unit) {
+        this.#ES6only(unit);
+
+        const charAfter = this.code.slice(unit.end, unit.end+1);
+        const end = (charAfter === "\n") ? unit.end + 1 : unit.end;
+        this.code.remove(unit.start, end);
+        unit.methods.makeUntraceable();
+        this.imports[unit.type].count --;
+    }
+
+
+    /**
+     * Generates an ES6 Import Statement.
+     * @param {string} module - Module (path).
+     * @param {string[]} defaultMembers - Default Member Part.
+     * @param {string[]} members - Member Part.
+     * @returns {string} - ES6 Import Statement.
+     */
+    makeES6Statement(module, defaultMembers, members) {
+        const memberStrArray = [];
+        
+        if (defaultMembers.length) {
+            memberStrArray.push(
+                defaultMembers.join(", ")
+            );
+        }
+
+        if (members.length) {
+            memberStrArray.push(
+                "{ " + members.join(", ") + " }"
+            );
+        }
+
+        let memberPart = memberStrArray.join(", ");
+        if (memberPart) {
+            memberPart += " from "
+        }
+
+        return `import ${memberPart}'${module}';\n`;
+    }
+
+
+    /**
+     * Inserts an ES6 Import Statement to the top
+     * of the file or after the last found import
+     * statement.
+     * @param {string} statement - ES6 Import Statement.
+     * @param {number} pos - 'top' or 'bottom'
+     */
+    insertStatement(statement, pos) {
+
+        let index = 0;
+
+        if (pos !== "top" && this.imports.es6.count > 0) {
+            index = this.imports.es6.units.at(-1).end;
+            if (this.code.slice(index, index+1) === "\n") {
+                index ++;
+            }
+        } else {
+            // find description part if present and
+            // move the index
+            const description = this.code.toString().match(/^\s*?\/\*[\s\S]*?\*\/\s?/);
+            if (description) {
+                index += description[0].length;
+            }
+        }
+        
+        this.code.appendRight(index, statement);
+    }
+
+
+    /**
+     * Inserts an ES6 Import Statement before or after
+     * a given unit. Also an existing statement can be
+     * replaced.
+     * @param {Object} unit - Unit Object 
+     * @param {string} mode - 'append'|'prepend'|'replace' 
+     * @param {string} statement - ES6 Import Statement. 
+     */
+    insertAtUnit(unit, mode, statement) {
+        this.#ES6only(unit);
+        
+        let index;
+        if (mode === "append") {
+            index = unit.end;
+            if (this.code.slice(index, index+1) === "\n") {
+                index ++;
+            }
+            this.code.appendRight(index, statement);
+        }
+        
+        else if (mode === "prepend") {
+            index = unit.start;
+            this.code.prependLeft(index, statement);
+        }
+
+        else if (mode === "replace") {
+            // remove new line from statement
+            statement = statement.slice(0, -1);
+            
+            this.code.overwrite(unit.start, unit.end, statement);
+            unit.methods.makeUntraceable();
+            this.imports[unit.type].count --;
+        }
     }
 
 
@@ -694,22 +849,53 @@ class ImportManager {
 
     /**
      * Debugging method to stop the building process
-     * and list a specific unit selected by its id.
-     * @param {number} id - Unit id.
+     * and list the complete import object.
      */
-    // TODO: move this to unit debug method
-    logImportObject(unit) {
-        throw new DebuggingError(JSON.stringify(unit, null, 4));
+     logUnitObjects() {
+        const imports = {...this.imports};
+        for (const key in imports) {
+            imports[key].units.forEach(unit => {
+                unit.code = [ unit.code.toString() ];
+            });
+        }
+        throw new DebuggingError(JSON.stringify(imports, null, 4));
     }
 
 
     /**
-     * Debugging method to stop the building process
-     * and list the complete import object.
+     * Bold, yellow warning messages in the mould
+     * of rollup warnings. With spam protection.
+     * @param {string} msg - Warning Message. 
      */
-     logUnitObjects() {
-        throw new DebuggingError(JSON.stringify(this.imports, null, 4));
+    warning(msg) {
+        const hash = simpleHash(msg);
+
+        if (this.warnSpamProtection.has(hash)) {
+            return;
+        }
+
+        this.warnSpamProtection.add(hash);
+
+        console.warn(
+            "\x1b[1;33m%s\x1b[0m",
+            `(!) (plugin ImportManager) ${msg}`
+        );
     }
 }
 
-export default ImportManager;
+
+/**
+ * A (simple as it gets) hash from string function.
+ * @see https://gist.github.com/iperelivskiy/4110988?permalink_comment_id=2697447#gistcomment-2697447
+ * @see https://gist.github.com/badboy/6267743#knuths-multiplicative-method
+ * @param {string} input 
+ * @returns {number} - Hash number.
+ */
+const simpleHash = (input) => {
+    let h = 0xdeadbeef;
+    for (let i=0; i<input.length; i++) {
+        h = Math.imul(h ^ input.charCodeAt(i), 2654435761);
+    }
+    return (h ^ h >>> 16) >>> 0;
+};
+

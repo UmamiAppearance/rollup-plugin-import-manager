@@ -1,80 +1,199 @@
 import { DebuggingError, MatchError } from "./errors.js";
 
 export default class ImportManagerUnitMethods {
-    constructor(unit) {
+
+    /**
+     * Creates methods for unit manipulation to
+     * be attached to a requested unit.
+     * @param {Object} unit - The unit a user requests 
+     * @param {*} es6StrToObj - Method to analyze a 
+     */
+    constructor(unit, es6StrToObj) {
         this.unit = unit;
+
+        // After a change in the code of a es6 unit is made
+        // it gets analyzed again, which is very verbose,
+        // but prevents errors. The "MagicString" does not
+        // contain multiple changes at a time. The analysis
+        // function is the same as for the initial file
+        // analyses and gets handed over by the main class.
+
+        this.updateUnit = (memberPart=null) => {
+
+            if (memberPart === null) {
+                const memberPartStart = this.unit.defaultMembers.start || this.unit.members.start;
+                const memberPartEnd = this.unit.members.end || this.unit.defaultMembers.end;
+                memberPart = this.unit.code.slice(memberPartStart, memberPartEnd);
+            }
+
+            const unit = es6StrToObj(
+                this.unit.code.toString(),
+                this.unit.start,
+                this.unit.end,
+                this.unit.code.toString(),
+                memberPart,
+                this.unit.code.slice(this.unit.module.start, this.unit.module.end)
+            );
+
+            Object.assign(this.unit, unit);
+
+        }
     }
 
+
+    /**
+     * Makes sure, that the processed unit is of type 'es6'. 
+     */
     #ES6only() {
         if (this.unit.type !== "es6") {
             throw new Error("This method is only available for ES6 imports.");
         }
     }
 
-// module methods
 
+    /**
+     * Changes the module part of a import statement.
+     * @param {string} name - The new module part/path.
+     * @param {*} modType - Module type (sting|literal).
+     */
     renameModule(name, modType) {
-        if (this.unit.type !== "es6") {
-            if (modType === "string") {
-                const q = this.unit.module.quotes;
-                name = q + name + q;
-            } else if (modType !== "literal") {
-                throw new TypeError(`Unknown modType '${modType}'. Valid types are 'string' and 'literal'.`);
-            }
-        } else if (modType !== "string") {
-            throw new TypeError("modType cannot be changed for es6 imports.");
+        if (modType === "string") {
+            const q = this.unit.module.quotes;
+            name = q + name + q;
+        } else if (modType !== "literal") {
+            throw new TypeError(`Unknown modType '${modType}'. Valid types are 'string' and 'literal'.`);
         }
         
         this.unit.code.overwrite(this.unit.module.start, this.unit.module.end, name);
-        console.log(this.unit.code.toString());
-    }
 
-// member methods
-
-    createMembers() {
-        if (this.unit.defaultMembers.count > 0) {
-            let start = this.unit.defaultMembers.entities.at(-1).absEnd;
-            let sep;
-            
-            if (!this.unit.membersFromScratch) {
-                this.unit.membersFromScratch = true;
-                sep = this.unit.defaultMembers.separator + "{ ";
-            } else {
-                sep = this.unit.members.separator;
-            }
-            
-            return [start, sep];
-        } else {
-            throw new Error("Not implemented!");
-            // TODO: implement this?
+        if (this.unit.type === "es6") {
+            this.updateUnit();
         }
     }
 
-    addMember(name) {
+
+    /**
+     * Adds default members to the import statement.
+     * @param {string[]} names - A list of default members to add.
+     */
+    addDefaultMembers(names) {
         this.#ES6only();
 
-        if (this.unit.members.entities.length > 0) {
-            const start = this.unit.members.entities.at(-1).absEnd;
-            if (this.unit.members.count > 0) {
-                name = this.unit.members.separator + name;
-            }
-            this.unit.code.appendRight(start, name);
-        } else {
-            console.log("create members");
-            let start, sep;
-            [ start, sep ] = this.createMembers();
-            console.log(start, sep);
-            this.unit.code.appendRight(start, sep + name);
+        let start; 
+        let defStr;
+        let memberPart = null;
+
+        // handle the case if default members already exist
+        if (this.unit.defaultMembers.count > 0) {
+            start = this.unit.defaultMembers.entities.at(-1).absEnd;
+            defStr = this.unit.defaultMembers.separator 
+                   + names.join(this.unit.defaultMembers.separator);
+            this.unit.code.appendRight(start, defStr);
         }
 
-        this.unit.members.count ++;
+        // handle the case if default members do not exist, 
+        // and also no non default members (the addition
+        // needs to be appended left, otherwise is
+        // interferes with the module part)
+        else if (this.unit.members.count === 0) {
+            start = this.unit.module.start;
+            defStr = names.join(this.unit.members.separator);
+            memberPart = defStr;
+            defStr += " from ";
+            this.unit.code.appendLeft(start, defStr);
+        }
+
+        // handle the case if default members do not exist, 
+        // but non default members
+        else {
+            start = this.unit.members.start;
+            defStr = names.join(this.unit.defaultMembers.separator)
+                   + this.unit.members.separator;
+            this.unit.code.appendRight(start, defStr);
+        }
+        
+        this.updateUnit(memberPart);
     }
 
+
+    /**
+     * Adds non default members to the import statement.
+     * @param {string[]} names - A list of members to add. 
+     */
+     addMembers(names) {
+        this.#ES6only();
+
+        let start; 
+        let memStr;
+        let memberPart = null;
+        
+        // handle the case if members already exist
+        if (this.unit.members.count > 0) {
+            start = this.unit.members.entities.at(-1).absEnd;
+            memStr = this.unit.members.separator 
+                   + names.join(this.unit.members.separator);
+            this.unit.code.appendRight(start, memStr);
+        }
+
+        // handle the case if members do not exist, 
+        // and also no default members (the addition
+        // needs to be appended left, otherwise is
+        // interferes with the module part)
+        else if (this.unit.defaultMembers.count === 0) {
+            start = this.unit.module.start;
+            memStr = "{ "
+                   + names.join(this.unit.members.separator)
+                   + " }";
+            memberPart = memStr;
+            memStr += " from ";
+            this.unit.code.appendLeft(start, memStr);
+        }
+
+        // handle the case if members do not exist, 
+        // but default members
+        else {
+            start = this.unit.defaultMembers.end;
+            memStr = this.unit.defaultMembers.separator
+                   + "{ "
+                   + names.join(this.unit.members.separator)
+                   + " }";
+            this.unit.code.appendRight(start, memStr);
+        }
+
+        this.updateUnit(memberPart);
+    }
+
+
+    /**
+     * Internal helper method to get the member type.
+     * The user input distinguishes between member/defaultMember
+     * and the plural versions of them. To prevent confusion in the
+     * process of selecting the different styles in the unit, this
+     * methods adds an "s" to the given string if missing and selects
+     * the requested type.
+     * @param {*} memberType 
+     * @returns 
+     */
+    #getType(memberType) {
+        if (memberType.at(-1) !== "s") {
+            memberType += "s"
+        }
+        return this.unit[memberType];
+    }
+
+
+    /**
+     * Internal helper method to find a specific member
+     * or default member.
+     * @param {string} memberType - member/defaultMember. 
+     * @param {string} name - (default) member name. 
+     * @returns {Object} - (default) member object.
+     */
     #findMember(memberType, name) {
         if (!name) {
             throw new Error(`${memberType} name must be set.`);
         }
-        const filtered = this.unit[memberType+"s"].entities.filter(m => m.name === name);
+        const filtered = this.#getType(memberType).entities.filter(m => m.name === name);
         if (filtered.length !== 1) {
             throw new MatchError(`Unable to locate ${memberType} with name '${name}'`);
         }
@@ -82,30 +201,81 @@ export default class ImportManagerUnitMethods {
     }
 
 
+    /**
+     * Removes a (default) member.
+     * @param {string} memberType - member|defaultMember
+     * @param {string} name - Name of the (default) member 
+     */
     removeMember(memberType, name) {
         this.#ES6only();
 
         const member = this.#findMember(memberType, name);
-        const group = this.unit[memberType+"s"];
-        let start;
-        let end;
-        
-        if (member.next) {
-            start = member.start;
-            end = member.next;
-        } else if (member.last) {
-            start = member.last;
-            end = member.absEnd;
-        } else {
-            start = member.start;
-            end = member.absEnd;
+
+        if (this.#getType(memberType).count === 1) {
+            this.removeMembers(memberType);
+        } 
+
+        else {
+            let start;
+            let end;
+            
+            if (member.next) {
+                start = member.start;
+                end = member.next;
+            } else if (member.last) {
+                start = member.last;
+                end = member.absEnd;
+            } else {
+                start = member.start;
+                end = member.absEnd;
+            }
+
+            this.unit.code.remove(start, end);  
+            this.updateUnit();
+
         }
-        this.unit.code.remove(start, end);
-        this.unit[memberType+"s"].entities[member.index].name = null;
-        //this.unit[memberType+"s"].entities.splice(member.index, 1, null);
-        this.unit[memberType+"s"].count --;
     }
 
+
+    /**
+     * Removes an entire group of members or default members.
+     * @param {string} membersType - member(s)|defaultMember(s) 
+     */
+    removeMembers(membersType) {
+        this.#ES6only();
+
+        const isDefault = membersType.indexOf("default") > -1;
+
+        const members = this.#getType(membersType);
+        const others = this.#getType(isDefault ? "members" : "defaultMembers");
+
+        let memberPart = null;
+        if (others.count > 0) {
+            
+            const start = !isDefault 
+                        ? this.unit.defaultMembers.entities.at(-1).end
+                        : members.start;
+
+            this.unit.code.remove(start, members.end);
+        }
+
+        else {
+            this.unit.code.remove(members.start, this.unit.module.start);
+            memberPart = "";
+        }
+
+        this.updateUnit(memberPart);
+    }
+
+
+    /**
+     * Renames a single (default) member. The alias
+     * can be kept or overwritten. 
+     * @param {string} memberType - member|defaultMember 
+     * @param {string} name - The (default) member to rename.
+     * @param {string} newName - The new name of the (default) member.
+     * @param {boolean} keepAlias - True if the alias shall be untouched. 
+     */
     renameMember(memberType, name, newName, keepAlias) {
         this.#ES6only();
 
@@ -117,18 +287,45 @@ export default class ImportManagerUnitMethods {
         } else {
             end = member.absEnd;
         }
+        
         this.unit.code.overwrite(member.start, end, newName);
+        this.updateUnit();
     }
+
+
+    /**
+     * Changes the alias. Changing can be renaming
+     * setting it initially or removing. 
+     * @param {string} memberType - member|defaultMember
+     * @param {string} name - (default) member name
+     * @param {string} [set] - A new name or nothing for removal
+     */
+    setAlias(memberType, name, set) {
+        const aliasStr = set ? `${name} as ${set}` : name;
+        this.renameMember(memberType, name, aliasStr, false);
+        this.updateUnit();
+    }
+
+
+    /**
+     * Method to call after a unit was completely removed
+     * or replaced, to prevent matching it again afterwards.
+     */
+    makeUntraceable() {
+        this.unit.id = `(deleted) ${this.unit.id}`;
+        this.unit.hash = `(deleted) ${this.unit.hash}`;
+        this.unit.module.name = `(deleted) ${this.unit.module.name}`;
+    }
+
 
     /**
      * Debugging method to stop the building process
-     * and list a specific unit selected by its id.
-     * @param {number} id - Unit id.
+     * and list this unit properties.
      */
-    // TODO: move this to unit debug method
     log() {
-        const unit = {...this.unit};
-        unit.methods = {};
-        throw new DebuggingError(JSON.stringify(unit, null, 4));
+        const unit = { ...this.unit };
+        delete unit.methods;
+        unit.code = [ unit.code.toString() ];
+        throw new DebuggingError(JSON.stringify(unit, null, 4), "unit");
     }
 }
