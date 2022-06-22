@@ -196,9 +196,9 @@ const manager = (options={}) => {
 
                                     if ("add" in action) {
                                         if (action.select === "members") {
-                                            unit.methods.addMember(ensureArray(action.add));
-                                        } else if ("add" in action) {
-                                            unit.methods.addDefaultMember(ensureArray(action.add));
+                                            unit.methods.addMembers(ensureArray(action.add));
+                                        } else {
+                                            unit.methods.addDefaultMembers(ensureArray(action.add));
                                         }
                                     } 
                                 }

@@ -2,10 +2,16 @@ import { DebuggingError, MatchError } from "./errors.js";
 
 export default class ImportManagerUnitMethods {
 
+    /**
+     * Creates methods for unit manipulation to
+     * be attached to a requested unit.
+     * @param {Object} unit - The unit a user requests 
+     * @param {*} es6StrToObj - Method to analyze a 
+     */
     constructor(unit, es6StrToObj) {
         this.unit = unit;
 
-        // After a change in the code of a unit is made
+        // After a change in the code of a es6 unit is made
         // it gets analyzed again, which is very verbose,
         // but prevents errors. The "MagicString" does not
         // contain multiple changes at a time. The analysis
@@ -34,6 +40,7 @@ export default class ImportManagerUnitMethods {
         }
     }
 
+
     /**
      * Makes sure, that the processed unit is of type 'es6'. 
      */
@@ -43,8 +50,12 @@ export default class ImportManagerUnitMethods {
         }
     }
 
-// module methods
 
+    /**
+     * Changes the module part of a import statement.
+     * @param {string} name - The new module part/path.
+     * @param {*} modType - Module type (sting|literal).
+     */
     renameModule(name, modType) {
         if (modType === "string") {
             const q = this.unit.module.quotes;
@@ -54,24 +65,32 @@ export default class ImportManagerUnitMethods {
         }
         
         this.unit.code.overwrite(this.unit.module.start, this.unit.module.end, name);
-        this.updateUnit();
+        if (this.unit.type === "es6") {
+            this.updateUnit();
+        }
     }
 
-// member methods
 
-    addMember(names) {
+    /**
+     * Adds non default members to the import statement.
+     * @param {string[]} names - A list of members to add. 
+     */
+    addMembers(names) {
         this.#ES6only();
 
         let start; 
         let memStr;
         let memberPart = null;
-
+        
+        // handle the case if members already exist
         if (this.unit.members.count > 0) {
             start = this.unit.members.entities.at(-1).absEnd;
             memStr = this.unit.members.separator 
                    + names.join(this.unit.members.separator);
         }
 
+        // handle the case if members do not exist, 
+        // and also no default members
         else if (this.unit.defaultMembers.count === 0) {
             start = this.unit.module.start;
             memStr = "{ "
@@ -81,6 +100,8 @@ export default class ImportManagerUnitMethods {
             memStr += " from ";
         }
 
+        // handle the case if members do not exist, 
+        // but default members
         else {
             start = this.unit.defaultMembers.end;
             memStr = this.unit.defaultMembers.separator
@@ -93,19 +114,27 @@ export default class ImportManagerUnitMethods {
         this.updateUnit(memberPart);
     }
 
-    addDefaultMember(names) {
+
+    /**
+     * Adds default members to the import statement.
+     * @param {string[]} names - A list of default members to add.
+     */
+    addDefaultMembers(names) {
         this.#ES6only();
 
         let start; 
         let defStr;
         let memberPart = null;
 
+        // handle the case if default members already exist
         if (this.unit.defaultMembers.count > 0) {
             start = this.unit.defaultMembers.entities.at(-1).absEnd;
             defStr = this.unit.defaultMembers.separator 
                    + names.join(this.unit.defaultMembers.separator);
         }
 
+        // handle the case if default members do not exist, 
+        // and also no non default members
         else if (this.unit.members.count === 0) {
             start = this.unit.module.start;
             defStr = names.join(this.unit.members.separator);
@@ -113,6 +142,8 @@ export default class ImportManagerUnitMethods {
             defStr += " from ";
         }
 
+        // handle the case if default members do not exist, 
+        // but non default members
         else {
             start = this.unit.members.start;
             defStr = names.join(this.unit.defaultMembers.separator)

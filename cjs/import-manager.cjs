@@ -34,10 +34,16 @@ class MatchError extends Error {
 
 class ImportManagerUnitMethods {
 
+    /**
+     * Creates methods for unit manipulation to
+     * be attached to a requested unit.
+     * @param {Object} unit - The unit a user requests 
+     * @param {*} es6StrToObj - Method to analyze a 
+     */
     constructor(unit, es6StrToObj) {
         this.unit = unit;
 
-        // After a change in the code of a unit is made
+        // After a change in the code of a es6 unit is made
         // it gets analyzed again, which is very verbose,
         // but prevents errors. The "MagicString" does not
         // contain multiple changes at a time. The analysis
@@ -66,6 +72,7 @@ class ImportManagerUnitMethods {
         };
     }
 
+
     /**
      * Makes sure, that the processed unit is of type 'es6'. 
      */
@@ -75,8 +82,12 @@ class ImportManagerUnitMethods {
         }
     }
 
-// module methods
 
+    /**
+     * Changes the module part of a import statement.
+     * @param {string} name - The new module part/path.
+     * @param {*} modType - Module type (sting|literal).
+     */
     renameModule(name, modType) {
         if (modType === "string") {
             const q = this.unit.module.quotes;
@@ -86,24 +97,32 @@ class ImportManagerUnitMethods {
         }
         
         this.unit.code.overwrite(this.unit.module.start, this.unit.module.end, name);
-        this.updateUnit();
+        if (this.unit.type === "es6") {
+            this.updateUnit();
+        }
     }
 
-// member methods
 
-    addMember(names) {
+    /**
+     * Adds non default members to the import statement.
+     * @param {string[]} names - A list of members to add. 
+     */
+    addMembers(names) {
         this.#ES6only();
 
         let start; 
         let memStr;
         let memberPart = null;
-
+        
+        // handle the case if members already exist
         if (this.unit.members.count > 0) {
             start = this.unit.members.entities.at(-1).absEnd;
             memStr = this.unit.members.separator 
                    + names.join(this.unit.members.separator);
         }
 
+        // handle the case if members do not exist, 
+        // and also no default members
         else if (this.unit.defaultMembers.count === 0) {
             start = this.unit.module.start;
             memStr = "{ "
@@ -113,6 +132,8 @@ class ImportManagerUnitMethods {
             memStr += " from ";
         }
 
+        // handle the case if members do not exist, 
+        // but default members
         else {
             start = this.unit.defaultMembers.end;
             memStr = this.unit.defaultMembers.separator
@@ -125,24 +146,34 @@ class ImportManagerUnitMethods {
         this.updateUnit(memberPart);
     }
 
-    addDefaultMember(names) {
+
+    /**
+     * Adds default members to the import statement.
+     * @param {string[]} names - A list of default members to add.
+     */
+    addDefaultMembers(names) {
         this.#ES6only();
 
         let start; 
         let defStr;
 
+        // handle the case if default members already exist
         if (this.unit.defaultMembers.count > 0) {
             start = this.unit.defaultMembers.entities.at(-1).absEnd;
             defStr = this.unit.defaultMembers.separator 
                    + names.join(this.unit.defaultMembers.separator);
         }
 
+        // handle the case if default members do not exist, 
+        // and also no non default members
         else if (this.unit.members.count === 0) {
             start = this.unit.module.start;
             defStr = names.join(this.unit.members.separator);
             defStr += " from ";
         }
 
+        // handle the case if default members do not exist, 
+        // but non default members
         else {
             start = this.unit.members.start;
             defStr = names.join(this.unit.defaultMembers.separator)
@@ -378,7 +409,7 @@ class ImportManager {
      * Helper method to generate a very simple hash
      * from the unit properties.
      * @param {Object} unit - Unit to generate a hash from. 
-     * @returns 
+     * @returns {string} - a hash as a string 
      */
     #makeHash(unit) {
 
@@ -408,6 +439,7 @@ class ImportManager {
         const input = makeInput(unit);
         let hash = String(simpleHash(input));
 
+        // handle duplicates (which should not exist in reality)
         if (hash in this.hashList) {
             this.warning(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
             let nr = 2;
@@ -831,17 +863,24 @@ class ImportManager {
             type = Object.keys(this.imports);
         }
 
+        // test types for validity
         for (const t of type) {
             if (!(t in this.imports)) {
                 throw new TypeError(`Invalid type: '${t}' - Should be one or more of: 'cjs', 'dynamic', 'es6'.`);
             }
+
+            // push all available imports in one list
             if (this.imports[t].count > 0) {
                 unitList.push(...this.imports[t].units);
             }
         }
 
+        // filter for unit name
         const units = unitList.filter(unit => unit.module.name === name);
 
+        // throw errors if the match is not one
+        // (if no filename was set a null match
+        // is also valid)
         if (units.length === 0) {
             if (allowNull) {
                 return null;
@@ -867,6 +906,7 @@ class ImportManager {
             throw new MatchError(msg);
         }
 
+        // finally add methods for manipulation to the unit
         const unit = units[0];
         unit.methods = new ImportManagerUnitMethods(unit, this.es6StrToObj);
 
@@ -887,13 +927,21 @@ class ImportManager {
         
         // get the type by the id scope
         const type = this.idTypes[ Math.floor(id / this.scopeMulti) * this.scopeMulti ];
+
+        // if it is not possible to extract a type by the scope,
+        // the id is invalid 
         if (!type) {
             // generate an ascending list of valid ids
             const ascIds = Object.keys(this.idTypes).sort();
             throw new TypeError(`Id '${id}' is invalid. Ids range from ${ascIds.at(0)} to ${ascIds.at(-1)}+`);
         }
+
+        // filter the units of the given type for the id
         const units = this.imports[type].units.filter(n => n.id == id);
 
+        // if null matches are allowed return null 
+        // if no match was found, otherwise raise
+        // a match error
         if (units.length === 0) {
             if (allowNull) {
                 return null;
@@ -903,6 +951,7 @@ class ImportManager {
             throw new MatchError(msg);
         }
 
+        // add unit methods
         const unit = units[0];
         unit.methods = new ImportManagerUnitMethods(unit, this.es6StrToObj);
 
@@ -913,6 +962,9 @@ class ImportManager {
      * Selects a unit by its hash. The hash will change
      * if the unit changes its properties in the source
      * code (like members, alias, etc.)
+     * All hashes for one file are stored in a list, with
+     * the corresponding id. The id-match method can there-
+     * fore be used, to find the unit.
      * @param {string} hash - The hash string of the unit. 
      * @returns {object} - An explicit unit.
      */
@@ -1326,9 +1378,9 @@ const manager = (options={}) => {
 
                                     if ("add" in action) {
                                         if (action.select === "members") {
-                                            unit.methods.addMember(ensureArray(action.add));
-                                        } else if ("add" in action) {
-                                            unit.methods.addDefaultMember(ensureArray(action.add));
+                                            unit.methods.addMembers(ensureArray(action.add));
+                                        } else {
+                                            unit.methods.addDefaultMembers(ensureArray(action.add));
                                         }
                                     } 
                                 }
