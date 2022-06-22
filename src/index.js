@@ -1,3 +1,12 @@
+/**
+ * [rollup-plugin-import-manager]{@link https://github.com/UmamiAppearance/rollup-plugin-import-manager}
+ *
+ * @version 0.1.0
+ * @author UmamiAppearance [mail@umamiappearance.eu]
+ * @license MIT
+ */
+
+
 import { createFilter } from "@rollup/pluginutils";
 import ImportManager from "./core.js";
 
@@ -36,9 +45,12 @@ const showObjects = (v) => Boolean(String(v).match(/^(?:objects?|imports?)$/));
 
 // main
 const manager = (options={}) => {
-    console.log("options", options);
 
     const filter = createFilter(options.include, options.exclude);
+
+    // Initialize a new set to be passed to every 
+    // ImportManager instance. It keeps track of
+    // warnings, that were shown already.
     const warnSpamProtection = new Set();
   
     return {
@@ -75,7 +87,9 @@ const manager = (options={}) => {
                         allowNull = false;
                     }
 
-                    const selectModule = (section) => {
+
+                    // a little helper function to select a unit
+                    const selectUnit = (section) => {
                         if (!isObject(section)) {
                             throw new TypeError("Input must be an object.");
                         }
@@ -97,7 +111,9 @@ const manager = (options={}) => {
                     
                         return unit;
                     }
+
                     
+                    // creating units from scratch
                     if ("createModule" in unitSection) {
 
                         if (allowNull) {
@@ -132,7 +148,7 @@ const manager = (options={}) => {
                             const targetUnitSection = unitSection[mode];
                             targetUnitSection.type = "es6";
 
-                            const target = selectModule(targetUnitSection);
+                            const target = selectUnit(targetUnitSection);
                             
                             // insert if match is found
                             // (which can be undefined if no file specified)
@@ -148,7 +164,9 @@ const manager = (options={}) => {
                         continue;
                     }
                     
-                    const unit = selectModule(unitSection);
+
+                    // select exiting units
+                    const unit = selectUnit(unitSection);
                     if (!unit) {
                         continue;
                     }
@@ -165,11 +183,14 @@ const manager = (options={}) => {
                             }
                             
                             else if ("select" in action) {
+
+                                // module
                                 if (action.select === "module" && "rename" in action) {
                                     const modType = ("modType" in action) ? action.modType : unit.module.type;
                                     unit.methods.renameModule(action.rename, modType);
                                 }
 
+                                // single (default) members
                                 else if (action.select === "member" || action.select === "defaultMember" ) {
                                     const memberType = action.select;
                                     
@@ -189,6 +210,7 @@ const manager = (options={}) => {
 
                                 }
 
+                                // entire group of (default) members
                                 else if (action.select === "members" || action.select === "defaultMembers") {
                                     if ("remove" in action) {
                                         unit.methods.removeMembers(action.select);
@@ -204,11 +226,13 @@ const manager = (options={}) => {
                                 }
                             }
                             
+                            // remove the entire unit
                             else if ("remove" in action) {
                                 importManager.remove(unit);
                                 continue;
                             }
 
+                            // apply the changes to the code
                             importManager.commitChanges(unit);
                         }
                     }
@@ -216,9 +240,15 @@ const manager = (options={}) => {
             }
 
             const code = importManager.code.toString();
-            console.log("CODE >>>>");
-            console.log(code);
-            console.log("<<< CODE");
+            
+            if ("showCode" in options) {
+                if (importManager.code.hasChanged()) {
+                    importManager.warning(`altered code for file '${id}':`);
+                    console.log("\x1b[2m%s\x1b[0m", "BEGIN >>>");
+                    console.log("\x1b[1m%s\x1b[0m", code);
+                    console.log("\x1b[2m%s\x1b[0m", "<<< END\n");
+                }
+            }
             
             let map;
 
