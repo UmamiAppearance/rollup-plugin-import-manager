@@ -819,13 +819,15 @@ class ImportManager {
 
         let unitList = [];
 
+        // if the type is not specified use all types (cjs|dynamic|es6)
         if (!type) {
             type = Object.keys(this.imports);
-        } else if (typeof type === "string") {
+        } else if (!Array.isArray(type)) {
             type = [type];
         }
 
-        if (type.length === 0) {
+        // if an empty array was passed, also use all types
+        if (!type.length) {
             type = Object.keys(this.imports);
         }
 
@@ -1118,6 +1120,7 @@ class ImportManager {
 /**
  * A (simple as it gets) hash from string function.
  * @see https://gist.github.com/iperelivskiy/4110988?permalink_comment_id=2697447#gistcomment-2697447
+ * @see https://gist.github.com/badboy/6267743#knuths-multiplicative-method
  * @param {string} input 
  * @returns {number} - Hash number.
  */

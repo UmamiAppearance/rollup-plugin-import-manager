@@ -123,7 +123,7 @@ export default class ImportManager {
      * Helper method to generate a very simple hash
      * from the unit properties.
      * @param {Object} unit - Unit to generate a hash from. 
-     * @returns 
+     * @returns {string} - a hash as a string 
      */
     #makeHash(unit) {
 
@@ -154,6 +154,7 @@ export default class ImportManager {
         const input = makeInput(unit);
         let hash = String(simpleHash(input));
 
+        // handle duplicates (which should not exist in reality)
         if (hash in this.hashList) {
             this.warning(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
             let nr = 2;
@@ -565,27 +566,36 @@ export default class ImportManager {
 
         let unitList = [];
 
+        // if the type is not specified use all types (cjs|dynamic|es6)
         if (!type) {
             type = Object.keys(this.imports);
-        } else if (typeof type === "string") {
+        } else if (!Array.isArray(type)) {
             type = [type];
         }
 
-        if (type.length === 0) {
+        // if an empty array was passed, also use all types
+        if (!type.length) {
             type = Object.keys(this.imports);
         }
 
+        // test types for validity
         for (const t of type) {
             if (!(t in this.imports)) {
                 throw new TypeError(`Invalid type: '${t}' - Should be one or more of: 'cjs', 'dynamic', 'es6'.`);
             }
+
+            // push all available imports in one list
             if (this.imports[t].count > 0) {
                 unitList.push(...this.imports[t].units);
             }
         }
 
+        // filter for unit name
         const units = unitList.filter(unit => unit.module.name === name);
 
+        // throw errors if the match is not one
+        // (if no filename was set a null match
+        // is also valid)
         if (units.length === 0) {
             if (allowNull) {
                 return null;
@@ -611,6 +621,7 @@ export default class ImportManager {
             throw new MatchError(msg);
         }
 
+        // finally add methods for manipulation to the unit
         const unit = units[0];
         unit.methods = new ImportManagerUnitMethods(unit, this.es6StrToObj);
 
@@ -631,13 +642,21 @@ export default class ImportManager {
         
         // get the type by the id scope
         const type = this.idTypes[ Math.floor(id / this.scopeMulti) * this.scopeMulti ];
+
+        // if it is not possible to extract a type by the scope,
+        // the id is invalid 
         if (!type) {
             // generate an ascending list of valid ids
             const ascIds = Object.keys(this.idTypes).sort();
             throw new TypeError(`Id '${id}' is invalid. Ids range from ${ascIds.at(0)} to ${ascIds.at(-1)}+`);
         }
+
+        // filter the units of the given type for the id
         const units = this.imports[type].units.filter(n => n.id == id);
 
+        // if null matches are allowed return null 
+        // if no match was found, otherwise raise
+        // a match error
         if (units.length === 0) {
             if (allowNull) {
                 return null;
@@ -647,6 +666,7 @@ export default class ImportManager {
             throw new MatchError(msg);
         }
 
+        // add unit methods
         const unit = units[0];
         unit.methods = new ImportManagerUnitMethods(unit, this.es6StrToObj);
 
@@ -657,6 +677,9 @@ export default class ImportManager {
      * Selects a unit by its hash. The hash will change
      * if the unit changes its properties in the source
      * code (like members, alias, etc.)
+     * All hashes for one file are stored in a list, with
+     * the corresponding id. The id-match method can there-
+     * fore be used, to find the unit.
      * @param {string} hash - The hash string of the unit. 
      * @returns {object} - An explicit unit.
      */
@@ -864,6 +887,7 @@ export default class ImportManager {
 /**
  * A (simple as it gets) hash from string function.
  * @see https://gist.github.com/iperelivskiy/4110988?permalink_comment_id=2697447#gistcomment-2697447
+ * @see https://gist.github.com/badboy/6267743#knuths-multiplicative-method
  * @param {string} input 
  * @returns {number} - Hash number.
  */
