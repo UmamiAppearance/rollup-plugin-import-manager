@@ -10,8 +10,9 @@
 import { createFilter } from "@rollup/pluginutils";
 import ImportManager from "./core.js";
 import Diff from "diff";
-import { bold, black, red, green, gray } from "colorette";
+import { blue, bold, red, green, gray } from "colorette";
 
+// test if input is an object
 const isObject = input => typeof input === "object" && !Array.isArray(input) && input !== null;
 
 // helper to allow string and array
@@ -243,39 +244,77 @@ const manager = (options={}) => {
 
             const code = importManager.code.toString();
             
-            if ("showCode" in options) {
-                if (importManager.code.hasChanged()) {
-                    if (options.showCode == "file") {
-
-                    //TODO: default diff only
-                        importManager.warning(`altered code for file '${id}':`);
-                        console.log("\x1b[2m%s\x1b[0m", "BEGIN >>>");
-                        console.log("\x1b[1m%s\x1b[0m", code);
-                        console.log("\x1b[2m%s\x1b[0m", "<<< END\n");
-                    }
+            if ("showDiff" in options && importManager.code.hasChanged()) {
                 
-                    else {
-                        importManager.warning(`diff for file '${id}':`);
+                const showUnchanged = options.showCode == "file"
+        
+                console.log(blue(`diff for file '${id}':`));
 
-                        const addArrow = (a, txt) => `${a} ` + txt.split("\n").join(`\n${a} `);
-                        const diff = Diff.diffLines(source, code+"\n// test");
-                        
-
-                        console.log(gray("BEGIN >>>"));
-                        diff.forEach((part) => {
-                            let msg;
-                            if (part.added) {
-                                msg = green(addArrow(">", part.value));
-                            } else if (part.removed) {
-                                msg = red(addArrow("<", part.value));
-                            } else {
-                                msg = part.value;
-                            }
-                            process.stdout.write(msg);
-                        });
-                        console.log(gray("\n<<< END\n"));
+                const addArrow = (a, txt) => {
+                    const txtArr = txt.split("\n");
+                    let output = txtArr.slice(0, -1).map(l => `${a} ${l}`).join("\n");
+                    if (txtArr.at(-1)) {
+                        output += `${a} ${txtArr.at(-1)}\n`
+                    } else {
+                        output += "\n";
                     }
+                    return output;
                 }
+                const diff = Diff.diffLines(source, code+"\n// test", false, false);
+
+                console.log(diff);
+                
+                console.log(gray("BEGIN >>>"));
+                let origLine = 0;
+                let modLine = 0;
+                let lastRemoved = false;
+                diff.forEach((part, i) => {
+                    
+                    const last = diff.at(i-1) || { removed: false, added: false };
+                    const next = diff.at(i+1) || { removed: false, added: false };
+
+                    let msg;
+                    let lineInfo = "";
+                    let change = false;
+
+                    if (part.added) {
+                        modLine += part.count;
+                        msg = green(addArrow(">", part.value));
+                        if (!last.removed) {
+                            lineInfo += origLine + "a" + modLine;
+                            if (part.count > 1) {
+                                lineInfo += "," + (modLine + part.count-1);
+                            } 
+                        }
+                    } else if (part.removed) {
+                        modLine -= part.count;
+                        msg = red(addArrow("<", part.value));
+                        lineInfo += origLine
+                        if (part.count > 1) {
+                            lineInfo += (part.count-1);
+                        }
+                        if (next.added) {
+                            lineInfo += "c";
+                            change = true;
+                        }
+                    } else {
+                        origLine += part.count;
+                        modLine += part.count;
+                        msg = "";
+                        if (showUnchanged) {
+                            msg = part.value;
+                        }
+                    }
+
+                    if (lineInfo) {
+                        console.log(bold(lineInfo));
+                    }
+                    process.stdout.write(msg);
+                    if (change) {
+                        console.log("---");
+                    }
+                });
+                console.log(gray("\n<<< END\n"));
             }
             
             let map;
