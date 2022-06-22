@@ -1,6 +1,7 @@
 import ImportManagerUnitMethods from "./unit-methods.js";
 import { DebuggingError, MatchError } from "./errors.js";
 import MagicString from "magic-string";
+import { bold, yellow } from "colorette";
 
 
 export default class ImportManager {
@@ -877,8 +878,7 @@ export default class ImportManager {
         this.warnSpamProtection.add(hash);
 
         console.warn(
-            "\x1b[1;33m%s\x1b[0m",
-            `(!) (plugin ImportManager) ${msg}`
+            bold(yellow(`(!) (plugin ImportManager) ${msg}`))
         );
     }
 }

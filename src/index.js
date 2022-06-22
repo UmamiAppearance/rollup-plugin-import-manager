@@ -9,6 +9,8 @@
 
 import { createFilter } from "@rollup/pluginutils";
 import ImportManager from "./core.js";
+import Diff from "diff";
+import { bold, black, red, green, gray } from "colorette";
 
 const isObject = input => typeof input === "object" && !Array.isArray(input) && input !== null;
 
@@ -242,12 +244,37 @@ const manager = (options={}) => {
             const code = importManager.code.toString();
             
             if ("showCode" in options) {
-                //TODO: default diff only
                 if (importManager.code.hasChanged()) {
-                    importManager.warning(`altered code for file '${id}':`);
-                    console.log("\x1b[2m%s\x1b[0m", "BEGIN >>>");
-                    console.log("\x1b[1m%s\x1b[0m", code);
-                    console.log("\x1b[2m%s\x1b[0m", "<<< END\n");
+                    if (options.showCode == "file") {
+
+                    //TODO: default diff only
+                        importManager.warning(`altered code for file '${id}':`);
+                        console.log("\x1b[2m%s\x1b[0m", "BEGIN >>>");
+                        console.log("\x1b[1m%s\x1b[0m", code);
+                        console.log("\x1b[2m%s\x1b[0m", "<<< END\n");
+                    }
+                
+                    else {
+                        importManager.warning(`diff for file '${id}':`);
+
+                        const addArrow = (a, txt) => `${a} ` + txt.split("\n").join(`\n${a} `);
+                        const diff = Diff.diffLines(source, code+"\n// test");
+                        
+
+                        console.log(gray("BEGIN >>>"));
+                        diff.forEach((part) => {
+                            let msg;
+                            if (part.added) {
+                                msg = green(addArrow(">", part.value));
+                            } else if (part.removed) {
+                                msg = red(addArrow("<", part.value));
+                            } else {
+                                msg = part.value;
+                            }
+                            process.stdout.write(msg);
+                        });
+                        console.log(gray("\n<<< END\n"));
+                    }
                 }
             }
             

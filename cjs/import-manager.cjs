@@ -4,10 +4,13 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 var pluginutils = require('@rollup/pluginutils');
 var MagicString = require('magic-string');
+var colorette = require('colorette');
+var Diff = require('diff');
 
 function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
 var MagicString__default = /*#__PURE__*/_interopDefaultLegacy(MagicString);
+var Diff__default = /*#__PURE__*/_interopDefaultLegacy(Diff);
 
 /**
  * Custom error to tell the user, that it is
@@ -1235,8 +1238,7 @@ class ImportManager {
         this.warnSpamProtection.add(hash);
 
         console.warn(
-            "\x1b[1;33m%s\x1b[0m",
-            `(!) (plugin ImportManager) ${msg}`
+            colorette.bold(colorette.yellow(`(!) (plugin ImportManager) ${msg}`))
         );
     }
 }
@@ -1256,6 +1258,14 @@ const simpleHash = (input) => {
     }
     return (h ^ h >>> 16) >>> 0;
 };
+
+/**
+ * [rollup-plugin-import-manager]{@link https://github.com/UmamiAppearance/rollup-plugin-import-manager}
+ *
+ * @version 0.1.0
+ * @author UmamiAppearance [mail@umamiappearance.eu]
+ * @license MIT
+ */
 
 const isObject = input => typeof input === "object" && !Array.isArray(input) && input !== null;
 
@@ -1411,7 +1421,7 @@ const manager = (options={}) => {
                     }
                     
 
-                    // working with exiting units
+                    // select exiting units
                     const unit = selectUnit(unitSection);
                     if (!unit) {
                         continue;
@@ -1489,10 +1499,36 @@ const manager = (options={}) => {
             
             if ("showCode" in options) {
                 if (importManager.code.hasChanged()) {
-                    importManager.warning(`altered code for file '${id}':`);
-                    console.log("\x1b[2m%s\x1b[0m", "BEGIN >>>");
-                    console.log("\x1b[1m%s\x1b[0m", code);
-                    console.log("\x1b[2m%s\x1b[0m", "<<< END\n");
+                    if (options.showCode == "file") {
+
+                    //TODO: default diff only
+                        importManager.warning(`altered code for file '${id}':`);
+                        console.log("\x1b[2m%s\x1b[0m", "BEGIN >>>");
+                        console.log("\x1b[1m%s\x1b[0m", code);
+                        console.log("\x1b[2m%s\x1b[0m", "<<< END\n");
+                    }
+                
+                    else {
+                        importManager.warning(`diff for file '${id}':`);
+
+                        const addArrow = (a, txt) => `${a} ` + txt.split("\n").join(`\n${a} `);
+                        const diff = Diff__default["default"].diffLines(source, code+"\n// test");
+                        
+
+                        console.log(colorette.gray("BEGIN >>>"));
+                        diff.forEach((part) => {
+                            let msg;
+                            if (part.added) {
+                                msg = colorette.green(addArrow(">", part.value));
+                            } else if (part.removed) {
+                                msg = colorette.red(addArrow("<", part.value));
+                            } else {
+                                msg = part.value;
+                            }
+                            process.stdout.write(msg);
+                        });
+                        console.log(colorette.gray("\n<<< END\n"));
+                    }
                 }
             }
             
