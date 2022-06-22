@@ -66,9 +66,9 @@ class ImportManagerUnitMethods {
                 memberPart,
                 this.unit.code.slice(this.unit.module.start, this.unit.module.end)
             );
-            
-            // copy all other updated properties
+
             Object.assign(this.unit, unit);
+
         };
     }
 
@@ -97,6 +97,7 @@ class ImportManagerUnitMethods {
         }
         
         this.unit.code.overwrite(this.unit.module.start, this.unit.module.end, name);
+        
         if (this.unit.type === "es6") {
             this.updateUnit();
         }
@@ -119,6 +120,7 @@ class ImportManagerUnitMethods {
             start = this.unit.members.entities.at(-1).absEnd;
             memStr = this.unit.members.separator 
                    + names.join(this.unit.members.separator);
+            this.unit.code.appendRight(start, memStr);
         }
 
         // handle the case if members do not exist, 
@@ -130,6 +132,7 @@ class ImportManagerUnitMethods {
                    + " }";
             memberPart = memStr;
             memStr += " from ";
+            this.unit.code.appendLeft(start, memStr);
         }
 
         // handle the case if members do not exist, 
@@ -140,9 +143,9 @@ class ImportManagerUnitMethods {
                    + "{ "
                    + names.join(this.unit.members.separator)
                    + " }";
+            this.unit.code.appendRight(start, memStr);
         }
 
-        this.unit.code.appendRight(start, memStr);
         this.updateUnit(memberPart);
     }
 
@@ -156,12 +159,14 @@ class ImportManagerUnitMethods {
 
         let start; 
         let defStr;
+        let memberPart = null;
 
         // handle the case if default members already exist
         if (this.unit.defaultMembers.count > 0) {
             start = this.unit.defaultMembers.entities.at(-1).absEnd;
             defStr = this.unit.defaultMembers.separator 
                    + names.join(this.unit.defaultMembers.separator);
+            this.unit.code.appendRight(start, defStr);
         }
 
         // handle the case if default members do not exist, 
@@ -169,7 +174,9 @@ class ImportManagerUnitMethods {
         else if (this.unit.members.count === 0) {
             start = this.unit.module.start;
             defStr = names.join(this.unit.members.separator);
+            memberPart = defStr;
             defStr += " from ";
+            this.unit.code.appendLeft(start, defStr);
         }
 
         // handle the case if default members do not exist, 
@@ -178,17 +185,43 @@ class ImportManagerUnitMethods {
             start = this.unit.members.start;
             defStr = names.join(this.unit.defaultMembers.separator)
                    + this.unit.members.separator;
+            this.unit.code.appendRight(start, defStr);
         }
         
-        this.unit.code.appendRight(start, defStr);
-        this.updateUnit();
+        this.updateUnit(memberPart);
     }
 
+
+    /**
+     * Internal helper method to get the member type.
+     * The user input distinguishes between member/defaultMember
+     * and the plural versions of them. To prevent confusion in the
+     * process of selecting the different styles in the unit, this
+     * methods adds an "s" to the given string if missing and selects
+     * the requested type.
+     * @param {*} memberType 
+     * @returns 
+     */
+    #getType(memberType) {
+        if (memberType.at(-1) !== "s") {
+            memberType += "s";
+        }
+        return this.unit[memberType];
+    }
+
+
+    /**
+     * Internal helper method to find a specific member
+     * or default member.
+     * @param {string} memberType - member/defaultMember 
+     * @param {*} name 
+     * @returns 
+     */
     #findMember(memberType, name) {
         if (!name) {
             throw new Error(`${memberType} name must be set.`);
         }
-        const filtered = this.unit[memberType+"s"].entities.filter(m => m.name === name);
+        const filtered = this.#getType(memberType).entities.filter(m => m.name === name);
         if (filtered.length !== 1) {
             throw new MatchError(`Unable to locate ${memberType} with name '${name}'`);
         }
@@ -196,13 +229,18 @@ class ImportManagerUnitMethods {
     }
 
 
+    /**
+     * Removes a (default) member.
+     * @param {string} memberType - member|defaultMember
+     * @param {string} name - Name of the (default) member 
+     */
     removeMember(memberType, name) {
         this.#ES6only();
 
         const member = this.#findMember(memberType, name);
 
-        if (this.unit[memberType+"s"].count === 1) {
-            this.removeMembers(memberType+"s");
+        if (this.#getType(memberType).count === 1) {
+            this.removeMembers(memberType);
         } 
 
         else {
@@ -220,22 +258,29 @@ class ImportManagerUnitMethods {
                 end = member.absEnd;
             }
 
-            this.unit.code.remove(start, end);   
+            this.unit.code.remove(start, end);  
             this.updateUnit();
 
         }
     }
 
+
+    /**
+     * 
+     * @param {*} membersType 
+     */
     removeMembers(membersType) {
         this.#ES6only();
 
-        const members = this.unit[membersType];
-        const others = this.unit[membersType === "members" ? "defaultMembers" : "members"];
+        const isDefault = membersType.indexOf("default") > -1;
+
+        const members = this.#getType(membersType);
+        const others = this.#getType(isDefault ? "members" : "defaultMembers");
 
         let memberPart = null;
         if (others.count > 0) {
             
-            const start = (membersType === "members") 
+            const start = !isDefault 
                         ? this.unit.defaultMembers.entities.at(-1).end
                         : members.start;
 
@@ -261,6 +306,7 @@ class ImportManagerUnitMethods {
         } else {
             end = member.absEnd;
         }
+        
         this.unit.code.overwrite(member.start, end, newName);
         this.updateUnit();
     }
@@ -1163,7 +1209,7 @@ class ImportManager {
 
         console.warn(
             "\x1b[1;33m%s\x1b[0m",
-            `(!) ImportManager: ${msg}`
+            `(!) (plugin ImportManager) ${msg}`
         );
     }
 }

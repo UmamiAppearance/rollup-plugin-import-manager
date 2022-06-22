@@ -878,7 +878,7 @@ export default class ImportManager {
 
         console.warn(
             "\x1b[1;33m%s\x1b[0m",
-            `(!) ImportManager: ${msg}`
+            `(!) (plugin ImportManager) ${msg}`
         );
     }
 }
