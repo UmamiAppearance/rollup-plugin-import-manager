@@ -30,6 +30,7 @@ const addSign = (sign, txt) => {
  */
 const showDiff = (filename, source, code, diffOption) => {
     const fileMode = diffOption == "file"
+    console.log(code);
 
     console.log(bold(blue(
         `(plugin ImportManager) diff for file '${filename}':`
@@ -58,7 +59,7 @@ const showDiff = (filename, source, code, diffOption) => {
         const diff = Diff.structuredPatch("", "", source, code, "", "", {
             context: 0
         });
-
+        console.log(diff);
         for (const part of diff.hunks) {
 
             let add = false;
@@ -73,12 +74,47 @@ const showDiff = (filename, source, code, diffOption) => {
                 change = !del;
             }
 
+            let info = "";
+            if (add) {
+                info += `${part.oldStart}a${part.newStart}`;
+                if (part.newLines > 1) {
+                    info += `,${part.newStart+part.newLines-1}`;
+                }
+                console.log(bold(info));
+                content.forEach(line => console.log(green(line)));
+            } else if (del) {
+                info += part.oldStart;
+                if (part.oldLines > 1) {
+                    info += `,${part.oldStart+part.oldLines-1}`;
+                }
+                info += `d${part.newLines}`;
+
+                console.log(bold(info));
+                content.forEach(line => console.log(red(line)));
+            } else {
+                let plus = false;
+                content.forEach((line, i) => {
+                    if (plus) {
+                        console.log(green(line));
+                    } else {
+                        console.log(red(line));
+                        if (content[i+1].at(0) === "+") {
+                            console.log("---");
+                            plus = true;
+                        }
+                    }
+                });
+            }
+
+
+            /*
             console.log({
                 add,
                 del,
                 change,
                 text: content
             });
+            */
         }
     }
      
