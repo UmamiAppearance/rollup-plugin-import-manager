@@ -1259,109 +1259,86 @@ const simpleHash = (input) => {
     return (h ^ h >>> 16) >>> 0;
 };
 
-const addAngleBracket = (angBr, txt) => {
+/**
+ * Adds an angle bracket to each line.
+ * @param {string} sign - '>' or '<'
+ * @param {string} txt - The text section.
+ * @returns {string} - The given text section with an angle bracket and a space in front of each line. 
+ */
+const addSign = (sign, txt) => {
     const txtArr = txt.split("\n");
     let lastChar = "";
     if (txt.at(-1) === "\n") {
         lastChar = "\n";
         txtArr.pop();
     }
-    let output = txtArr.map(line => `${angBr} ${line}`).join("\n");
+    let output = txtArr.map(line => sign+line).join("\n");
     output += lastChar;
     return output;
 };
 
 /**
- * Prints an output in mould of GNU diff when called
- * with no other parameters.
+ * Prints an output in the mould of GNU diff when
+ * called no parameters other than the files. But
+ * with colors.
  * @param {string} source - The original code.
  * @param {string} code - The modified code.
  * @param {*} [diffOption] - As passed by the user. If the value is 'all' also unchanged code is printed.  
  */
 const showDiff = (filename, source, code, diffOption) => {
-    const showUnchanged = diffOption == "file";
+    const fileMode = diffOption == "file";
 
-    console.log(colorette.blue(`diff for file '${filename}':`));
-    const diff = Diff__default["default"].diffLines(source, code);
-
-    let origLine = 0;
-    let modLine = 0;
-
+    console.log(colorette.bold(colorette.blue(
+        `(plugin ImportManager) diff for file '${filename}':`
+    )));
+    
     console.log(colorette.gray("BEGIN >>>"));
 
-    diff.forEach((part, i) => {
+    if (fileMode) {
+        const diff = Diff__default["default"].diffLines(source, code);
         
-        const last = diff.at(i-1) || {};
-        const next = diff.at(i+1) || {};
-
-        let msg;
-        let lineInfo = "";
-        let printDashes = false;
-
-        if (part.added) {
-            msg = colorette.green(addAngleBracket(">", part.value));
-            if (!last.removed) {
-                lineInfo += origLine + "a" + modLine;
-                if (part.count > 1) {
-                    lineInfo += "," + (modLine + part.count-1);
-                } 
-            }
-            modLine += part.count;
-        }
-        
-        else if (part.removed) {
-            msg = colorette.red(addAngleBracket("<", part.value));
-            lineInfo += origLine;
-            
-            if (part.count > 1) {
-                lineInfo += (part.count-1);
-            }
-
-            if (next.added) {
-                lineInfo += "c" + modLine;
-                if (next.count > 1) {
-                    lineInfo += "," + (modLine - part.count + next.count);
-                }
-                printDashes = true;
-            }
-            
-            else {
-                if (part.count === 1) {
-                    lineInfo += "r" + (modLine-part.count);
-                } else {
-                    lineInfo += "r" + modLine + "," + (modLine - part.count + next.count);
-                }
-            }
-            modLine -= part.count;
-        }
-        
-        else {
-            origLine += part.count;
-            modLine += part.count;
-            msg = "";
-            if (showUnchanged) {
+        diff.forEach((part) => {
+            let msg;
+            if (part.added) {
+                msg = colorette.green(addSign("+", part.value));
+            } else if (part.removed) {
+                msg = colorette.red(addSign("-", part.value));
+            } else {
                 msg = part.value;
             }
-        }
-
-
-        // print
-
-        if (showUnchanged) {
-            process.stdout.write(msg);    
-        } else {
-            if (lineInfo) {
-                console.log(colorette.bold(lineInfo));
-            }
-            
             process.stdout.write(msg);
-            
-            if (printDashes) {
-                console.log("---");
-            }
-        } 
-    });
+        });
     
+    }
+        
+    else {
+        const diff = Diff__default["default"].structuredPatch("", "", source, code, "", "", {
+            context: 0
+        });
+
+        for (const part of diff.hunks) {
+
+            let add = false;
+            let del = false;
+            let change = false;
+            const content = part.lines;
+
+            if (part.oldLines === 0) {
+                add = true;
+            } else {
+                del = part.newLines === 0;
+                change = !del;
+            }
+
+            console.log({
+                add,
+                del,
+                change,
+                text: content
+            });
+        }
+    }
+     
     console.log(colorette.gray("\n<<< END\n"));
 };
 
@@ -1605,7 +1582,9 @@ const manager = (options={}) => {
             const code = importManager.code.toString();
             
             if ("showDiff" in options && importManager.code.hasChanged()) {
-                showDiff(id, source, code, options.showDiff);
+                //showDiff(id, source, code, options.showDiff);
+                //showDiff(id, source, importManager.code.slice(27), options.showDiff);
+                showDiff(id, source, code + "// hello world\n// wow\n", options.showDiff);
             }
             
             let map;

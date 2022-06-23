@@ -244,7 +244,9 @@ const manager = (options={}) => {
             const code = importManager.code.toString();
             
             if ("showDiff" in options && importManager.code.hasChanged()) {
-                showDiff(id, source, code, options.showDiff);
+                //showDiff(id, source, code, options.showDiff);
+                //showDiff(id, source, importManager.code.slice(27), options.showDiff);
+                showDiff(id, source, code + "// hello world\n// wow\n", options.showDiff);
             }
             
             let map;
