@@ -1,6 +1,13 @@
 import Diff from "diff";
 import { blue, bold, red, green, gray } from "colorette";
 
+
+/**
+ * Adds an angle bracket to each line.
+ * @param {string} angBr - '>' or '<'
+ * @param {string} txt - The text section.
+ * @returns {string} - The given text section with an angle bracket and a space in front of each line. 
+ */
 const addAngleBracket = (angBr, txt) => {
     const txtArr = txt.split("\n");
     let lastChar = "";
@@ -14,8 +21,9 @@ const addAngleBracket = (angBr, txt) => {
 }
 
 /**
- * Prints an output in mould of GNU diff when called
- * with no other parameters.
+ * Prints an output in the mould of GNU diff when
+ * called no parameters other than the files. But
+ * with colors.
  * @param {string} source - The original code.
  * @param {string} code - The modified code.
  * @param {*} [diffOption] - As passed by the user. If the value is 'all' also unchanged code is printed.  
