@@ -1309,6 +1309,7 @@ const showDiff = (filename, source, code, diffOption) => {
             }
             process.stdout.write(msg);
         });
+        process.stdout.write("\n");
     
     }
         
@@ -1316,7 +1317,7 @@ const showDiff = (filename, source, code, diffOption) => {
         const diff = Diff__default["default"].structuredPatch("", "", source, code, "", "", {
             context: 0
         });
-        console.log(diff);
+        
         for (const part of diff.hunks) {
 
             let add = false;
@@ -1329,30 +1330,43 @@ const showDiff = (filename, source, code, diffOption) => {
                 del = part.newLines === 0;
             }
 
-            let info = "";
+
             if (add) {
-                info += `${part.oldStart}a${part.newStart}`;
+                let info = `${part.oldStart}a${part.newStart}`;
                 if (part.newLines > 1) {
                     info += `,${part.newStart+part.newLines-1}`;
                 }
                 console.log(colorette.bold(info));
-                content.forEach(line => console.log(colorette.green(line)));
-            } else if (del) {
-                info += part.oldStart;
+                content.forEach(line => console.log(colorette.green(`> ${line.slice(1)}`)));
+            }
+            
+            else if (del) {
+                let info = String(part.oldStart);
                 if (part.oldLines > 1) {
                     info += `,${part.oldStart+part.oldLines-1}`;
                 }
                 info += `d${part.newLines}`;
-
                 console.log(colorette.bold(info));
-                content.forEach(line => console.log(colorette.red(line)));
-            } else {
+                content.forEach(line => console.log(colorette.red(`< ${line.slice(1)}`)));
+            }
+            
+            else {
+                let info = String(part.oldStart);
+                if (part.oldLines > 1) {
+                    info += `,${part.oldStart+part.oldLines-1}`;
+                }
+                info += `c${part.newStart}`;
+                if (part.newLines > 1) {
+                    info += `,${part.newStart+part.newLines-1}`;
+                }
+                console.log(colorette.bold(info));
+                
                 let plus = false;
                 content.forEach((line, i) => {
                     if (plus) {
-                        console.log(colorette.green(line));
+                        console.log(colorette.green(`> ${line.slice(1)}`));
                     } else {
-                        console.log(colorette.red(line));
+                        console.log(colorette.red(`< ${line.slice(1)}`));
                         if (content[i+1].at(0) === "+") {
                             console.log("---");
                             plus = true;
@@ -1373,7 +1387,7 @@ const showDiff = (filename, source, code, diffOption) => {
         }
     }
      
-    console.log(colorette.gray("\n<<< END\n"));
+    console.log(colorette.gray("<<< END\n"));
 };
 
 /**
@@ -1616,9 +1630,7 @@ const manager = (options={}) => {
             const code = importManager.code.toString();
             
             if ("showDiff" in options && importManager.code.hasChanged()) {
-                //showDiff(id, source, code, options.showDiff);
-                showDiff(id, source, importManager.code.slice(27), options.showDiff);
-                //showDiff(id, source, code + "\n// hello world\n// wow\n", options.showDiff);
+                showDiff(id, source, code, options.showDiff);
             }
             
             let map;
