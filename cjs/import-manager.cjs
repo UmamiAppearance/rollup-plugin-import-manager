@@ -1259,6 +1259,112 @@ const simpleHash = (input) => {
     return (h ^ h >>> 16) >>> 0;
 };
 
+const addAngleBracket = (angBr, txt) => {
+    const txtArr = txt.split("\n");
+    let lastChar = "";
+    if (txt.at(-1) === "\n") {
+        lastChar = "\n";
+        txtArr.pop();
+    }
+    let output = txtArr.map(line => `${angBr} ${line}`).join("\n");
+    output += lastChar;
+    return output;
+};
+
+/**
+ * Prints an output in mould of GNU diff when called
+ * with no other parameters.
+ * @param {string} source - The original code.
+ * @param {string} code - The modified code.
+ * @param {*} [diffOption] - As passed by the user. If the value is 'all' also unchanged code is printed.  
+ */
+const showDiff = (filename, source, code, diffOption) => {
+    const showUnchanged = diffOption == "file";
+
+    console.log(colorette.blue(`diff for file '${filename}':`));
+    const diff = Diff__default["default"].diffLines(source, code);
+
+    let origLine = 0;
+    let modLine = 0;
+
+    console.log(colorette.gray("BEGIN >>>"));
+
+    diff.forEach((part, i) => {
+        
+        const last = diff.at(i-1) || {};
+        const next = diff.at(i+1) || {};
+
+        let msg;
+        let lineInfo = "";
+        let printDashes = false;
+
+        if (part.added) {
+            msg = colorette.green(addAngleBracket(">", part.value));
+            if (!last.removed) {
+                lineInfo += origLine + "a" + modLine;
+                if (part.count > 1) {
+                    lineInfo += "," + (modLine + part.count-1);
+                } 
+            }
+            modLine += part.count;
+        }
+        
+        else if (part.removed) {
+            msg = colorette.red(addAngleBracket("<", part.value));
+            lineInfo += origLine;
+            
+            if (part.count > 1) {
+                lineInfo += (part.count-1);
+            }
+
+            if (next.added) {
+                lineInfo += "c" + modLine;
+                if (next.count > 1) {
+                    lineInfo += "," + (modLine - part.count + next.count);
+                }
+                printDashes = true;
+            }
+            
+            else {
+                if (part.count === 1) {
+                    lineInfo += "r" + (modLine-part.count);
+                } else {
+                    lineInfo += "r" + modLine + "," + (modLine - part.count + next.count);
+                }
+            }
+            modLine -= part.count;
+        }
+        
+        else {
+            origLine += part.count;
+            modLine += part.count;
+            msg = "";
+            if (showUnchanged) {
+                msg = part.value;
+            }
+        }
+
+
+        // print
+
+        if (showUnchanged) {
+            process.stdout.write(msg);    
+        } else {
+            if (lineInfo) {
+                console.log(colorette.bold(lineInfo));
+            }
+            
+            process.stdout.write(msg);
+            
+            if (printDashes) {
+                console.log("---");
+            }
+        } 
+    });
+    
+    console.log(colorette.gray("\n<<< END\n"));
+};
+
 /**
  * [rollup-plugin-import-manager]{@link https://github.com/UmamiAppearance/rollup-plugin-import-manager}
  *
@@ -1499,75 +1605,7 @@ const manager = (options={}) => {
             const code = importManager.code.toString();
             
             if ("showDiff" in options && importManager.code.hasChanged()) {
-                
-                const showUnchanged = options.showCode == "file";
-        
-                console.log(colorette.blue(`diff for file '${id}':`));
-
-                const addArrow = (a, txt) => {
-                    const txtArr = txt.split("\n");
-                    let output = txtArr.slice(0, -1).map(l => `${a} ${l}`).join("\n");
-                    if (txtArr.at(-1)) {
-                        output += `${a} ${txtArr.at(-1)}\n`;
-                    } else {
-                        output += "\n";
-                    }
-                    return output;
-                };
-                const diff = Diff__default["default"].diffLines(source, code+"\n// test", false, false);
-
-                console.log(diff);
-                
-                console.log(colorette.gray("BEGIN >>>"));
-                let origLine = 0;
-                let modLine = 0;
-                diff.forEach((part, i) => {
-                    
-                    const last = diff.at(i-1) || { removed: false, added: false };
-                    const next = diff.at(i+1) || { removed: false, added: false };
-
-                    let msg;
-                    let lineInfo = "";
-                    let change = false;
-
-                    if (part.added) {
-                        modLine += part.count;
-                        msg = colorette.green(addArrow(">", part.value));
-                        if (!last.removed) {
-                            lineInfo += origLine + "a" + modLine;
-                            if (part.count > 1) {
-                                lineInfo += "," + (modLine + part.count-1);
-                            } 
-                        }
-                    } else if (part.removed) {
-                        modLine -= part.count;
-                        msg = colorette.red(addArrow("<", part.value));
-                        lineInfo += origLine;
-                        if (part.count > 1) {
-                            lineInfo += (part.count-1);
-                        }
-                        if (next.added) {
-                            lineInfo += "c";
-                            change = true;
-                        }
-                    } else {
-                        origLine += part.count;
-                        modLine += part.count;
-                        msg = "";
-                        if (showUnchanged) {
-                            msg = part.value;
-                        }
-                    }
-
-                    if (lineInfo) {
-                        console.log(colorette.bold(lineInfo));
-                    }
-                    process.stdout.write(msg);
-                    if (change) {
-                        console.log("---");
-                    }
-                });
-                console.log(colorette.gray("\n<<< END\n"));
+                showDiff(id, source, code, options.showDiff);
             }
             
             let map;

@@ -9,8 +9,7 @@
 
 import { createFilter } from "@rollup/pluginutils";
 import ImportManager from "./core.js";
-import Diff from "diff";
-import { blue, bold, red, green, gray } from "colorette";
+import showDiff from "./diff.js";
 
 // test if input is an object
 const isObject = input => typeof input === "object" && !Array.isArray(input) && input !== null;
@@ -245,76 +244,7 @@ const manager = (options={}) => {
             const code = importManager.code.toString();
             
             if ("showDiff" in options && importManager.code.hasChanged()) {
-                
-                const showUnchanged = options.showCode == "file"
-        
-                console.log(blue(`diff for file '${id}':`));
-
-                const addArrow = (a, txt) => {
-                    const txtArr = txt.split("\n");
-                    let output = txtArr.slice(0, -1).map(l => `${a} ${l}`).join("\n");
-                    if (txtArr.at(-1)) {
-                        output += `${a} ${txtArr.at(-1)}\n`
-                    } else {
-                        output += "\n";
-                    }
-                    return output;
-                }
-                const diff = Diff.diffLines(source, code+"\n// test", false, false);
-
-                console.log(diff);
-                
-                console.log(gray("BEGIN >>>"));
-                let origLine = 0;
-                let modLine = 0;
-                let lastRemoved = false;
-                diff.forEach((part, i) => {
-                    
-                    const last = diff.at(i-1) || { removed: false, added: false };
-                    const next = diff.at(i+1) || { removed: false, added: false };
-
-                    let msg;
-                    let lineInfo = "";
-                    let change = false;
-
-                    if (part.added) {
-                        modLine += part.count;
-                        msg = green(addArrow(">", part.value));
-                        if (!last.removed) {
-                            lineInfo += origLine + "a" + modLine;
-                            if (part.count > 1) {
-                                lineInfo += "," + (modLine + part.count-1);
-                            } 
-                        }
-                    } else if (part.removed) {
-                        modLine -= part.count;
-                        msg = red(addArrow("<", part.value));
-                        lineInfo += origLine
-                        if (part.count > 1) {
-                            lineInfo += (part.count-1);
-                        }
-                        if (next.added) {
-                            lineInfo += "c";
-                            change = true;
-                        }
-                    } else {
-                        origLine += part.count;
-                        modLine += part.count;
-                        msg = "";
-                        if (showUnchanged) {
-                            msg = part.value;
-                        }
-                    }
-
-                    if (lineInfo) {
-                        console.log(bold(lineInfo));
-                    }
-                    process.stdout.write(msg);
-                    if (change) {
-                        console.log("---");
-                    }
-                });
-                console.log(gray("\n<<< END\n"));
+                showDiff(id, source, code, options.showDiff);
             }
             
             let map;
