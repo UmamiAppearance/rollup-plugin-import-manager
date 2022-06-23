@@ -19,7 +19,7 @@ const addAngles = (angle, txt) => {
     let output = txtArr.map(line => `${angle} ${line}`).join("\n");
     output += lastChar;
     return output;
-}
+};
 
 /**
  * Prints an output in the mould of GNU diff when
@@ -34,7 +34,7 @@ const addAngles = (angle, txt) => {
  * @param {string} [diffOption] - As passed by the user. If the value is 'file' also unchanged code is printed.  
  */
 const showDiff = (filename, source, code, diffOption) => {
-    const fileMode = diffOption == "file"
+    const fileMode = diffOption == "file";
     console.log(code);
 
     console.log(bold(blue(
@@ -118,6 +118,6 @@ const showDiff = (filename, source, code, diffOption) => {
     }
      
     console.log(gray("<<< END\n"));
-}
+};
 
 export default showDiff;

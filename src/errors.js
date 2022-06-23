@@ -13,7 +13,7 @@ class MatchError extends Error {
  * Custom error to abort the building process
  * for retrieving information.
  */
- class DebuggingError extends Error {
+class DebuggingError extends Error {
     constructor(message, key="imports") {
         super("You can find information above ^");
         this.name = "DebuggingError";

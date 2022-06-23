@@ -30,7 +30,7 @@ export default class ImportManager {
                 units: []
             }
 
-        }
+        };
 
         // id scope lookup table with the associated type
         this.idTypes = Object.fromEntries(Object.entries(this.imports).map(([k, v]) => [v.idScope, k]));
@@ -62,8 +62,8 @@ export default class ImportManager {
         let genBlackenedStr = "";
         if (nl) {
             genBlackenedStr = str => str.split("")
-                                        .map(c => c === "\n" ? "\n" : "-")
-                                        .join("");
+                .map(c => c === "\n" ? "\n" : "-")
+                .join("");
         } else {
             genBlackenedStr = str => ("-").repeat(str.length);
         }
@@ -94,7 +94,7 @@ export default class ImportManager {
         // blacken double and single quoted strings
         this.#matchAndStrike(
             src,
-            /([\"'])(?:\\\1|.)*?\1/g
+            /(["'])(?:\\\1|.)*?\1/g
         );
         
         // blacken template string literals
@@ -135,7 +135,7 @@ export default class ImportManager {
                     input += member.name;
                     if (member.alias) {
                         input += member.alias.name;
-                    };
+                    }
                 });
             }; 
 
@@ -195,7 +195,7 @@ export default class ImportManager {
         const defaultMembers = {
             count: 0,
             entities: []
-        }
+        };
 
         const allMembersStr = memberPart ? memberPart.trim() : null;
         
@@ -224,9 +224,9 @@ export default class ImportManager {
 
                 // split the individual members (ignore curly braces left and right)
                 const m = allMembersStr.slice(relNonDefaultStart+1, relNonDefaultStart+nonDefaultStr.length-1)
-                                       .split(",")
-                                       .map(m => m.trim())
-                                       .filter(m => m);
+                    .split(",")
+                    .map(m => m.trim())
+                    .filter(m => m);
 
                 // get the position of each of each member 
                 let searchIndex = 0;
@@ -250,7 +250,7 @@ export default class ImportManager {
                             name: member.slice(aliasStart),
                             start: relAllMembersStart + relNonDefaultStart + relMemberPos + aliasStart,
                             end: relAllMembersStart + relNonDefaultStart + relMemberPos + member.length
-                        }
+                        };
                     } else {
                         newMember.name = name;
                         len = member.length;
@@ -292,8 +292,8 @@ export default class ImportManager {
                 defaultMembers.end = defaultMembers.start + defaultStr.length;
 
                 const dm = defaultStr.split(",")
-                                        .map(m => m.trim())
-                                        .filter(m => m);
+                    .map(m => m.trim())
+                    .filter(m => m);
                 
                 let searchIndex = 0;
                 dm.forEach((defaultMember, index) => {
@@ -313,7 +313,7 @@ export default class ImportManager {
                             name: defaultMember.slice(aliasStart),
                             start: relAllMembersStart + relDefaultMemberPos + aliasStart,
                             end: relAllMembersStart + relDefaultMemberPos + defaultMember.length
-                        }
+                        };
                     } else {
                         newDefMember.name = name;
                         len = defaultMember.length;
@@ -344,7 +344,7 @@ export default class ImportManager {
         }
 
         // create a fresh object for the current unit
-        const moduleStr = {}
+        const moduleStr = {};
 
         // find the position of the module string
         moduleStr.start = statement.indexOf(module);
@@ -380,7 +380,7 @@ export default class ImportManager {
      */
     getES6Imports() {
         
-        const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(\-+);?/g);
+        const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(-+);?/g);
         // match[0]: the complete import statement
         // match[1]: the member part of the statement (may be empty)
         // match[2]: the module part
@@ -409,7 +409,7 @@ export default class ImportManager {
             unit.hash = this.#makeHash(unit);
 
             // push the fresh unit to es6 unit array
-            this.imports.es6.units.push(unit)
+            this.imports.es6.units.push(unit);
             
             next = es6ImportCollection.next();
         }
@@ -430,7 +430,7 @@ export default class ImportManager {
      * @param {Object} match - A match object returned by a regex match fn. 
      * @param {number} id 
      */
-     #makeImport(type, match, id, index) {
+    #makeImport(type, match, id, index) {
         const start = match.index;
         const end = start + match[0].length;
         const code = this.code.slice(start, end);
@@ -516,8 +516,8 @@ export default class ImportManager {
         this.imports.cjs.searched = true;
     }
 
-//              ___________________              //
-//              select unit methods              //
+    //              ___________________              //
+    //              select unit methods              //
 
     /**
      * Helper method to list available units
@@ -697,8 +697,8 @@ export default class ImportManager {
         return this.selectModById(this.hashList[hash]);
     }
 
-//         ___________________________________________        //
-//         methods for unit creation, replacement, etc.       //
+    //         ___________________________________________        //
+    //         methods for unit creation, replacement, etc.       //
 
     /**
      * Makes sure, that the processed unit is of type 'es6'.
@@ -762,7 +762,7 @@ export default class ImportManager {
 
         let memberPart = memberStrArray.join(", ");
         if (memberPart) {
-            memberPart += " from "
+            memberPart += " from ";
         }
 
         return `import ${memberPart}'${module}';\n`;
@@ -834,8 +834,8 @@ export default class ImportManager {
     }
 
 
-//                ________________________              //
-//                global debugging methods              //
+    //                ________________________              //
+    //                global debugging methods              //
 
 
     /**
@@ -843,7 +843,7 @@ export default class ImportManager {
      * and list all import units with its id, hash and
      * import statement.
      */
-     logUnits() {
+    logUnits() {
         throw new DebuggingError(this.#listAllUnits());
     }
 
@@ -852,7 +852,7 @@ export default class ImportManager {
      * Debugging method to stop the building process
      * and list the complete import object.
      */
-     logUnitObjects() {
+    logUnitObjects() {
         const imports = {...this.imports};
         for (const key in imports) {
             imports[key].units.forEach(unit => {

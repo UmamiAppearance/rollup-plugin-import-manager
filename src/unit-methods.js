@@ -37,7 +37,7 @@ export default class ImportManagerUnitMethods {
 
             Object.assign(this.unit, unit);
 
-        }
+        };
     }
 
 
@@ -120,7 +120,7 @@ export default class ImportManagerUnitMethods {
      * Adds non default members to the import statement.
      * @param {string[]} names - A list of members to add. 
      */
-     addMembers(names) {
+    addMembers(names) {
         this.#ES6only();
 
         let start; 
@@ -176,7 +176,7 @@ export default class ImportManagerUnitMethods {
      */
     #getType(memberType) {
         if (memberType.at(-1) !== "s") {
-            memberType += "s"
+            memberType += "s";
         }
         return this.unit[memberType];
     }
@@ -253,8 +253,8 @@ export default class ImportManagerUnitMethods {
         if (others.count > 0) {
             
             const start = !isDefault 
-                        ? this.unit.defaultMembers.entities.at(-1).end
-                        : members.start;
+                ? this.unit.defaultMembers.entities.at(-1).end
+                : members.start;
 
             this.unit.code.remove(start, members.end);
         }

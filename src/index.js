@@ -34,7 +34,7 @@ const ensureObj = (input) => {
     }
     
     return output;
-}
+};
 
 // makes the life of the user a little bit easier
 // by accepting multiple versions of boolean vars 
@@ -56,7 +56,7 @@ const manager = (options={}) => {
     const warnSpamProtection = new Set();
   
     return {
-        name: 'ImportManager',
+        name: "ImportManager",
     
         transform (source, id) {
             if (!filter(id)) return;
@@ -68,7 +68,7 @@ const manager = (options={}) => {
                     importManager.logUnitObjects();
                 } else {
                     importManager.logUnits();
-                };
+                }
             }
             
             else {
@@ -100,7 +100,7 @@ const manager = (options={}) => {
                     
                         if ("id" in section) {
                             if (allowId) {
-                                importManager.warning("Selecting modules via Id should only be used for testing.")
+                                importManager.warning("Selecting modules via Id should only be used for testing.");
                                 unit = importManager.selectModById(section.id, allowNull);
                             } else {
                                 throw new Error("Filename must be specified for selecting via Id.");
@@ -112,7 +112,7 @@ const manager = (options={}) => {
                         }
                     
                         return unit;
-                    }
+                    };
 
                     
                     // creating units from scratch
