@@ -27,7 +27,7 @@ class MatchError extends Error {
  * Custom error to abort the building process
  * for retrieving information.
  */
- class DebuggingError extends Error {
+class DebuggingError extends Error {
     constructor(message, key="imports") {
         super("You can find information above ^");
         this.name = "DebuggingError";
@@ -155,7 +155,7 @@ class ImportManagerUnitMethods {
      * Adds non default members to the import statement.
      * @param {string[]} names - A list of members to add. 
      */
-     addMembers(names) {
+    addMembers(names) {
         this.#ES6only();
 
         let start; 
@@ -288,8 +288,8 @@ class ImportManagerUnitMethods {
         if (others.count > 0) {
             
             const start = !isDefault 
-                        ? this.unit.defaultMembers.entities.at(-1).end
-                        : members.start;
+                ? this.unit.defaultMembers.entities.at(-1).end
+                : members.start;
 
             this.unit.code.remove(start, members.end);
         }
@@ -423,8 +423,8 @@ class ImportManager {
         let genBlackenedStr = "";
         if (nl) {
             genBlackenedStr = str => str.split("")
-                                        .map(c => c === "\n" ? "\n" : "-")
-                                        .join("");
+                .map(c => c === "\n" ? "\n" : "-")
+                .join("");
         } else {
             genBlackenedStr = str => ("-").repeat(str.length);
         }
@@ -455,7 +455,7 @@ class ImportManager {
         // blacken double and single quoted strings
         this.#matchAndStrike(
             src,
-            /([\"'])(?:\\\1|.)*?\1/g
+            /(["'])(?:\\\1|.)*?\1/g
         );
         
         // blacken template string literals
@@ -496,7 +496,8 @@ class ImportManager {
                     input += member.name;
                     if (member.alias) {
                         input += member.alias.name;
-                    }                });
+                    }
+                });
             }; 
 
             let input = unit.module.name;
@@ -584,9 +585,9 @@ class ImportManager {
 
                 // split the individual members (ignore curly braces left and right)
                 const m = allMembersStr.slice(relNonDefaultStart+1, relNonDefaultStart+nonDefaultStr.length-1)
-                                       .split(",")
-                                       .map(m => m.trim())
-                                       .filter(m => m);
+                    .split(",")
+                    .map(m => m.trim())
+                    .filter(m => m);
 
                 // get the position of each of each member 
                 let searchIndex = 0;
@@ -652,8 +653,8 @@ class ImportManager {
                 defaultMembers.end = defaultMembers.start + defaultStr.length;
 
                 const dm = defaultStr.split(",")
-                                        .map(m => m.trim())
-                                        .filter(m => m);
+                    .map(m => m.trim())
+                    .filter(m => m);
                 
                 let searchIndex = 0;
                 dm.forEach((defaultMember, index) => {
@@ -740,7 +741,7 @@ class ImportManager {
      */
     getES6Imports() {
         
-        const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(\-+);?/g);
+        const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(-+);?/g);
         // match[0]: the complete import statement
         // match[1]: the member part of the statement (may be empty)
         // match[2]: the module part
@@ -790,7 +791,7 @@ class ImportManager {
      * @param {Object} match - A match object returned by a regex match fn. 
      * @param {number} id 
      */
-     #makeImport(type, match, id, index) {
+    #makeImport(type, match, id, index) {
         const start = match.index;
         const end = start + match[0].length;
         const code = this.code.slice(start, end);
@@ -876,8 +877,8 @@ class ImportManager {
         this.imports.cjs.searched = true;
     }
 
-//              ___________________              //
-//              select unit methods              //
+    //              ___________________              //
+    //              select unit methods              //
 
     /**
      * Helper method to list available units
@@ -1057,8 +1058,8 @@ class ImportManager {
         return this.selectModById(this.hashList[hash]);
     }
 
-//         ___________________________________________        //
-//         methods for unit creation, replacement, etc.       //
+    //         ___________________________________________        //
+    //         methods for unit creation, replacement, etc.       //
 
     /**
      * Makes sure, that the processed unit is of type 'es6'.
@@ -1194,8 +1195,8 @@ class ImportManager {
     }
 
 
-//                ________________________              //
-//                global debugging methods              //
+    //                ________________________              //
+    //                global debugging methods              //
 
 
     /**
@@ -1203,7 +1204,7 @@ class ImportManager {
      * and list all import units with its id, hash and
      * import statement.
      */
-     logUnits() {
+    logUnits() {
         throw new DebuggingError(this.#listAllUnits());
     }
 
@@ -1212,7 +1213,7 @@ class ImportManager {
      * Debugging method to stop the building process
      * and list the complete import object.
      */
-     logUnitObjects() {
+    logUnitObjects() {
         const imports = {...this.imports};
         for (const key in imports) {
             imports[key].units.forEach(unit => {
@@ -1430,7 +1431,7 @@ const manager = (options={}) => {
     const warnSpamProtection = new Set();
   
     return {
-        name: 'ImportManager',
+        name: "ImportManager",
     
         transform (source, id) {
             if (!filter(id)) return;
@@ -1442,7 +1443,8 @@ const manager = (options={}) => {
                     importManager.logUnitObjects();
                 } else {
                     importManager.logUnits();
-                }            }
+                }
+            }
             
             else {
 
