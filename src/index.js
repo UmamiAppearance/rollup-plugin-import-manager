@@ -42,11 +42,11 @@ const bool = (b) => !(Boolean(b) === false || String(b).match(/^(?:false|no?|0)$
 
 // allow some variations to enable object mode 
 // for debugging
-const showObjects = (v) => Boolean(String(v).match(/^(?:objects?|imports?)$/));
+const showObjects = (v) => Boolean(String(v).match(/^(?:objects?|imports?|verbose)$/));
 
 
 // main
-const manager = (options={}) => {
+const importManager = (options={}) => {
 
     const filter = createFilter(options.include, options.exclude);
 
@@ -61,13 +61,13 @@ const manager = (options={}) => {
         transform (source, id) {
             if (!filter(id)) return;
 
-            const importManager = new ImportManager(source, id, warnSpamProtection);       
+            const manager = new ImportManager(source, id, warnSpamProtection);       
 
             if (!("units" in options) || "debug" in options) {
                 if (showObjects(options.debug)) {
-                    importManager.logUnitObjects();
+                    manager.logUnitObjects();
                 } else {
-                    importManager.logUnits();
+                    manager.logUnits();
                 }
             }
             
@@ -100,15 +100,15 @@ const manager = (options={}) => {
                     
                         if ("id" in section) {
                             if (allowId) {
-                                importManager.warning("Selecting modules via Id should only be used for testing.");
-                                unit = importManager.selectModById(section.id, allowNull);
+                                manager.warning("Selecting modules via Id should only be used for testing.");
+                                unit = manager.selectModById(section.id, allowNull);
                             } else {
                                 throw new Error("Filename must be specified for selecting via Id.");
                             }
                         } else if ("hash" in section) {
-                            unit = importManager.selectModByHash(section.hash, allowNull);
+                            unit = manager.selectModByHash(section.hash, allowNull);
                         } else if ("module" in section) {
-                            unit = importManager.selectModByName(section.module, section.type, allowNull);
+                            unit = manager.selectModByName(section.module, section.type, allowNull);
                         }
                     
                         return unit;
@@ -119,7 +119,7 @@ const manager = (options={}) => {
                     if ("createModule" in unitSection) {
 
                         if (allowNull) {
-                            importManager.warning("No file specified for import statement creation! If the build fails, this could be the reason.");
+                            manager.warning("No file specified for import statement creation! If the build fails, this could be the reason.");
                         }
 
                         const module = unitSection.createModule;
@@ -134,7 +134,7 @@ const manager = (options={}) => {
                             members = ensureArray(unitSection.members);
                         }
 
-                        const statement = importManager.makeES6Statement(module, defaultMembers, members);
+                        const statement = manager.makeES6Statement(module, defaultMembers, members);
                         
                         let mode;
                         for (const key in unitSection) {
@@ -155,12 +155,12 @@ const manager = (options={}) => {
                             // insert if match is found
                             // (which can be undefined if no file specified)
                             if (target) {
-                                importManager.insertAtUnit(target, mode, statement);
+                                manager.insertAtUnit(target, mode, statement);
                             }
                         }
 
                         else {
-                            importManager.insertStatement(statement, unitSection.insert);
+                            manager.insertStatement(statement, unitSection.insert);
                         }
 
                         continue;
@@ -230,27 +230,27 @@ const manager = (options={}) => {
                             
                             // remove the entire unit
                             else if ("remove" in action) {
-                                importManager.remove(unit);
+                                manager.remove(unit);
                                 continue;
                             }
 
                             // apply the changes to the code
-                            importManager.commitChanges(unit);
+                            manager.commitChanges(unit);
                         }
                     }
                 }
             }
 
-            const code = importManager.code.toString();
+            const code = manager.code.toString();
             
-            if ("showDiff" in options && importManager.code.hasChanged()) {
+            if ("showDiff" in options && manager.code.hasChanged()) {
                 showDiff(id, source, code, options.showDiff);
             }
             
             let map;
 
             if (options.sourceMap !== false && options.sourcemap !== false) {
-                map = importManager.code.generateMap({ hires: true });
+                map = manager.code.generateMap({ hires: true });
             }
 
             return { code, map };
@@ -258,4 +258,4 @@ const manager = (options={}) => {
     };
 };
   
-export { manager };
+export { importManager };
