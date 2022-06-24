@@ -971,7 +971,16 @@ class ImportManager {
         }
 
         // filter for unit name
-        const units = unitList.filter(unit => unit.module.name === name);
+        const units = unitList.filter(unit => {
+            const match = unit.module.name.indexOf(name) > -1;
+
+            // ignore deleted units
+            if (match && unit.module.name.match(/^\(deleted\)/)) {
+                return false;
+            }
+
+            return match;
+        });
 
         // throw errors if the match is not one
         // (if no filename was set a null match

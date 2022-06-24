@@ -9,7 +9,7 @@ npm install rollup-plugin-import-manager --save-dev
 ```
 
 ## How it works
-**rollup-plugin-import-manager** analyzes each file (which is uses for the rollup building process) for import statements. Those are converted into unit objects, which the user can interact with. Also the creation of new unites &rarr; import statements is possible. 
+**rollup-plugin-import-manager** analyzes each file (which is uses for the rollup building process) for import statements. Those are converted into unit objects, which the user can interact with. Also the creation of new units &rarr; import statements is possible. 
 
 
 
@@ -51,7 +51,7 @@ Then call `rollup` either via the [CLI](https://www.rollupjs.org/guide/en/#comma
 Type: `Array[...Object]`  
 Default: `null`  
 
-This is where the plugin comes to live. See LINK.
+This is where the plugin comes to live. See [Units](#Units).
 
 
 ### `include`  
@@ -74,12 +74,20 @@ A [minimatch pattern](https://github.com/isaacs/minimatch), or array of patterns
 Type: `String`  
 Default: `null`  
 
-A debugging method. If set to anything other than the string `"file"` a console output of [diff](https://github.com/kpdecker/jsdiff) is shown. It is modified a little and looks much like the default output of diff from the [GNU diffutils](https://www.gnu.org/software/diffutils/), with colors on top. If set to `"file"` the whole file with insertions and deletions is shown. Either way it only gets logged if there are any changes at all. If this is not the case, there is another global debugging method available:
+A [debugging](#Debugging) method. If set to anything other than the string `"file"` a console output of [diff](https://github.com/kpdecker/jsdiff) is shown. It is modified a little and looks much like the default output of diff from the [GNU diffutils](https://www.gnu.org/software/diffutils/), with colors on top. If set to `"file"` the whole file with insertions and deletions is shown. Either way it only gets logged if there are any changes at all. If this is not the case, there is another global debugging method available:
 
 
 ### `debug`  
 Type: `String`  
 Default: `null`  
 
-If more than one source file is involved, this really only is useful in combination with [include](#include). It stops the building process by throwing an intentional error and lists all units of the file. Even more verbose information about all unit objects can be made accessible by passing the strings `verbose`, `object(s)` or `import(s)` (which one to use doesn't matter). 
+A [debugging](#Debugging) method. If more than one source file is involved, this really only is useful in combination with [include](#include). It stops the building process by throwing an intentional error and lists all units of the file. Even more verbose information about all unit objects can be made accessible by passing the strings `verbose`, `object(s)` or `import(s)` (which one to use doesn't matter). 
 
+
+## Units
+
+
+## Examples
+
+
+## Debugging
