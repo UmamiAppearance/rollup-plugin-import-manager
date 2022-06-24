@@ -74,12 +74,12 @@ A [minimatch pattern](https://github.com/isaacs/minimatch), or array of patterns
 Type: `String`  
 Default: `null`  
 
-A debugging method. If set to anything other than the string `"file"` an console output of [diff](https://github.com/kpdecker/jsdiff) is shown. It is modified a little and looks much like the default output of diff from the [GNU diffutils](https://www.gnu.org/software/diffutils/), with colors on top. If set to file the whole file with insertions and deletions is shown. Either way it only gets logged if there are any changes at all. If this is the case the is another global debugging method available.
+A debugging method. If set to anything other than the string `"file"` a console output of [diff](https://github.com/kpdecker/jsdiff) is shown. It is modified a little and looks much like the default output of diff from the [GNU diffutils](https://www.gnu.org/software/diffutils/), with colors on top. If set to `"file"` the whole file with insertions and deletions is shown. Either way it only gets logged if there are any changes at all. If this is not the case, there is another global debugging method available:
 
 
 ### `debug`  
 Type: `String`  
 Default: `null`  
 
-If more than one source file is involved, this really only is useful in combination with [include](#include). It stops the building process by throwing an intentional error and lists all units of the file. Even more verbose information about all units objects can be made accessible by passing the strings `verbose`, `object(s)` or `import(s)` (which one to use doesn't matter). 
+If more than one source file is involved, this really only is useful in combination with [include](#include). It stops the building process by throwing an intentional error and lists all units of the file. Even more verbose information about all unit objects can be made accessible by passing the strings `verbose`, `object(s)` or `import(s)` (which one to use doesn't matter). 
 
