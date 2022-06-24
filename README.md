@@ -166,6 +166,7 @@ Default: `null`
 
 This is the place where the actual manipulation of a unit (and ultimately statement) taken place. Several **options** can get passed:
 
+---
 
 ##### `debug` <samp>[option for actions]</samp>
 Type: `Any`  
@@ -174,6 +175,15 @@ Default: `null`
 A [debugging](#debugging) method for a specific unit. This also throws an intentional debugging error, which stops the building process. Verbose information about the specific unit are logged to the console.
 
 
+##### `select` <samp>[option for actions]</samp>
+Type: `String`  
+Default: `null`  
+
+Select the type you like to modify. This can be:
+ * `module`
+ * `defaultMember` (a single member)
+ * `defaultMembers` (the group)
+ * `member`
 
 
 
