@@ -116,9 +116,11 @@ Type: `Number`
 Default: `null`  
 
 Internally every unit gets an Id. There are different scopes for the generation:
- * es6: `1000`
- * dynamic: `2000`
- * cjs: `3000`
+
+| ------- |--------|
+| es6     | `1000` |
+| dynamic | `2000` |
+| cjs     | `3000` |
 
 The first ES6 Import statement of a file will have the Id `1000`, the second `1001` and so forth. For a quick test you can select via Id (if the [filename](#file) is specified). But actually this is only an internal method to locate the statements. Testing is the only other reason to use it. If one statement is added before the one to match, the Id will change, and there is a good change to not even realize that. You have been warned (and you will get warned again by the plugin if you decide to use it). 
 
@@ -148,6 +150,13 @@ A possibility to specify the unit type. Valid parameters are:
  * `dynamic`
 
 This can be helpful if there are overlapping matches across the types. For example if es6 and dynamic import share the same module name. But there are actually few situations, where it is necessary to specify the type, to be honest. But the option is there.
+
+
+#### `createModule` <samp>[option for units]</samp>
+Type: `String`  
+Default: `null`
+
+Creates a new module. Every selection method will get ignored if this key is passed.
 
 
 
