@@ -157,10 +157,14 @@ This can be helpful if there are overlapping matches across the types. For examp
 Type: `String`  
 Default: `null`
 
-Creates a new module. Every selection method will get ignored if this key is passed.
+Creates a new module. Every selection method ([id](#id), [hash](#hash), [module](#module)) will get ignored if this key is passed. For the value set the fresh module (path).  
+Eg: `createModule: "./path/to/my-module.js"`
 
+#### `actions`
+Type: `Array[...Object]`  
+Default: `null`  
 
-
+This is the place where the actual manipulation of a unit (and ultimately statement) taken place. Several **options** can get passed:
 
 
 ##### `debug` <samp>[option for actions]</samp>

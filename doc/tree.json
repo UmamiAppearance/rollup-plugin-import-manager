@@ -5,6 +5,7 @@
             "hash": "[3511224270]",
             "file": "[index.js]",
             "type": "[es6]",
+            "createModule": "module path",
             "module": "module name",
             "actions": [
                 {
@@ -49,18 +50,6 @@
                 "debug",
 
                 "remove"
-            ]
-        },
-        {
-            "createModule": "module path",
-            "file": "filename",
-            "defaultMembers": [
-                "dmA"
-            ],
-            "members": [
-                "memA",
-                "memB",
-                "..."
             ]
         }
     ]   
