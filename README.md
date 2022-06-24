@@ -117,7 +117,7 @@ Default: `null`
 
 Internally every unit gets an Id. There are different scopes for the generation:
 
-|         |        |
+| type    | scope  |
 | ------- |--------|
 | es6     | `1000` |
 | dynamic | `2000` |
