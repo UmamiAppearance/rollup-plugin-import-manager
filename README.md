@@ -149,9 +149,6 @@ A [debugging](#debugging) method for a specific unit. This also throws an intent
 
 
 
-## Unit Object
-TODO
-
 ## Examples
 TODO
 
