@@ -146,3 +146,14 @@ Default: `null`
 
 A [debugging](#debugging) method for a specific unit. This also throws an intentional debugging error, which stops the building process. Verbose information about the specific unit are logged to the console.
 
+
+
+
+## Unit Object
+TODO
+
+## Examples
+TODO
+
+## Debugging
+TODO
