@@ -137,7 +137,7 @@ Also for unit creation this is almost always critical. If there are multiple sou
 
 However, it is not mandatory.
 
-#### `debug` (option for units)
+#### `debug` <sub>(option for units)</sub>
 Type: `Any`  
 Default: `null`  
 
