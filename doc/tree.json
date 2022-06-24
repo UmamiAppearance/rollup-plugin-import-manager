@@ -6,7 +6,6 @@
             "file": "[index.js]",
             "type": "[es6]",
             "module": "module name",
-            "[debug]": null,
             "actions": [
                 {
                     "select": "member|defaultMember",
@@ -45,7 +44,11 @@
                     "select": "module",
                     "modType": "[string|literal]",
                     "rename": "new mod (path)"
-                }
+                },
+
+                "debug",
+
+                "remove"
             ]
         },
         {
@@ -59,10 +62,6 @@
                 "memB",
                 "..."
             ]
-        },
-
-        "debug",
-
-        "remove"
+        }
     ]   
 }

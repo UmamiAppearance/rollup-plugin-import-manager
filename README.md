@@ -137,12 +137,30 @@ Also for unit creation this is almost always critical. If there are multiple sou
 
 However, it is not mandatory.
 
-#### `debug` <samp>[option for units]</samp>
+
+#### `type` <samp>[option for units]</samp>
+Type: `String`  
+Default: `null`
+
+A possibility to specify the unit type. Valid parameters are:
+ * `es6`
+ * `cjs`
+ * `dynamic`
+
+This can be helpful if there are overlapping matches across the types., If, for example, es6 and dynamic import the same module. There are honestly very little situations, where it is necessary to specify the type. But the option is there.
+
+
+
+
+
+##### `debug` <samp>[option for actions]</samp>
 Type: `Any`  
 Default: `null`  
 
 A [debugging](#debugging) method for a specific unit. This also throws an intentional debugging error, which stops the building process. Verbose information about the specific unit are logged to the console.
 
+TODO !!!
+Change the createModule method to fit to the select methods
 
 
 
