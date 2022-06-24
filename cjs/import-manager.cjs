@@ -1526,18 +1526,22 @@ const importManager = (options={}) => {
                         }
 
                         const module = unitSection.createModule;
-                        let defaultMembers = [];
-                        let members = [];
-                        
-                        if ("defaultMembers" in unitSection) {
-                            defaultMembers = ensureArray(unitSection.defaultMembers);
+                        const mem = {
+                            defaultMembers: [],
+                            members: []
+                        };
+
+                        if ("actions" in unitSection) {
+                            for (let action of ensureArray(unitSection.actions)) {
+                                action = ensureObj(action);
+                                if ((action.select === "members" || action.select === "defaultMembers") && "add" in action) {
+                                    mem[action.select] = ensureArray(action.add); 
+                                }
+                            }
                         }
 
-                        if ("members" in unitSection) {
-                            members = ensureArray(unitSection.members);
-                        }
-
-                        const statement = manager.makeES6Statement(module, defaultMembers, members);
+                        console.log(mem);
+                        const statement = manager.makeES6Statement(module, mem.defaultMembers, mem.members);
                         
                         let mode;
                         for (const key in unitSection) {
