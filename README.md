@@ -79,6 +79,8 @@ Default: `null`
 
 This is where the plugin comes to life. Here is the place where units are getting selected, created or removed. It has several options by itself:
 
+---
+
 #### `module`  
 Type: `String`  
 Default: `null`  
