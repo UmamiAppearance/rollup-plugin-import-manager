@@ -4,8 +4,22 @@ import MagicString from "magic-string";
 import { bold, yellow } from "colorette";
 
 
+/**
+ * The plugins core class. It handles the 
+ * code analysis, creates units from import
+ * statements, attaches methods to the units
+ * and more. 
+ */
 export default class ImportManager {
 
+    /**
+     * The constructor creates a class import
+     * object and kicks of the code analysis.
+     * @param {string} source - The unmodified source code-
+     * @param {string} filename - The filename of the input file.  
+     * @param {object} warnSpamProtection - A Set which contains all previously printed warning hashes. 
+     * @param {boolean} [autoSearch=true] - Automatic code analysis can be disabled by passing "false". 
+     */
     constructor(source, filename, warnSpamProtection, autoSearch=true) {
 
         this.scopeMulti = 1000;

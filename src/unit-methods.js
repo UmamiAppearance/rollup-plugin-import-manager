@@ -1,10 +1,14 @@
 import { DebuggingError, MatchError } from "./errors.js";
 
+/**
+ * Creates methods for unit manipulation to
+ * be attached to a requested unit.
+ */
 export default class ImportManagerUnitMethods {
 
     /**
-     * Creates methods for unit manipulation to
-     * be attached to a requested unit.
+     * Stores the handed over unit and creates
+     * an update method.
      * @param {Object} unit - The unit a user requests 
      * @param {*} es6StrToObj - Method to analyze a 
      */

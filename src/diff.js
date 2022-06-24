@@ -21,6 +21,7 @@ const addAngles = (angle, txt) => {
     return output;
 };
 
+
 /**
  * Prints an output in the mould of GNU diff when
  * called with no parameters other than the files.
