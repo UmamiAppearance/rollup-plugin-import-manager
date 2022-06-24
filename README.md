@@ -51,7 +51,7 @@ Then call `rollup` either via the [CLI](https://www.rollupjs.org/guide/en/#comma
 Type: `Array[...Object]`  
 Default: `null`  
 
-This is where the plugin comes to live. See [Units](#Units).
+This is where the plugin comes to live. See [Units](#Unit-Object).
 
 
 ### `include`  
@@ -84,7 +84,7 @@ Default: `null`
 A [debugging](#Debugging) method. If more than one source file is involved, this really only is useful in combination with [include](#include). It stops the building process by throwing an intentional error and lists all units of the file. Even more verbose information about all unit objects can be made accessible by passing the strings `verbose`, `object(s)` or `import(s)` (which one to use doesn't matter). 
 
 
-## Units
+## Unit Object
 
 
 ## Examples
