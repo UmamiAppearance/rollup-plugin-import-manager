@@ -53,12 +53,14 @@ Default: `null`
 
 This is where the plugin comes to live. See LINK.
 
+
 ### `include`  
 
 Type: `String` | `Array[...String]`  
 Default: `null`  
 
 A [minimatch pattern](https://github.com/isaacs/minimatch), or array of patterns, which specifies the files in the build the plugin should operate on. By default all files are targeted. Each unit has the possibility to target a specific file. See LINK
+
 
 ### `exclude`  
 
@@ -67,11 +69,13 @@ Default: `null`
 
 A [minimatch pattern](https://github.com/isaacs/minimatch), or array of patterns, which specifies the files in the build the plugin should _ignore_. By default no files are ignored.
 
+
 ### `showDiff`  
-Type: `String`
+Type: `String`  
 Default: `null`  
 
-A debugging method. If set to anything other than the string `file` an console output of [diff](https://github.com/kpdecker/jsdiff) is shown. It is modified a little and looks much like the default output of diff from the [GNU diffutils](https://www.gnu.org/software/diffutils/), with colors on top. If set to file the whole file with insertions and deletions is shown. Either way it only gets logged if there are any changes at all. If this is the case the is another global debugging method available.
+A debugging method. If set to anything other than the string `"file"` an console output of [diff](https://github.com/kpdecker/jsdiff) is shown. It is modified a little and looks much like the default output of diff from the [GNU diffutils](https://www.gnu.org/software/diffutils/), with colors on top. If set to file the whole file with insertions and deletions is shown. Either way it only gets logged if there are any changes at all. If this is the case the is another global debugging method available.
+
 
 ### `debug`  
 Type: `String`  
