@@ -147,7 +147,7 @@ A possibility to specify the unit type. Valid parameters are:
  * `cjs`
  * `dynamic`
 
-This can be helpful if there are overlapping matches across the types., If, for example, es6 and dynamic import the same module. There are honestly very little situations, where it is necessary to specify the type. But the option is there.
+This can be helpful if there are overlapping matches across the types. For example if es6 and dynamic import share the same module name. But there are actually few situations, where it is necessary to specify the type, to be honest. But the option is there.
 
 
 
@@ -159,8 +159,7 @@ Default: `null`
 
 A [debugging](#debugging) method for a specific unit. This also throws an intentional debugging error, which stops the building process. Verbose information about the specific unit are logged to the console.
 
-TODO !!!
-Change the createModule method to fit to the select methods
+
 
 
 
