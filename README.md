@@ -74,10 +74,10 @@ Default: `null`
 A [debugging](#debugging) method. If more than one source file is involved, this really only is useful in combination with [include](#include). It stops the building process by throwing an intentional error and lists all units of the first file, that is processed. Even more verbose information about all unit objects can be made accessible by passing the strings `verbose`, `object(s)` or `import(s)` (which one to use doesn't matter). 
 
 ### `units`
-Type: `Array[...Object]`  
+Type: `Object` | Array[...Object]`  
 Default: `null`  
 
-This is where the plugin comes to life. Here is the place where units are getting selected, created or removed. It has several **options** by itself:
+This is where the plugin comes to life. Here is the place where units are getting selected, created or removed. It has several **options** by itself. Units are objects, for multiple units pass an array of objects:
 
 ---
 
@@ -134,9 +134,9 @@ Default: `null`
 
 A [minimatch pattern](https://github.com/isaacs/minimatch), which specifies the file where the unit is located.  
 
-It is always a good idea to set it, even if the files are already limited by include or exclude. The reason for this is, that a the unit is expected to be in the specified file and and error is thrown if it doesn't match. Otherwise it will simply be ignored, if a match is not there.  
+It is always a good idea to set it, even if the files are already limited by include or exclude. The reason for this is, that a the unit is expected to be in the specified file if the value is set and an error is thrown if it doesn't match. Otherwise it will simply be ignored, if a match is not there.  
 
-Also for unit creation this is almost always critical. If there are multiple source files, the fresh import statement will get created in any file, that is processed (and this maybe not what you want and also will most likely lead to errors).  
+Also for unit creation this is almost always critical. If there are multiple source files, and no file is specified, the fresh import statement will get created in any file, that is processed (and this probably not what you want and also will most likely lead to errors).  
 
 However, it is not mandatory.
 
@@ -150,21 +150,21 @@ A possibility to specify the unit type. Valid parameters are:
  * `cjs`
  * `dynamic`
 
-This can be helpful if there are overlapping matches across the types. For example if es6 and dynamic import share the same module name. But there are actually few situations, where it is necessary to specify the type, to be honest. But the option is there.
+This _can_ be helpful if there are overlapping matches across the types. For example if es6 and dynamic import share the same module name. But there are actually few situations where it is necessary to specify the type, to be honest. But the option is there.
 
 
 #### `createModule` <samp>[option for units]</samp>
 Type: `String`  
 Default: `null`
 
-Creates a new module. Every selection method ([id](#id), [hash](#hash), [module](#module)) will get ignored if this key is passed. For the value set the fresh module (path).  
+Creates a new module. Every selection method ([id](#id), [hash](#hash), [module](#module)) will get ignored if this key is passed. For the value set the module (path).  
 Eg: `createModule: "./path/to/my-module.js"`
 
-#### `actions`
-Type: `Array[...Object]`  
+#### `actions` <samp>[option for units]</samp>
+Type: `Object | Array[...Object]`  
 Default: `null`  
 
-This is the place where the actual manipulation of a unit (and ultimately statement) taken place. Several **options** can get passed:
+This is the place where the actual manipulation of a unit (and ultimately statement) taken place. Several actions/**options** can get passed, for a singular option, use an object for multiple an array of objects:
 
 ---
 
@@ -172,18 +172,51 @@ This is the place where the actual manipulation of a unit (and ultimately statem
 Type: `Any`  
 Default: `null`  
 
-A [debugging](#debugging) method for a specific unit. This also throws an intentional debugging error, which stops the building process. Verbose information about the specific unit are logged to the console.
+A [debugging](#debugging) method for a specific unit. This also throws an intentional debugging error, which stops the building process. Verbose information about the specific unit are logged to the console. The value is irrelevant. If this is the only action it can be passed as a string: `actions: "debug"`
 
 
 ##### `select` <samp>[option for actions]</samp>
 Type: `String`  
 Default: `null`  
 
-Select the type you like to modify. This can be:
- * `module`
- * `defaultMember` (a single member)
- * `defaultMembers` (the group)
+Select the part you like to modify. This can be specific parts:
+ * `defaultMember`
  * `member`
+ * `module`  
+  
+Or the groups
+ * `defaultMembers`
+ * `members`
+  
+Common JS and dynamic imports only have the `module` available to select.
+
+
+##### `name` <samp>[option for actions]</samp>
+Type: `String`  
+Default: `null`  
+
+For the selection of a specific part (`defaultMember` or `member`) the name needs to be specified. The name is directly related to the name of a member or default member. Aliases are not used for the name selection. Eg.
+```js
+import defaultMember, * as alias from "my-module";
+```
+`name: "defaultMember"` or `name: "*"`
+
+```js
+import {memberA as aliasA, memberB} from "my-module";
+```
+`name: "memberA"` or `name: "memberB"`
+
+
+##### `remove` <samp>[option for actions]</samp>
+Type: `Any`  
+Default: `null`  
+
+When no part was selected, this removes the entire unit &rarr; import statements. The value is irrelevant. If this is the only action it can be passed as a string: `actions: "remove"`. If a part is selected only the according part is getting removed. For example, to remove all non default members:
+```js
+actions: {
+    select: members,
+    remove: null
+}
 
 
 
