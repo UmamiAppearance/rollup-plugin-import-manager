@@ -160,6 +160,27 @@ Default: `null`
 Creates a new module. Every selection method ([id](#id), [hash](#hash), [module](#module)) will get ignored if this key is passed. For the value set the module (path).  
 Eg: `createModule: "./path/to/my-module.js"`
 
+#### `insert` <samp>[option for units]</samp>
+Type: `String`  
+Default: `"bottom"`
+
+Additional parameter for [createModule](#createModule-options-for-units). If set to bottom, the file is analyzed and the import statement is appended after the last found es6 import statement (which is the default behavior if not set). Setting it top top will append the statement on top of the file, directly after the the description if present (this is th default if no other es import statement was found).
+
+
+#### `append` <samp>[option for units]</samp>
+Type: `Object`  
+Default: `null`
+
+Additional parameter for [createModule](#createModule-options-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to append it after a specific other import statement. This works by passing a unit as a value. See it in action here: [Examples](#examples). 
+
+
+#### `prepend` <samp>[option for units]</samp>
+Type: `Object`  
+Default: `null`
+
+Additional parameter for [createModule](#createModule-options-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to prepend it before a specific other import statement. This works by passing a unit as a value. See it in action here: [Examples](#examples). 
+
+
 #### `actions` <samp>[option for units]</samp>
 Type: `Object | Array[...Object]`  
 Default: `null`  
@@ -215,7 +236,7 @@ To select a _member_ pass:
 Type: `String`  
 Default: `null`  
 
-An option to target an alias of a [selected](#select-option-for-actions) `defaultMember` or `member`. If a value is set, this will change or initially set the alias to the this value. Aliases can also be [removed](#rename-option-for-actions), in this case the value for alias be be ignored.
+An option to target an alias of a [selected](#select-option-for-actions) `defaultMember` or `member`. If a value is set, this will change or initially set the alias to the this value. Aliases can also be [removed](#remove-option-for-actions), in this case the value for alias be be ignored.
 
 
 ##### `rename` <samp>[option for actions]</samp>
@@ -223,6 +244,13 @@ Type: `String`
 Default: `null`  
 
 This option is used to rename a [selected](#select-option-for-actions) specific part (`defaultMember`, `member`, `module`). The value is the new name of the selected part.
+
+
+##### `modType` <samp>[option for actions]</samp>
+Type: `String`  
+Default: `"string"|"literal"`  
+
+If [renaming](#rename-option-for-actions) is done via mode `string` there are quotation marks set around the input by default, mode `literal` is not doing that. Which can be useful for replacing the module by anything other than a string (which is only valid for cjs and dynamic imports). By default the type is defined by the existing statement. If it is not a string, type literal is assumed (those are rare occasions).
 
 
 ##### `keepAlias` <samp>[option for actions]</samp>
@@ -237,6 +265,13 @@ Type: `Any`
 Default: `null`  
 
 When no part was selected, this removes the entire unit &rarr; import statement. The value is irrelevant. If this is the only action it can be passed as a string: `actions: "remove"`. If a part is [selected](#select-option-for-actions) (`defaultMembers`, `members`, `module` or [`alias`](#alias-option-for-actions)) only the according part is getting removed.
+
+
+##### `add` <samp>[option for actions]</samp>
+Type: `String | `Array[...String]``
+Default: `null`  
+
+An additional parameter for `defaultMembers` or `members`. It adds one or multiple (default) members to the existing ones. The group has to be [selected](#select-option-for-actions).
 
 
 

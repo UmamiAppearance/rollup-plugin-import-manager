@@ -12,7 +12,8 @@
                     "select": "member|defaultMember",
                     "name": "(default) member name",
                     "rename": "new name",
-                    "keepAlias": "[bool (false|'false','no','n',0,'0')]"
+                    "keepAlias": "[bool (false|'false','no','n',0,'0')]",
+                    "remove": null
                 },
                 {
                     "select": "member|defaultMember",
@@ -24,7 +25,7 @@
                     "select": "member|defaultMember",
                     "name": "(default) member name",
                     "alias": "alias name",
-                    "[remove]": null
+                    "remove": null
                 },
                 
                 
