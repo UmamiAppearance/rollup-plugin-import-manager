@@ -179,7 +179,7 @@ A [debugging](#debugging) method for a specific unit. This also throws an intent
 Type: `String`  
 Default: `null`  
 
-Select the part you like to modify. This can be specific part (which also needs the option [name](#name) to be passed):
+Select the part you like to modify. This can be specific part (which also needs the option [name](#name-option-for-actions) to be passed):
  * `defaultMember`
  * `member`
  * `module`  
@@ -211,25 +211,32 @@ To select a _member_ pass:
 `name: "memberA"` or `name: "memberB"`
 
 
+##### `alias` <samp>[option for actions]</samp>
+Type: `String`  
+Default: `null`  
+
+An option to target an alias of a [selected](#select-option-for-actions) `defaultMember` or `member`. If a value is set, this will change or initially set the alias to the this value. Aliases can also be [removed](#rename-option-for-actions), in this case the value for alias be be ignored.
+
+
 ##### `rename` <samp>[option for actions]</samp>
 Type: `String`  
 Default: `null`  
 
-This option is used to rename a specific part (`defaultMember`, `member`, `module`). The value is the new name of the selected part.
+This option is used to rename a [selected](#select-option-for-actions) specific part (`defaultMember`, `member`, `module`). The value is the new name of the selected part.
 
 
 ##### `keepAlias` <samp>[option for actions]</samp>
 Type: `Boolean`  
 Default: `false`  
 
-This is an extra option to [rename](#raname) a (default) members. If true, the alias will kept untouched, otherwise it gets overwritten in the renaming process, wether a new alias is set or not.
+This is an extra option to [rename](#rename-option-for-actions) a (default) members. If true, the alias will kept untouched, otherwise it gets overwritten in the renaming process, wether a new alias is set or not.
 
 
 ##### `remove` <samp>[option for actions]</samp>
 Type: `Any`  
 Default: `null`  
 
-When no part was selected, this removes the entire unit &rarr; import statement. The value is irrelevant. If this is the only action it can be passed as a string: `actions: "remove"`. If a part is selected (`defaultMembers`, `members` or `module`) only the according part is getting removed.
+When no part was selected, this removes the entire unit &rarr; import statement. The value is irrelevant. If this is the only action it can be passed as a string: `actions: "remove"`. If a part is [selected](#select-option-for-actions) (`defaultMembers`, `members`, `module` or [`alias`](#alias-option-for-actions)) only the according part is getting removed.
 
 
 

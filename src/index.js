@@ -195,7 +195,7 @@ const importManager = (options={}) => {
                                     unit.methods.renameModule(action.rename, modType);
                                 }
 
-                                // single (default) members
+                                // single (default) member
                                 else if (action.select === "member" || action.select === "defaultMember" ) {
                                     const memberType = action.select;
                                     
