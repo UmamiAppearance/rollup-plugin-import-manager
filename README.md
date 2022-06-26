@@ -179,12 +179,13 @@ A [debugging](#debugging) method for a specific unit. This also throws an intent
 Type: `String`  
 Default: `null`  
 
-Select the part you like to modify. This can be specific parts:
+Select the part you like to modify. This can be specific part (which also needs the option [name](#name) to be passed):
  * `defaultMember`
  * `member`
  * `module`  
   
-Or the groups
+
+Or the groups:
  * `defaultMembers`
  * `members`
   
@@ -195,28 +196,40 @@ Common JS and dynamic imports only have the `module` available to select.
 Type: `String`  
 Default: `null`  
 
-For the selection of a specific part (`defaultMember` or `member`) the name needs to be specified. The name is directly related to the name of a member or default member. Aliases are not used for the name selection. Eg.
+For the selection of a specific part (`defaultMember` or `member`) the name needs to be specified. The name is directly related to the name of a member or default member. Aliases are not used for the name selection. Eg:
 ```js
 import defaultMember, * as alias from "my-module";
 ```
+To select a _defaultMember_ pass:  
 `name: "defaultMember"` or `name: "*"`
+
 
 ```js
 import {memberA as aliasA, memberB} from "my-module";
 ```
+To select a _member_ pass:  
 `name: "memberA"` or `name: "memberB"`
+
+
+##### `rename` <samp>[option for actions]</samp>
+Type: `String`  
+Default: `null`  
+
+This option is used to rename a specific part (`defaultMember`, `member`, `module`). The value is the new name of the selected part.
+
+
+##### `keepAlias` <samp>[option for actions]</samp>
+Type: `Boolean`  
+Default: `false`  
+
+This is an extra option to [rename](#raname) a (default) members. If true, the alias will kept untouched, otherwise it gets overwritten in the renaming process, wether a new alias is set or not.
 
 
 ##### `remove` <samp>[option for actions]</samp>
 Type: `Any`  
 Default: `null`  
 
-When no part was selected, this removes the entire unit &rarr; import statements. The value is irrelevant. If this is the only action it can be passed as a string: `actions: "remove"`. If a part is selected only the according part is getting removed. For example, to remove all non default members:
-```js
-actions: {
-    select: members,
-    remove: null
-}
+When no part was selected, this removes the entire unit &rarr; import statement. The value is irrelevant. If this is the only action it can be passed as a string: `actions: "remove"`. If a part is selected (`defaultMembers`, `members` or `module`) only the according part is getting removed.
 
 
 
