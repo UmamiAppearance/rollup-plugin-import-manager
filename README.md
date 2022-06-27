@@ -574,11 +574,70 @@ Result:
 import { foo, baz as corge, quux as grault } from "quuz";
 ```
 
+## General Hints
+
+### Chaining
+It is possible to address every part of a statement in one go. The order doesn't matter. But one part should not selected twice, which might produce unwanted results. To address every part of a [`unit`](#units) with its [`actions`](#actions-option-for-units) can be as complex as follows.
+
+Example Statement:
+```js
+import foo, { bar } from "baz";
+```
+
+```js
+plugins: [
+    importManager({
+        units: {
+            file: "index.js",
+            module: "baz", 
+            actions: [
+                {
+                    select: "defaultMember",
+                    name: "foo"
+                    remove: null
+                },
+                {
+                    select: "defaultMembers",
+                    add: "qux"
+                },
+                {
+                    select: "member",
+                    name: "bar",
+                    alias: "quux"
+                },
+                {
+                    select: "members",
+                    add: [
+                        "quuz",
+                        "corge"
+                    ] 
+                },
+                {
+                    select: "module",
+                    rename: "grault"
+                }
+            ]
+        }
+    })
+]
+```
+
+Result:
+```js
+import qux, { bar as quux, quuz, corge } from "grault";
+```
+
+This is in no way an efficient, but an example to show the complexity modifications are allowed to have. 
+
+### Array and Object shortening
+As a general rule all arrays can be unpacked if only one member is inside. Objects with meaningless values, can be passed as a string, if syntactically allowed. An example is shown [here](#shorthand-method)
+
+
 
 ## Debugging
 
-### showDiff
-As a general hint while creating a `rollup.config.js` [configuration file](https://www.rollupjs.org/guide/en/#configuration-files) it is useful to enable the diff logging:
+### Show Diff
+A general hint while creating a `rollup.config.js` [configuration file](https://www.rollupjs.org/guide/en/#configuration-files): it is useful to enable [`diff`](#show-diff) logging:
 
 ```js
 plugins: [
@@ -591,8 +650,8 @@ plugins: [
 ]
 ```
 
-### debug keyword
-To visualize the properties of a specific file it can help to stop the building process and throw a `DebuggingError`.
+### Debugging Files
+To visualize the properties of a specific file, it can help to stop the building process and throw a `DebuggingError`.
 
 ```js
 plugins: [
@@ -619,9 +678,9 @@ plugins: [
 ]
 ```
 
-In both cases the include keyword is also passed. Otherwise the debug key would make the build process stop at the very first file it touches.
+In both cases the [`include`](#include) keyword is also passed. Otherwise the debug key would make the build process stop at the very first file it touches (if there is only one file anyway it is not necessary to pass it).
 
-### debugging units
+### Debugging Units
 Also a single unit can be debugged. The keyword can be added to the existing list in an [actions](#actions-option-for-units) object.
 
 ```js
