@@ -3,7 +3,54 @@
 A Rollup plugin which makes it possible to manipulate import statement. Deleting, adding, manipulating the members. It is made for ES6 Import Statements. But for commonjs and dynamic imports at least it is possible to change the imported module.
 
 ## Table of Contents
-TODO
+  - [Install](#install)
+  - [How it works](#how-it-works)
+  - [Usage](#usage)
+  - [Options](#options)
+    - [`include`](#include)
+    - [`exclude`](#exclude)
+    - [`showDiff`](#showdiff)
+    - [`debug`](#debug)
+    - [`units`](#units)
+      - [`module` <samp>[option for units]</samp>](#module-option-for-units)
+      - [`hash` <samp>[option for units]</samp>](#hash-option-for-units)
+      - [`id` <samp>[option for units]</samp>](#id-option-for-units)
+      - [`file` <samp>[option for units]</samp>](#file-option-for-units)
+      - [`type` <samp>[option for units]</samp>](#type-option-for-units)
+      - [`createModule` <samp>[option for units]</samp>](#createmodule-option-for-units)
+      - [`insert` <samp>[option for units]</samp>](#insert-option-for-units)
+      - [`append` <samp>[option for units]</samp>](#append-option-for-units)
+      - [`prepend` <samp>[option for units]</samp>](#prepend-option-for-units)
+      - [`actions` <samp>[option for units]</samp>](#actions-option-for-units)
+        - [`debug` <samp>[option for actions]</samp>](#debug-option-for-actions)
+        - [`select` <samp>[option for actions]</samp>](#select-option-for-actions)
+        - [`name` <samp>[option for actions]</samp>](#name-option-for-actions)
+        - [`alias` <samp>[option for actions]</samp>](#alias-option-for-actions)
+        - [`rename` <samp>[option for actions]</samp>](#rename-option-for-actions)
+        - [`modType` <samp>[option for actions]</samp>](#modtype-option-for-actions)
+        - [`keepAlias` <samp>[option for actions]</samp>](#keepalias-option-for-actions)
+        - [`remove` <samp>[option for actions]</samp>](#remove-option-for-actions)
+        - [`add` <samp>[option for actions]</samp>](#add-option-for-actions)
+  - [Examples](#examples)
+    - [Creating an Import Statement](#creating-an-import-statement)
+      - [Creating an Import Statement, appended after another statement:](#creating-an-import-statement-appended-after-another-statement)
+    - [Removing an Import Statement](#removing-an-import-statement)
+      - [Shorthand Method](#shorthand-method)
+    - [Changing the module](#changing-the-module)
+    - [Addressing the (default) members](#addressing-the-default-members)
+      - [Adding a defaultMember](#adding-a-defaultmember)
+      - [Removing a member](#removing-a-member)
+      - [Changing a defaultMember name](#changing-a-defaultmember-name)
+        - [Renaming but keeping the alias](#renaming-but-keeping-the-alias)
+        - [Addressing an alias](#addressing-an-alias)
+  - [General Hints](#general-hints)
+    - [Chaining](#chaining)
+    - [Array and Object shortening](#array-and-object-shortening)
+  - [Debugging](#debugging)
+    - [Show Diff](#show-diff)
+    - [Debugging Files](#debugging-files)
+    - [Debugging Units](#debugging-units)
+  - [License](#license)
 
 ## Install
 Using npm:
@@ -712,4 +759,10 @@ plugins: [
     })
 ]
 ```
+
+## License
+
+[MIT](https://opensource.org/licenses/MIT)
+
+Copyright (c) 2022, UmamiAppearance
 
