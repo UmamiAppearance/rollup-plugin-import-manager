@@ -363,7 +363,7 @@ plugins: [
 ]
 ```
 
-### Changing the Module
+### Changing the module
 In this example there is a relative path that should be changed to a non relative module.
 ```js
 import foo from "./path/to/bar.js";
@@ -393,7 +393,7 @@ import foo from "bar";
 ### Addressing the (default) members
 `defaultMembers` and `members` are using the exact same methods. It is only important to keep in mind to address default members with `select: "defaultMembers"` or for a specific one `select: "defaultMember"`; for members `select: "members"` and `select: "member"`. 
 
-### Adding a defaultMember
+#### Adding a defaultMember
 Example:
 ```js
 import foo from "bar";
@@ -448,7 +448,7 @@ Result:
 import foo, { baz, qux } from "bar";
 ```
 
-### Removing a member
+#### Removing a member
 ```js
 import { foo, bar, baz } from "qux";
 ```  
@@ -474,7 +474,7 @@ Result:
 import { foo, baz } from "qux";
 ```  
 
-### Changing a defaultMember name
+#### Changing a defaultMember name
 Example:
 ```js
 import foo from "bar";
@@ -496,7 +496,7 @@ plugins: [
 ]
 ```
 
-#### Renaming but keeping an alias
+##### Renaming but keeping the alias
 Example:
 ```js
 import { foo as bar } from "baz";
@@ -525,7 +525,7 @@ Result:
 import { qux as bar } from "baz";
 ```
 
-#### Addressing an alias
+##### Addressing an alias
 Aliases can also be addressed (_set_, _renamed_ and _removed_). All possibilities demonstrated at once via [chaining](#chaining).
 
 Example:
@@ -575,19 +575,82 @@ import { foo, baz as corge, quux as grault } from "quuz";
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## Debugging
-TODO
+
+### showDiff
+As a general hint while creating a `rollup.config.js` [configuration file](https://www.rollupjs.org/guide/en/#configuration-files) it is useful to enable the diff logging:
+
+```js
+plugins: [
+    importManager({
+        showDiff: null,
+        units: {
+            //...
+        }
+    })
+]
+```
+
+### debug keyword
+To visualize the properties of a specific file it can help to stop the building process and throw a `DebuggingError`.
+
+```js
+plugins: [
+    importManager({
+        include: "index.js"
+        debug: null,
+        units: {
+            //...
+        }
+    })
+]
+```
+Or more verbose:
+
+```js
+plugins: [
+    importManager({
+        include: "index.js"
+        debug: "verbose",
+        units: {
+            //...
+        }
+    })
+]
+```
+
+In both cases the include keyword is also passed. Otherwise the debug key would make the build process stop at the very first file it touches.
+
+### debugging units
+Also a single unit can be debugged. The keyword can be added to the existing list in an [actions](#actions-option-for-units) object.
+
+```js
+plugins: [
+    importManager({
+        units: {
+            file: "index.js",
+            module: "foo",
+            actions: {
+                select: "defaultMember",
+                name: "foo",
+                rename: "baz"
+                debug: null
+            }
+        }
+    })
+]
+```
+
+Or as a shorthand, if it is the only option:
+```js
+plugins: [
+    importManager({
+        units: {
+            file: "index.js",
+            module: "foo",
+            actions: "debug"
+        }
+    })
+]
+```
+
