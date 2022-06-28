@@ -9,7 +9,7 @@
     "build-cjs": "rollup ./src/index.js --file ./cjs/import-manager.cjs --format cjs -m",
     "lint": "eslint ./src/*",
     "lint:fix": "eslint ./src/* --fix",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "ava"
   },
   "repository": {
     "type": "git",

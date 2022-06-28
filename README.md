@@ -1,6 +1,6 @@
 # rollup-plugin-import-manager
 
-A Rollup plugin which makes it possible to manipulate import statement. Deleting, adding, manipulating the members. It is made for ES6 Import Statements. But for commonjs and dynamic imports at least it is possible to change the imported module.
+A Rollup plugin which makes it possible to manipulate import statement. Deleting, adding, manipulating the members. It is made for ES6 Import Statements. But for commonjs and dynamic imports at least it is possible to [change](#rename-option-for-actions) the imported module.
 
 ## Table of Contents
   - [Install](#install)

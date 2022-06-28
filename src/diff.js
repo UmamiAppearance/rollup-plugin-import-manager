@@ -1,4 +1,4 @@
-import Diff from "diff";
+import { Diff } from "diff";
 import { blue, bold, red, green, gray } from "colorette";
 
 
