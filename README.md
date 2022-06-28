@@ -240,7 +240,7 @@ Default: `null`
 Additional parameter for [`createModule`](#createModule-options-for-units). Instead of somehow adding it around another unit, this keyword replaces the according import statement, which is also passed as a [`unit`](#units) object. See it in action [here](#examples). 
 
 
-#### `actions` <samp>[option for units]</samp>
+#### `actions` <samp>[option for units]</samp>  
 Type: `Object | `Array[...Object]`  
 Default: `null`  
 
