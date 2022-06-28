@@ -65,7 +65,7 @@ npm install rollup-plugin-import-manager --save-dev
 
 ## Usage
 
-Create a `rollup.config.js` [configuration file](https://www.rollupjs.org/guide/en/#configuration-files) and import the plugin, eg:
+Create a `rollup.config.js` [configuration file](https://www.rollupjs.org/guide/en/#configuration-files) and import the plugin.
 
 ```js
 import { importManager } from "rollup-plugin-import-manager";
@@ -124,7 +124,7 @@ Default: `null`
 A [debugging](#debugging) method. If more than one source file is involved, this really only is useful in combination with [include](#include). It stops the building process by throwing an intentional error and lists all units of the first file, that is processed. Even more verbose information about all unit objects can be made accessible by passing the strings `verbose`, `object(s)` or `import(s)` (which one to use doesn't matter). 
 
 ### `units`
-Type: `Object` | Array[...Object]`  
+Type: `Object` | `Array[...Object]`  
 Default: `null`  
 
 This is where the plugin comes to life. Here is the place where units are getting selected, created or removed. It has several **options** by itself. Units are objects, for multiple units pass an array of objects:
