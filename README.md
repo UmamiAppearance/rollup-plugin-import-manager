@@ -640,7 +640,7 @@ plugins: [
             actions: [
                 {
                     select: "defaultMember",
-                    name: "foo"
+                    name: "foo",
                     remove: null
                 },
                 {
@@ -696,6 +696,8 @@ plugins: [
     })
 ]
 ```
+
+This will log the performed changes to the console.
 
 ### Debugging Files
 To visualize the properties of a specific file, it can help to stop the building process and throw a `DebuggingError`.
