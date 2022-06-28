@@ -21,6 +21,7 @@ A Rollup plugin which makes it possible to manipulate import statement. Deleting
       - [`insert`](#insert-option-for-units)
       - [`append`](#append-option-for-units)
       - [`prepend`](#prepend-option-for-units)
+      - [`replace`](#replace-option-for-units)
       - [`actions`](#actions-option-for-units)
         - [`debug`](#debug-option-for-actions)
         - [`select`](#select-option-for-actions)
@@ -33,7 +34,9 @@ A Rollup plugin which makes it possible to manipulate import statement. Deleting
         - [`add`](#add-option-for-actions)
   - [Examples](#examples)
     - [Creating an Import Statement](#creating-an-import-statement)
-      - [Creating an Import Statement, appended after another statement:](#creating-an-import-statement-appended-after-another-statement)
+      - [Creating an Import Statement, appended after another statement](#creating-an-import-statement-appended-after-another-statement)
+      - [Creating an Import Statement, prepended before another statement](#creating-an-import-statement-prepended-before-another-statement)
+      - [Creating an Import Statement by replacing another statement](#creating-an-import-statement-by-replacing-another-statement)
     - [Removing an Import Statement](#removing-an-import-statement)
       - [Shorthand Method](#shorthand-method)
     - [Changing the module](#changing-the-module)
@@ -60,7 +63,6 @@ npm install rollup-plugin-import-manager --save-dev
 
 ## How it works
 **rollup-plugin-import-manager** analyzes each file (which is uses for the rollup building process) for import statements. Those are converted into unit objects, which the user can interact with. Also the creation of new units &rarr; import statements is possible. 
-
 
 
 ## Usage
@@ -168,7 +170,7 @@ Default: `null`
 Internally every unit gets an Id. There are different scopes for the generation:
 
 | type    | scope  |
-| ------- |--------|
+| ------- | ------ | 
 | es6     | `1000` |
 | dynamic | `2000` |
 | cjs     | `3000` |
@@ -214,28 +216,35 @@ Eg: `createModule: "./path/to/my-module.js"`
 Type: `String`  
 Default: `"bottom"`
 
-Additional parameter for [createModule](#createModule-options-for-units). If set to bottom, the file is analyzed and the import statement is appended after the last found es6 import statement (which is the default behavior if not set). Setting it top top will append the statement on top of the file, directly after the the description if present (this is th default if no other es import statement was found).
+Additional parameter for [`createModule`](#createModule-options-for-units). If set to bottom, the file is analyzed and the import statement is appended after the last found es6 import statement (which is the default behavior if not set). Setting it top top will append the statement on top of the file, directly after the the description if present (this is th default if no other es import statement was found).
 
 
 #### `append` <samp>[option for units]</samp>
 Type: `Object`  
 Default: `null`
 
-Additional parameter for [createModule](#createModule-options-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to append it after another import statement. This works by passing a unit as a value. See it in action here: [Examples](#examples). 
+Additional parameter for [`createModule`](#createModule-options-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to append it after another import statement. This works by passing a [`unit`](#units) as a value. See it in action [here](#examples). 
 
 
 #### `prepend` <samp>[option for units]</samp>
 Type: `Object`  
 Default: `null`
 
-Additional parameter for [createModule](#createModule-options-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to prepend it before another import statement. This works by passing a unit as a value. See it in action here: [Examples](#examples). 
+Additional parameter for [`createModule`](#createModule-options-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to prepend it before another import statement. This works by passing a [`unit`](#units) as a value. See it in action [here](#examples). 
+
+
+#### `replace` <samp>[option for units]</samp>
+Type: `Object`  
+Default: `null`
+
+Additional parameter for [`createModule`](#createModule-options-for-units). Instead of somehow adding it around another unit, this keyword replaces the according import statement, which is also passed as a [`unit`](#units) object. See it in action [here](#examples). 
 
 
 #### `actions` <samp>[option for units]</samp>
-Type: `Object | Array[...Object]`  
+Type: `Object | `Array[...Object]`  
 Default: `null`  
 
-This is the place where the actual manipulation of a unit (and ultimately statement) taken place. Several actions/**options** can get passed, for a singular option, use an object for multiple an array of objects:
+This is the place where the actual manipulation of a unit (and ultimately statement) taken place. Several actions/**options** can be passed, for a singular option, use an object for multiple an array of objects:
 
 ---
 
@@ -307,7 +316,7 @@ When no part was selected, this removes the entire unit &rarr; import statement.
 
 
 ##### `add` <samp>[option for actions]</samp>
-Type: `String | `Array[...String]``
+Type: `String | `Array[...String]`
 Default: `null`  
 
 An additional parameter for `defaultMembers` or `members`. It adds one or multiple (default) members to the existing ones. The group has to be [selected](#select-option-for-actions).
@@ -342,12 +351,11 @@ import bar, { baz as qux } from "./path/to/foo.js";
 ```
 
 #### Creating an Import Statement, appended after another statement:
-The goal is to append a new statement after the following import statement in "index.js":
+Example: 
 ```js
 import { foo } from "bar";
 ```
 
-To achieve this the following can be used:
 ```js
 plugins: [
     importManager({
@@ -371,6 +379,62 @@ Leeds to:
 import { foo } from "bar";
 import * as qux from "./path/to/baz.js";
 ```
+
+#### Creating an Import Statement, prepended before another statement:
+Example:
+```js
+import { foo } from "bar";
+```
+
+```js
+plugins: [
+    importManager({
+        units: {
+            file: "index.js",
+            createModule: "./path/to/baz.js", 
+            actions: {
+                "select": "defaultMembers",
+                "add": "* as qux"
+            },
+            prepend: {
+                module: "bar"
+            }
+        }
+    })
+]
+```  
+
+#### Creating an Import Statement by replacing another statement:
+Example:
+```js
+import { foo } from "bar";
+```
+
+```js
+plugins: [
+    importManager({
+        units: {
+            file: "index.js",
+            createModule: "./path/to/baz.js", 
+            actions: {
+                "select": "defaultMembers",
+                "add": "* as qux"
+            },
+            replace: {
+                module: "bar"
+            }
+        }
+    })
+]
+```  
+
+
+Leeds to:
+```js
+import * as qux from "./path/to/baz.js";
+```
+
+
 
 ### Removing an Import Statement
 If we take the example from before:
