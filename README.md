@@ -223,21 +223,21 @@ Additional parameter for [`createModule`](#createModule-options-for-units). If s
 Type: `Object`  
 Default: `null`
 
-Additional parameter for [`createModule`](#createModule-options-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to append it after another import statement. This works by passing a [`unit`](#units) as a value. See it in action [here](#examples). 
+Additional parameter for [`createModule`](#createModule-options-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to append it after another import statement. This works by passing a [`unit`](#units) as a value. See it in action [here](#creating-an-import-statement-appended-after-another-statement). 
 
 
 #### `prepend` <samp>[option for units]</samp>
 Type: `Object`  
 Default: `null`
 
-Additional parameter for [`createModule`](#createModule-options-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to prepend it before another import statement. This works by passing a [`unit`](#units) as a value. See it in action [here](#examples). 
+Additional parameter for [`createModule`](#createModule-options-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to prepend it before another import statement. This works by passing a [`unit`](#units) as a value. See it in action [here](#creating-an-import-statement-prepended-before-another-statement). 
 
 
 #### `replace` <samp>[option for units]</samp>
 Type: `Object`  
 Default: `null`
 
-Additional parameter for [`createModule`](#createModule-options-for-units). Instead of somehow adding it around another unit, this keyword replaces the according import statement, which is also passed as a [`unit`](#units) object. See it in action [here](#examples). 
+Additional parameter for [`createModule`](#createModule-options-for-units). Instead of somehow adding it around another unit, this keyword replaces the according import statement, which is also passed as a [`unit`](#units) object. See it in action [here](#creating-an-import-statement-by-replacing-another-statement). 
 
 
 #### `actions` <samp>[option for units]</samp>  
