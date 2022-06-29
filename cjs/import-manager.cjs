@@ -5,12 +5,11 @@ Object.defineProperty(exports, '__esModule', { value: true });
 var pluginutils = require('@rollup/pluginutils');
 var MagicString = require('magic-string');
 var colorette = require('colorette');
-var Diff = require('diff');
+var diff = require('diff');
 
 function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
 var MagicString__default = /*#__PURE__*/_interopDefaultLegacy(MagicString);
-var Diff__default = /*#__PURE__*/_interopDefaultLegacy(Diff);
 
 /**
  * Custom error to tell the user, that it is
@@ -1330,9 +1329,9 @@ const showDiff = (filename, source, code, diffOption) => {
     console.log(colorette.gray("BEGIN >>>"));
 
     if (fileMode) {
-        const diff = Diff__default["default"].diffLines(source, code);
+        const diff$1 = diff.diffLines(source, code);
         
-        diff.forEach((part) => {
+        diff$1.forEach((part) => {
             let msg;
             if (part.added) {
                 msg = colorette.green(addAngles(">", part.value));
@@ -1348,11 +1347,11 @@ const showDiff = (filename, source, code, diffOption) => {
     }
         
     else {
-        const diff = Diff__default["default"].structuredPatch("", "", source, code, "", "", {
+        const diff$1 = diff.structuredPatch("", "", source, code, "", "", {
             context: 0
         });
         
-        for (const part of diff.hunks) {
+        for (const part of diff$1.hunks) {
 
             // add
             if (part.oldLines === 0) {
@@ -1540,7 +1539,6 @@ const importManager = (options={}) => {
                             }
                         }
 
-                        console.log(mem);
                         const statement = manager.makeES6Statement(module, mem.defaultMembers, mem.members);
                         
                         let mode;
@@ -1599,7 +1597,7 @@ const importManager = (options={}) => {
                                     unit.methods.renameModule(action.rename, modType);
                                 }
 
-                                // single (default) members
+                                // single (default) member
                                 else if (action.select === "member" || action.select === "defaultMember" ) {
                                     const memberType = action.select;
                                     

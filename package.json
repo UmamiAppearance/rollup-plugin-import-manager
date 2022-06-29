@@ -6,7 +6,7 @@
   "module": "./src/index.js",
   "type": "module",
   "scripts": {
-    "build-cjs": "rollup ./src/index.js --file ./cjs/import-manager.cjs --format cjs -m",
+    "build:cjs": "rollup ./src/index.js --file ./cjs/import-manager.cjs --format cjs -m",
     "lint": "eslint ./src/*",
     "lint:fix": "eslint ./src/* --fix",
     "test": "ava"

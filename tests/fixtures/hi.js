@@ -1,4 +1,4 @@
-import { hello as hi } from "./test/fixtures/lib/hello.js";
+import { hello as hi } from "./lib/hello.js";
 
 const greeting = () => hi();
 

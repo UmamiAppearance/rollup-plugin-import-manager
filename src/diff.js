@@ -1,4 +1,4 @@
-import { Diff } from "diff";
+import { diffLines, structuredPatch } from "diff";
 import { blue, bold, red, green, gray } from "colorette";
 
 
@@ -45,7 +45,7 @@ const showDiff = (filename, source, code, diffOption) => {
     console.log(gray("BEGIN >>>"));
 
     if (fileMode) {
-        const diff = Diff.diffLines(source, code);
+        const diff = diffLines(source, code);
         
         diff.forEach((part) => {
             let msg;
@@ -63,7 +63,7 @@ const showDiff = (filename, source, code, diffOption) => {
     }
         
     else {
-        const diff = Diff.structuredPatch("", "", source, code, "", "", {
+        const diff = structuredPatch("", "", source, code, "", "", {
             context: 0
         });
         
