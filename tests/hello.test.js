@@ -11,16 +11,15 @@ test("hello", async (t) => {
             importManager({
                 showDiff: null,
                 //debug: "verbose",
-                include: "**/hi.js",
                 units: {
                     file: "**/hi.js",
                     module: "hello",
                     actions: {
-                        select: "members",
+                        select: "member",
                         name: "hello",
                         rename: "helloWorld",
                         keepAlias: true,
-                        debug: null
+                        //debug: null
                     }
                 }
             })
