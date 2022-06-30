@@ -767,9 +767,21 @@ class ImportManager {
         console.log(JSON.stringify(otherImports, null, 4));
         const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(-+);?/g);
         const b = [];
-        acornWalk.simple(this.parsedCode, {
-            ImportSpecifier(node) {
+        acornWalk.full(this.parsedCode, node => {
+            console.log(node.type);
+            if (node.type === "ImportDeclaration") {
                 b.push(node);
+            } else if (node.type === "ImportExpression") {
+                console.log("HERE", node);
+
+                const code = this.code;
+            
+                acornWalk.ancestor(this.parsedCode, {
+                    ImportExpression(_, ancestors) {
+                        console.log("THIS BOY -->", ancestors[1]);
+                        console.log("\n\n", "lets see:", code.slice(ancestors[1].start, ancestors[1].end), "\n\n");
+                    }
+                });
             }
         });
 
