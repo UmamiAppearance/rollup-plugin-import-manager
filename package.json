@@ -33,6 +33,7 @@
   ],
   "dependencies": {
     "@rollup/pluginutils": "^4.2.1",
+    "acorn": "^8.7.1",
     "colorette": "^2.0.19",
     "diff": "^5.1.0",
     "magic-string": "^0.26.2"
