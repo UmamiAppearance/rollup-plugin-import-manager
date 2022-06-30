@@ -1,5 +1,7 @@
 import ImportManagerUnitMethods from "./unit-methods.js";
 import { DebuggingError, MatchError } from "./errors.js";
+import { parse } from "acorn";
+import { simple as simpleWalk } from "acorn-walk"; 
 import MagicString from "magic-string";
 import { bold, yellow } from "colorette";
 
@@ -8,7 +10,7 @@ import { bold, yellow } from "colorette";
  * The plugins core class. It handles the 
  * code analysis, creates units from import
  * statements, attaches methods to the units
- * and more. 
+ * and more.
  */
 export default class ImportManager {
 
@@ -50,6 +52,10 @@ export default class ImportManager {
         this.idTypes = Object.fromEntries(Object.entries(this.imports).map(([k, v]) => [v.idScope, k]));
 
         this.code = new MagicString(source);
+        this.parsedCode = parse(source, {
+            ecmaVersion: "latest",
+            sourceType: "module"
+        });
         this.blackenedCode = this.prepareSource();
         this.hashList = {};
         this.filename = filename;
@@ -393,8 +399,18 @@ export default class ImportManager {
      * instance.
      */
     getES6Imports() {
-        
+        const otherImports = this.parsedCode.body.filter(b => b.type === "ImportDeclaration");
+        console.log(JSON.stringify(otherImports, null, 4));
         const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(-+);?/g);
+        const b = [];
+        simpleWalk(this.parsedCode, {
+            ImportSpecifier(node) {
+                b.push(node);
+            }
+        });
+
+        console.log("bbbbb", b);
+
         // match[0]: the complete import statement
         // match[1]: the member part of the statement (may be empty)
         // match[2]: the module part

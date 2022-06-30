@@ -3,6 +3,8 @@
 Object.defineProperty(exports, '__esModule', { value: true });
 
 var pluginutils = require('@rollup/pluginutils');
+var acorn = require('acorn');
+var acornWalk = require('acorn-walk');
 var MagicString = require('magic-string');
 var colorette = require('colorette');
 var diff = require('diff');
@@ -372,7 +374,7 @@ class ImportManagerUnitMethods {
  * The plugins core class. It handles the 
  * code analysis, creates units from import
  * statements, attaches methods to the units
- * and more. 
+ * and more.
  */
 class ImportManager {
 
@@ -414,6 +416,10 @@ class ImportManager {
         this.idTypes = Object.fromEntries(Object.entries(this.imports).map(([k, v]) => [v.idScope, k]));
 
         this.code = new MagicString__default["default"](source);
+        this.parsedCode = acorn.parse(source, {
+            ecmaVersion: "latest",
+            sourceType: "module"
+        });
         this.blackenedCode = this.prepareSource();
         this.hashList = {};
         this.filename = filename;
@@ -757,8 +763,18 @@ class ImportManager {
      * instance.
      */
     getES6Imports() {
-        
+        const otherImports = this.parsedCode.body.filter(b => b.type === "ImportDeclaration");
+        console.log(JSON.stringify(otherImports, null, 4));
         const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(-+);?/g);
+        const b = [];
+        acornWalk.simple(this.parsedCode, {
+            ImportSpecifier(node) {
+                b.push(node);
+            }
+        });
+
+        console.log("bbbbb", b);
+
         // match[0]: the complete import statement
         // match[1]: the member part of the statement (may be empty)
         // match[2]: the module part
