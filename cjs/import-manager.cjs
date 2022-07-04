@@ -415,6 +415,11 @@ class ImportManager {
         // id scope lookup table with the associated type
         this.idTypes = Object.fromEntries(Object.entries(this.imports).map(([k, v]) => [v.idScope, k]));
 
+        this.candidates = {
+            "cjs": [],
+            "dynamic": [],
+            "es6": []
+        };
         this.code = new MagicString__default["default"](source);
         this.parsedCode = acorn.parse(source, {
             ecmaVersion: "latest",
@@ -471,6 +476,35 @@ class ImportManager {
      * @returns {string} - The blackened source.
      */
     prepareSource() {
+
+        // new way
+
+        this.candidates.es6 = this.parsedCode.body.filter(b => b.type === "ImportDeclaration");
+        
+        const others = this.parsedCode.body.filter(b =>
+            b.type === "VariableDeclaration" ||
+            b.type === "ExpressionStatement"
+        );
+
+        const searchCJS = !this.candidates.es6.length;
+        console.log("SEARCH_CJS", searchCJS);
+        for (const node of others) {
+            acornWalk.full(node, n => {
+                console.log(n.name);
+                if (n.type === "ImportExpression") {
+                    this.candidates.dynamic.push(node);
+                } else if (searchCJS && n.name === "require") {
+                    this.candidates.cjs.push(node);
+                }
+            });
+        }
+
+        console.log("ES6 >>> ", this.candidates.es6);
+        console.log("DYNAMIC >>> ", this.candidates.dynamic);
+        console.log("CJS >>> ", this.candidates.cjs);
+
+        // new end
+
 
         // clone the original code
         const src = this.code.clone();
@@ -763,29 +797,7 @@ class ImportManager {
      * instance.
      */
     getES6Imports() {
-        const otherImports = this.parsedCode.body.filter(b => b.type === "ImportDeclaration");
-        console.log(JSON.stringify(otherImports, null, 4));
         const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(-+);?/g);
-        const b = [];
-        acornWalk.full(this.parsedCode, node => {
-            console.log(node.type);
-            if (node.type === "ImportDeclaration") {
-                b.push(node);
-            } else if (node.type === "ImportExpression") {
-                console.log("HERE", node);
-
-                const code = this.code;
-            
-                acornWalk.ancestor(this.parsedCode, {
-                    ImportExpression(_, ancestors) {
-                        console.log("THIS BOY -->", ancestors[1]);
-                        console.log("\n\n", "lets see:", code.slice(ancestors[1].start, ancestors[1].end), "\n\n");
-                    }
-                });
-            }
-        });
-
-        console.log("bbbbb", b);
 
         // match[0]: the complete import statement
         // match[1]: the member part of the statement (may be empty)
