@@ -5,6 +5,8 @@ import { full as fullWalk } from "acorn-walk";
 import MagicString from "magic-string";
 import { bold, yellow } from "colorette";
 
+let COMP_A;
+let COMP_B;
 
 /**
  * The plugins core class. It handles the 
@@ -51,16 +53,13 @@ export default class ImportManager {
         // id scope lookup table with the associated type
         this.idTypes = Object.fromEntries(Object.entries(this.imports).map(([k, v]) => [v.idScope, k]));
 
-        this.candidates = {
-            "cjs": [],
-            "dynamic": [],
-            "es6": []
-        };
         this.code = new MagicString(source);
-        this.parsedCode = parse(source, {
+
+        this.parseOptions = {
             ecmaVersion: "latest",
             sourceType: "module"
-        });
+        };
+        this.parsedCode = parse(source, this.parseOptions);
         this.blackenedCode = this.prepareSource();
         this.hashList = {};
         this.filename = filename;
@@ -114,30 +113,37 @@ export default class ImportManager {
     prepareSource() {
 
         // new way
-
-        this.candidates.es6 = this.parsedCode.body.filter(b => b.type === "ImportDeclaration");
         
-        const others = this.parsedCode.body.filter(b =>
-            b.type === "VariableDeclaration" ||
-            b.type === "ExpressionStatement"
-        );
-
-        const searchCJS = !this.candidates.es6.length;
-        
-        for (const node of others) {
-            fullWalk(node, n => {
-                console.log(n.name);
-                if (n.type === "ImportExpression") {
-                    this.candidates.dynamic.push(node);
-                } else if (searchCJS && n.name === "require") {
-                    this.candidates.cjs.push(node);
+        let searchCJS = true;
+        this.parsedCode.body.forEach(node => {
+            if (node.type === "ImportDeclaration") {
+                if (searchCJS) {
+                    searchCJS = false;
                 }
-            });
-        }
+                const unit = this.es6NodeToUnit(node);
+            }
+        });
 
-        console.log("ES6 >>> ", this.candidates.es6);
-        console.log("DYNAMIC >>> ", this.candidates.dynamic);
-        console.log("CJS >>> ", this.candidates.cjs);
+        const nodes = {
+            cjs: [],
+            dynamic: [],
+        };
+        
+        this.parsedCode.body.forEach(node => {
+            if (node.type === "VariableDeclaration" ||
+                node.type === "ExpressionStatement")
+            {
+                fullWalk(node, n => {
+                    if (n.type === "ImportExpression") {
+                        nodes.dynamic.push(node);
+                    } else if (searchCJS && n.type === "Identifier" && n.name === "require") {
+                        nodes.cjs.push(node);
+                    }
+                });
+            }
+        });
+
+        console.log(nodes);
 
         // new end
 
@@ -423,6 +429,87 @@ export default class ImportManager {
             end
         };
 
+        console.log("::: UNIT ORIG :::");
+        console.log(JSON.stringify(unit, null, 4));
+        return unit;
+    }
+
+    es6NodeToUnit(node) {
+
+        let code;
+
+        if (typeof node === "string") {
+            code = new MagicString(node);
+            node = parse(node, this.parseOptions);
+        } else {
+            code = new MagicString(this.code.slice(node.start, node.end));
+        }
+
+        const start = node.start;
+        
+        const mem = {
+            defaultMembers: {
+                count: 0,
+                entities: []
+            },
+            members: {
+                count: 0,
+                entities: []
+            }
+        };
+
+        for (const spec of node.specifiers) {
+            
+            const memType = spec.type === "ImportSpecifier" ? "members" : "defaultMembers";
+            const index = mem[memType].count;
+
+            console.log(spec);
+            const member = {
+                index,
+                start: spec.start - start,
+                end: spec.end - start,
+                absEnd: spec.local.end - start
+            };
+            member.name = code.slice(member.start, member.end);
+            // TODO: not correct yet
+
+            mem[memType].entities.push(member);
+            mem[memType].count ++;
+
+            if (index > 0) {
+                member.last = mem[memType].entities[index-1].absEnd;
+                mem[memType].entities[index-1].next = mem[memType].start;
+            }
+            
+        }
+
+        // store the first separator of the non default
+        // and default members for a consistent style
+        // if one wants to add members
+        mem.defaultMembers.separator = (mem.defaultMembers.count > 1) ? code.slice(mem.defaultMembers.entities[0].absEnd, mem.defaultMembers.entities[0].next) : ", ";
+        mem.members.separator = (mem.members.count > 1) ? code.slice(mem.members.entities[0].absEnd, mem.members.entities[0].next) : ", ";
+
+
+        const module = {
+            name: node.source.value,
+            start: node.source.start - start,
+            end: node.source.end - start,
+            quotes: node.source.raw.at(0),
+            type: "string"
+        };
+
+        
+        const unit = {
+            code,
+            defaultMembers: mem.defaultMembers,
+            members: mem.members,
+            module,
+            start,
+            end: node.end
+        };
+
+        console.log("::: UNIT NEW :::");
+        console.log(JSON.stringify(unit, null, 4));
         return unit;
     }
 
