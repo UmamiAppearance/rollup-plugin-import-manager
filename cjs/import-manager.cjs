@@ -824,13 +824,26 @@ class ImportManager {
             
             const memType = spec.type === "ImportSpecifier" ? "members" : "defaultMembers";
             const index = mem[memType].count;
-            const hasAlias = "imported" in spec;
+            const hasAlias = spec.local.start !== spec.start;
+
+            console.log(spec);
+            console.log("HAS_ALIAS", hasAlias);
+
+            const mStart = spec.start - start;
+            let end;
+            if (!hasAlias) {
+                end = spec.end - start;
+            } else {
+                end = (memType === "members") ? spec.imported.end-start : mStart+1;
+            }
+            const name = code.slice(mStart, end);
+            
 
             const member = {
                 index,
-                name: hasAlias ? spec.imported.name : spec.local.name,
-                start: spec.start - start,
-                end: (hasAlias ? spec.imported.end : spec.end) - start,
+                name,
+                start: mStart,
+                end,
                 absEnd: spec.end - start
             };
 
@@ -852,6 +865,19 @@ class ImportManager {
 
         }
 
+        if (mem.members.count > 0) {
+            const nonDefaultMatch = code.toString().match(/{[\s\S]*?}/);
+            mem.members.start = nonDefaultMatch.index;
+            mem.members.end = mem.members.start + nonDefaultMatch.at(0).length;    
+        }
+
+        if (mem.defaultMembers.count > 0) {
+            mem.defaultMembers.start = mem.defaultMembers.entities.at(0).start;
+            mem.defaultMembers.end = (mem.members.count > 0)
+                ? mem.members.start
+                : mem.defaultMembers.entities.at(-1).absEnd;  
+        }
+
         // store the first separator of the non default
         // and default members for a consistent style
         // if one wants to add members
@@ -860,7 +886,7 @@ class ImportManager {
 
 
         const module = {
-            name: node.source.value,
+            name: node.source.value.split("/").at(-1),
             start: node.source.start - start,
             end: node.source.end - start,
             quotes: node.source.raw.at(0),
