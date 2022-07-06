@@ -5,9 +5,6 @@ import { full as fullWalk } from "acorn-walk";
 import MagicString from "magic-string";
 import { bold, yellow } from "colorette";
 
-let COMP_A;
-let COMP_B;
-
 /**
  * The plugins core class. It handles the 
  * code analysis, creates units from import
@@ -462,25 +459,32 @@ export default class ImportManager {
             
             const memType = spec.type === "ImportSpecifier" ? "members" : "defaultMembers";
             const index = mem[memType].count;
+            const hasAlias = "imported" in spec;
 
-            console.log(spec);
             const member = {
                 index,
+                name: hasAlias ? spec.imported.name : spec.local.name,
                 start: spec.start - start,
-                end: spec.end - start,
-                absEnd: spec.local.end - start
+                end: (hasAlias ? spec.imported.end : spec.end) - start,
+                absEnd: spec.end - start
             };
-            member.name = code.slice(member.start, member.end);
-            // TODO: not correct yet
 
-            mem[memType].entities.push(member);
-            mem[memType].count ++;
+            if (hasAlias) {
+                member.alias = {
+                    name: spec.local.name,
+                    start: spec.local.start - start,
+                    end: spec.local.end - start
+                };
+            }
 
             if (index > 0) {
                 member.last = mem[memType].entities[index-1].absEnd;
-                mem[memType].entities[index-1].next = mem[memType].start;
+                mem[memType].entities[index-1].next = member.start;
             }
             
+            mem[memType].entities.push(member);
+            mem[memType].count ++;
+
         }
 
         // store the first separator of the non default

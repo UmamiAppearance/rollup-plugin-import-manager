@@ -824,24 +824,32 @@ class ImportManager {
             
             const memType = spec.type === "ImportSpecifier" ? "members" : "defaultMembers";
             const index = mem[memType].count;
+            const hasAlias = "imported" in spec;
 
-            console.log(spec);
             const member = {
                 index,
+                name: hasAlias ? spec.imported.name : spec.local.name,
                 start: spec.start - start,
-                end: spec.end - start,
-                absEnd: spec.local.end - start
+                end: (hasAlias ? spec.imported.end : spec.end) - start,
+                absEnd: spec.end - start
             };
-            member.name = code.slice(member.start, member.end),
 
-            mem[memType].entities.push(member);
-            mem[memType].count ++;
+            if (hasAlias) {
+                member.alias = {
+                    name: spec.local.name,
+                    start: spec.local.start - start,
+                    end: spec.local.end - start
+                };
+            }
 
             if (index > 0) {
                 member.last = mem[memType].entities[index-1].absEnd;
-                mem[memType].entities[index-1].next = mem[memType].start;
+                mem[memType].entities[index-1].next = member.start;
             }
             
+            mem[memType].entities.push(member);
+            mem[memType].count ++;
+
         }
 
         // store the first separator of the non default
