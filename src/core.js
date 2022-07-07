@@ -52,19 +52,18 @@ export default class ImportManager {
 
         this.code = new MagicString(source);
 
-        this.parseOptions = {
-            ecmaVersion: "latest",
-            sourceType: "module"
-        };
-        this.parsedCode = parse(source, this.parseOptions);
-        this.blackenedCode = this.prepareSource();
         this.hashList = {};
         this.filename = filename;
         this.warnSpamProtection = warnSpamProtection;
+        this.parsedCode = parse(source, {
+            ecmaVersion: "latest",
+            sourceType: "module"
+        });
+        this.blackenedCode = this.prepareSource();
 
         if (autoSearch) {
             this.getDynamicImports();
-            this.getES6Imports();
+            //this.getES6Imports();
             this.getCJSImports();
         }
     }
@@ -111,6 +110,16 @@ export default class ImportManager {
 
         // new way
         
+        let cjsId = this.imports.cjs.idScope;
+        let cjsIndex = 0;
+
+        let dynamicId = this.imports.dynamic.idScope;
+        let dynamicIndex = 0;
+
+        let es6Id = this.imports.es6.idScope;
+        let es6Index = 0;
+
+
         let searchCJS = true;
         this.parsedCode.body.forEach(node => {
             if (node.type === "ImportDeclaration") {
@@ -118,6 +127,12 @@ export default class ImportManager {
                     searchCJS = false;
                 }
                 const unit = this.es6NodeToUnit(node);
+                unit.id = es6Id ++;
+                unit.index = es6Index ++;
+                unit.hash = this.#makeHash(unit);
+                this.imports.es6.units.push(unit);
+                this.imports.es6.count ++;
+
             }
         });
 
@@ -189,14 +204,14 @@ export default class ImportManager {
             
             const getProps = list => {
                 list.forEach(member => {
-                    input += member.name;
+                    inputStr += member.name;
                     if (member.alias) {
-                        input += member.alias.name;
+                        inputStr += member.alias.name;
                     }
                 });
             }; 
 
-            let input = unit.module.name;
+            let inputStr = unit.module.name;
             
             if (unit.members) {
                 getProps(unit.members.entities);
@@ -206,7 +221,7 @@ export default class ImportManager {
                 getProps(unit.defaultMembers.entities);
             }
 
-            return input + this.filename;
+            return inputStr + this.filename;
         };
 
         const input = makeInput(unit);
@@ -215,14 +230,12 @@ export default class ImportManager {
         // handle duplicates (which should not exist in reality)
         if (hash in this.hashList) {
             this.warning(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
-            let nr = 2;
-            for (;;) {
+            for (let nr=2;; nr++) {
                 const nHash = `${hash}#${nr}`;
                 if (!(nHash in this.hashList)) {
                     hash = nHash;
                     break;
                 }
-                nr ++;
             }
         }
         
@@ -434,15 +447,17 @@ export default class ImportManager {
     es6NodeToUnit(node) {
 
         let code;
-
         if (typeof node === "string") {
-            code = new MagicString(node);
-            node = parse(node, this.parseOptions);
+            code = node;
+            node = parse(node, {
+                ecmaVersion: "latest",
+                sourceType: "module"
+            }).body.at(0);
         } else {
-            code = new MagicString(this.code.slice(node.start, node.end));
+            code = this.code.slice(node.start, node.end);
         }
-
-        const start = node.start;
+        console.log("UPDATE_NODE", node);
+        const nodeStart = node.start;
         
         const mem = {
             defaultMembers: {
@@ -455,53 +470,52 @@ export default class ImportManager {
             }
         };
 
-        for (const spec of node.specifiers) {
-            
-            const memType = spec.type === "ImportSpecifier" ? "members" : "defaultMembers";
-            const index = mem[memType].count;
-            const hasAlias = spec.local.start !== spec.start;
+        if (node.specifiers) {
+            for (const spec of node.specifiers) {
+                
+                const memType = spec.type === "ImportSpecifier" ? "members" : "defaultMembers";
+                const index = mem[memType].count;
+                const hasAlias = spec.local.start !== spec.start;
 
-            console.log(spec);
-            console.log("HAS_ALIAS", hasAlias);
+                const start = spec.start - nodeStart;
+                let end;
+                if (!hasAlias) {
+                    end = spec.end - nodeStart;
+                } else {
+                    end = (memType === "members") ? spec.imported.end-nodeStart : start+1;
+                }
+                const name = code.slice(start, end);
+                
 
-            const mStart = spec.start - start;
-            let end;
-            if (!hasAlias) {
-                end = spec.end - start;
-            } else {
-                end = (memType === "members") ? spec.imported.end-start : mStart+1;
-            }
-            const name = code.slice(mStart, end);
-            
-
-            const member = {
-                index,
-                name,
-                start: mStart,
-                end,
-                absEnd: spec.end - start
-            };
-
-            if (hasAlias) {
-                member.alias = {
-                    name: spec.local.name,
-                    start: spec.local.start - start,
-                    end: spec.local.end - start
+                const member = {
+                    index,
+                    name,
+                    start,
+                    end,
+                    absEnd: spec.end - nodeStart
                 };
-            }
 
-            if (index > 0) {
-                member.last = mem[memType].entities[index-1].absEnd;
-                mem[memType].entities[index-1].next = member.start;
-            }
-            
-            mem[memType].entities.push(member);
-            mem[memType].count ++;
+                if (hasAlias) {
+                    member.alias = {
+                        name: spec.local.name,
+                        start: spec.local.start - nodeStart,
+                        end: spec.local.end - nodeStart
+                    };
+                }
 
+                if (index > 0) {
+                    member.last = mem[memType].entities[index-1].absEnd;
+                    mem[memType].entities[index-1].next = member.start;
+                }
+                
+                mem[memType].entities.push(member);
+                mem[memType].count ++;
+
+            }
         }
 
         if (mem.members.count > 0) {
-            const nonDefaultMatch = code.toString().match(/{[\s\S]*?}/);
+            const nonDefaultMatch = code.match(/{[\s\S]*?}/);
             mem.members.start = nonDefaultMatch.index;
             mem.members.end = mem.members.start + nonDefaultMatch.at(0).length;    
         }
@@ -522,20 +536,21 @@ export default class ImportManager {
 
         const module = {
             name: node.source.value.split("/").at(-1),
-            start: node.source.start - start,
-            end: node.source.end - start,
+            start: node.source.start - nodeStart,
+            end: node.source.end - nodeStart,
             quotes: node.source.raw.at(0),
             type: "string"
         };
 
         
         const unit = {
-            code,
+            code: new MagicString(code),
             defaultMembers: mem.defaultMembers,
             members: mem.members,
             module,
-            start,
-            end: node.end
+            start: nodeStart,
+            end: node.end,
+            type: "es6"
         };
 
         console.log("::: UNIT NEW :::");
@@ -804,7 +819,7 @@ export default class ImportManager {
 
         // finally add methods for manipulation to the unit
         const unit = units[0];
-        unit.methods = new ImportManagerUnitMethods(unit, this.es6StrToObj);
+        unit.methods = new ImportManagerUnitMethods(unit, this.es6NodeToUnit);
 
         return unit;
     }
@@ -849,7 +864,7 @@ export default class ImportManager {
 
         // add unit methods
         const unit = units[0];
-        unit.methods = new ImportManagerUnitMethods(unit, this.es6StrToObj);
+        unit.methods = new ImportManagerUnitMethods(unit, this.es6NodeToUnit);
 
         return unit;
     }
