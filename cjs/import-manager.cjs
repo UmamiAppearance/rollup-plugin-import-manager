@@ -377,7 +377,7 @@ class ImportManager {
      * @param {object} warnSpamProtection - A Set which contains all previously printed warning hashes. 
      * @param {boolean} [autoSearch=true] - Automatic code analysis can be disabled by passing "false". 
      */
-    constructor(source, filename, warnSpamProtection, autoSearch=true) {
+    constructor(source, filename, warnSpamProtection) {
 
         this.scopeMulti = 1000;
 
@@ -416,64 +416,22 @@ class ImportManager {
             sourceType: "module"
         });
         this.blackenedCode = this.prepareSource();
-
-        if (autoSearch) {
-            this.getDynamicImports();
-            //this.getES6Imports();
-            this.getCJSImports();
-        }
-    }
-
-    /**
-     * Helper function for finding matches in the source
-     * for a given regex and replace those with consecutive
-     * dashes.
-     * @param {Object} src - Source a a MagicString. 
-     * @param {Object} regex - RegExp Object.  
-     * @param {boolean} [nl=false] - True if matches should be able to go across multiple lines. 
-     */
-    #matchAndStrike(src, regex, nl=false) {
-        
-        // replacement function
-        let genBlackenedStr = "";
-        if (nl) {
-            genBlackenedStr = str => str.split("")
-                .map(c => c === "\n" ? "\n" : "-")
-                .join("");
-        } else {
-            genBlackenedStr = str => ("-").repeat(str.length);
-        }
-
-        const collection = src.toString().matchAll(regex);
-        let next = collection.next();
-        
-        while (!next.done) {
-            const match = next.value;
-            const start = match.index;
-            const end = start + match[0].length;
-            src.overwrite(start, end, genBlackenedStr(match[0]));
-            next = collection.next();
-        }
     }
 
 
     /**
-     * Prepares the source by replacing problematic
-     * content.
-     * @returns {string} - The blackened source.
+     * TODO: -
      */
     prepareSource() {
-
-        // new way
-        
-        this.imports.cjs.idScope;
+  
+        let cjsId = this.imports.cjs.idScope;
+        let cjsIndex = 0;
 
         let dynamicId = this.imports.dynamic.idScope;
         let dynamicIndex = 0;
 
         let es6Id = this.imports.es6.idScope;
         let es6Index = 0;
-
 
         let searchCJS = true;
         this.parsedCode.body.forEach(node => {
@@ -489,16 +447,12 @@ class ImportManager {
                 this.imports.es6.count ++;
             }
         });
-
-        const nodes = {
-            cjs: [],
-            dynamic: [],
-        };
         
         this.parsedCode.body.forEach(node => {
             if (node.type === "VariableDeclaration" ||
                 node.type === "ExpressionStatement")
             {
+                let prevPart;
                 acornWalk.full(node, part => {
                     if (part.type === "ImportExpression") {
                         const unit = this.dynamicNodeToUnit(node, part);
@@ -508,47 +462,19 @@ class ImportManager {
                         this.imports.dynamic.units.push(unit);
                         this.imports.dynamic.count ++;
                     } else if (searchCJS && part.type === "Identifier" && part.name === "require") {
-                        nodes.cjs.push(node);
+                        console.log("REQUIRE!!");
+                        const unit = this.cjsNodeToUnit(node, prevPart);
+                        unit.id = cjsId ++;
+                        unit.index = cjsIndex ++;
+                        unit.hash = this.#makeHash(unit);
+                        this.imports.cjs.units.push(unit);
+                        this.imports.cjs.count ++;
+                        console.log(unit);
                     }
+                    prevPart = part;
                 });
             }
         });
-
-        console.log(nodes);
-
-        // new end
-
-
-        // clone the original code
-        const src = this.code.clone();
-
-        // blacken double and single quoted strings
-        this.#matchAndStrike(
-            src,
-            /(["'])(?:\\\1|.)*?\1/g
-        );
-        
-        // blacken template string literals
-        this.#matchAndStrike(
-            src,
-            /`(?:\\`|\s|\S)*?`/g,
-            true
-        );
-
-        // blacken multi line comments
-        this.#matchAndStrike(
-            src,
-            /\/\*[\s\S]*?\*\//g,
-            true
-        );
-
-        // blacken single line comments
-        this.#matchAndStrike(
-            src,
-            /\/\/.*/g
-        );
-        
-        return src.toString();
     }
 
     /**
@@ -628,8 +554,6 @@ class ImportManager {
         } else {
             code = this.code.slice(node.start, node.end);
         }
-
-        const nodeStart = node.start;
         
         const mem = {
             defaultMembers: {
@@ -649,12 +573,12 @@ class ImportManager {
                 const index = mem[memType].count;
                 const hasAlias = spec.local.start !== spec.start;
 
-                const start = spec.start - nodeStart;
+                const start = spec.start - node.start;
                 let end;
                 if (!hasAlias) {
-                    end = spec.end - nodeStart;
+                    end = spec.end - node.start;
                 } else {
-                    end = (memType === "members") ? spec.imported.end-nodeStart : start+1;
+                    end = (memType === "members") ? spec.imported.end-node.start : start+1;
                 }
                 const name = code.slice(start, end);
                 
@@ -664,14 +588,14 @@ class ImportManager {
                     name,
                     start,
                     end,
-                    absEnd: spec.end - nodeStart
+                    absEnd: spec.end - node.start
                 };
 
                 if (hasAlias) {
                     member.alias = {
                         name: spec.local.name,
-                        start: spec.local.start - nodeStart,
-                        end: spec.local.end - nodeStart
+                        start: spec.local.start - node.start,
+                        end: spec.local.end - node.start
                     };
                 }
 
@@ -708,8 +632,8 @@ class ImportManager {
 
         const module = {
             name: node.source.value.split("/").at(-1),
-            start: node.source.start - nodeStart,
-            end: node.source.end - nodeStart,
+            start: node.source.start - node.start,
+            end: node.source.end - node.start,
             quotes: node.source.raw.at(0),
             type: "string"
         };
@@ -720,7 +644,7 @@ class ImportManager {
             defaultMembers: mem.defaultMembers,
             members: mem.members,
             module,
-            start: oStart || nodeStart,
+            start: oStart || node.start,
             end: oEnd || node.end,
             type: "es6"
         };
@@ -729,72 +653,22 @@ class ImportManager {
     }
 
 
-    /**
-     * Generic method to find dynamic and common js
-     * import properties.
-     * Both methods matches have the following children:
-     *  - match[0] - the complete import statement
-     *  - match[1] - index 0 until the beginning of the module
-     *               (the length is the start index of the module string)
-     *  - match[2] - the module string (or more unlikely var/fn)
-     * 
-     * @param {string} type - "cjs" or "dynamic" 
-     * @param {Object} match - A match object returned by a regex match fn. 
-     * @param {number} id 
-     */
-    #makeImport(type, match, id, index) {
-        const start = match.index;
-        const end = start + match[0].length;
-        const code = this.code.slice(start, end);
-        
-        const module = {};
-        module.start = match[1].length;
-        module.end = module.start + match[2].length;
-        const char0 = code.charAt(module.start);
-
-        // as dynamic and cjs imports allow variables
-        // (or even functions) to provide the module
-        // string this type has to be figured out and
-        // stored
-
-        if (char0.match(/["'`]/)) {
-            module.type = "string";
-            module.quotes = char0;
-            module.name = code.slice(module.start+1, module.end-1).split("/").at(-1);
-        } else {
-            module.type = "literal";
-            module.name = code.slice(module.start, module.end);
-        }
-        
-        // make a fresh unit
-        const unit = {
-            id,
-            index,
-            code: new MagicString__default["default"](code),
-            module,
-            start,
-            end,
-            type,
-            get codeString() {
-                return [ this.code.toString() ];
-            }
-        };
-
-        // add hash
-        unit.hash = this.#makeHash(unit);
-
-        this.imports[type].units.push(unit);
-    }
-
-    dynamicNodeToUnit(node, arg) {
+    dynamicNodeToUnit(node, importObject) {
         console.log("NODE", JSON.stringify(node, null, 4));
         const code = this.code.slice(node.start, node.end);
 
         const module = {
-            name: arg.source.value || "N/A",
-            start: arg.source.start,
-            end: arg.source.end
+            name: importObject.source.value || "N/A",
+            start: importObject.source.start - node.start,
+            end: importObject.source.end - node.start
         };
+
+        if (importObject.source.type === "Literal") {
+            module.type = "string";
+            module.quotes = importObject.source.raw.at(0);
+        } else {
+            module.type = "literal";
+        }
 
         const unit = {
             code: new MagicString__default["default"](code),
@@ -809,45 +683,26 @@ class ImportManager {
     }
 
 
-    /**
-     * Find all dynamic import statements in the 
-     * (prepared) source code.
-     */
-    getDynamicImports() {
-        let id = this.imports.dynamic.idScope;
+    cjsNodeToUnit(node, modulePart) {
+        console.log("NODE", JSON.stringify(node, null, 4));
+        const code = this.code.slice(node.start, node.end);
 
-        const dynamicImportCollection = this.blackenedCode.matchAll(/(import\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
-        let next = dynamicImportCollection.next();
+        const module = {
+            name: modulePart.name,
+            start: modulePart.start - node.start,
+            end: modulePart.end - node.start
+        };
 
-        while (!next.done) {
-            this.imports.dynamic.count ++;
-            this.#makeImport("dynamic", next.value, id++, this.imports.dynamic.count-1);
-            next = dynamicImportCollection.next();
-        }
+        const unit = {
+            code: new MagicString__default["default"](code),
+            module,
+            start: node.start,
+            end: node.end,
+            type: "cjs",
+        };
 
-        this.imports.dynamic.searched = true;
-    }
-
-
-    /**
-     * Find all common js import statements in the 
-     * (prepared) source code.
-     */
-    getCJSImports() {
-        let id = this.imports.cjs.idScope;
-
-        const cjsImportCollection = this.blackenedCode.matchAll(/(require\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
-        let next = cjsImportCollection.next();
-
-        while (!next.done) {
-            while (!next.done) {
-                this.imports.cjs.count ++;
-                this.#makeImport("cjs", next.value, id++, this.imports.cjs.count-1);
-                next = cjsImportCollection.next();
-            }
-        } 
-
-        this.imports.cjs.searched = true;
+        console.log("CODE", code.slice(module.start, module.end), "|");
+        return unit;
     }
 
     //              ___________________              //
