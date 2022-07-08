@@ -24,7 +24,11 @@ export default class ImportManagerUnitMethods {
 
         this.updateUnit = () => {
 
-            const unit = es6NodeToUnit(this.unit.code.toString());
+            const unit = es6NodeToUnit(
+                this.unit.code.toString(),
+                this.unit.start,
+                this.unit.end
+            );
 
             Object.assign(this.unit, unit);
 

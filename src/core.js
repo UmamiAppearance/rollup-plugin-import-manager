@@ -444,7 +444,7 @@ export default class ImportManager {
         return unit;
     }
 
-    es6NodeToUnit(node) {
+    es6NodeToUnit(node, oStart, oEnd) {
 
         let code;
         if (typeof node === "string") {
@@ -548,8 +548,8 @@ export default class ImportManager {
             defaultMembers: mem.defaultMembers,
             members: mem.members,
             module,
-            start: nodeStart,
-            end: node.end,
+            start: oStart || nodeStart,
+            end: oEnd || node.end,
             type: "es6"
         };
 

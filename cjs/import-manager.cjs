@@ -60,7 +60,11 @@ class ImportManagerUnitMethods {
 
         this.updateUnit = () => {
 
-            const unit = es6NodeToUnit(this.unit.code.toString());
+            const unit = es6NodeToUnit(
+                this.unit.code.toString(),
+                this.unit.start,
+                this.unit.end
+            );
 
             Object.assign(this.unit, unit);
 
@@ -794,7 +798,7 @@ class ImportManager {
         return unit;
     }
 
-    es6NodeToUnit(node) {
+    es6NodeToUnit(node, oStart, oEnd) {
 
         let code;
         if (typeof node === "string") {
@@ -898,8 +902,8 @@ class ImportManager {
             defaultMembers: mem.defaultMembers,
             members: mem.members,
             module,
-            start: nodeStart,
-            end: node.end,
+            start: oStart || nodeStart,
+            end: oEnd || node.end,
             type: "es6"
         };
 
