@@ -90,11 +90,9 @@ export default class ImportManager {
                 this.imports.es6.units.push(unit);
                 this.imports.es6.count ++;
             }
-        });
         
-        this.parsedCode.body.forEach(node => {
-            if (node.type === "VariableDeclaration" ||
-                node.type === "ExpressionStatement")
+            else if (node.type === "VariableDeclaration" ||
+                     node.type === "ExpressionStatement")
             {
                 let prevPart;
                 fullWalk(node, part => {

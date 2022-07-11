@@ -446,11 +446,9 @@ class ImportManager {
                 this.imports.es6.units.push(unit);
                 this.imports.es6.count ++;
             }
-        });
         
-        this.parsedCode.body.forEach(node => {
-            if (node.type === "VariableDeclaration" ||
-                node.type === "ExpressionStatement")
+            else if (node.type === "VariableDeclaration" ||
+                     node.type === "ExpressionStatement")
             {
                 let prevPart;
                 acornWalk.full(node, part => {
@@ -1003,19 +1001,28 @@ class ImportManager {
 
         if (pos !== "top" && this.imports.es6.count > 0) {
             index = this.imports.es6.units.at(-1).end;
+
+            // move the index if the following char is a newline
+            // (if the line was removed in an earlier operation
+            // this will throw an error, don't do any change in
+            // this case
+
             let nextChar;
             try {
                 nextChar = this.code.slice(index, index+1);
             } catch {
                 nextChar = null;
             }
+
             if (nextChar === "\n") {
                 index ++;
             }
-        } else {
+        }
+        
+        else {
             // find the first meaningful (not a comment)
-            // code section and use the start as insertion
-            // point
+            // code and use the start as insertion point
+            
             index = this.parsedCode.body.at(0).start;
         }
         
