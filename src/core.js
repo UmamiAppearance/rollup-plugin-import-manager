@@ -589,7 +589,7 @@ export default class ImportManager {
      */
     makeCJSStatement(module, declarator, varname) {
         const declaration = this.#genDeclaration(declarator, varname);
-        return `${declaration} = require("${module}")`;
+        return `${declaration} = require("${module}");\n`;
     }
 
     /**
@@ -599,7 +599,7 @@ export default class ImportManager {
      */
     makeDynamicStatement(module, declarator, varname) {
         const declaration = this.#genDeclaration(declarator, varname);
-        return `${declaration} = await import("${module}")`;
+        return `${declaration} = await import("${module}");\n`;
     }
     
 

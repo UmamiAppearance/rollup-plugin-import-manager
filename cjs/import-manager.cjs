@@ -945,7 +945,7 @@ class ImportManager {
      */
     makeCJSStatement(module, declarator, varname) {
         const declaration = this.#genDeclaration(declarator, varname);
-        return `${declaration} = require("${module}")`;
+        return `${declaration} = require("${module}");\n`;
     }
 
     /**
@@ -955,7 +955,7 @@ class ImportManager {
      */
     makeDynamicStatement(module, declarator, varname) {
         const declaration = this.#genDeclaration(declarator, varname);
-        return `${declaration} = await import("${module}")`;
+        return `${declaration} = await import("${module}");\n`;
     }
     
 
@@ -1388,18 +1388,16 @@ const importManager = (options={}) => {
                             let varname;
 
                             const declarators = /^(const|let|var|global)$/;
-                            [ declarator, varname ] = Object.entries(unitSection).filter(e => declarators.test(e)).at(0) || [ null, null ];
+                            [ declarator, varname ] = Object.entries(unitSection).filter(e => declarators.test(e[0])).at(0) || [ null, null ];
 
                             if (!declarator || !varname) {
-                                throw new TypeError("Dynamic and CJS Imports need a valid declarator key (const|let|var|global) and a valid value for the variable name.");
+                                throw new TypeError("dynamic and cjs imports require a valid declarator key (const|let|var|global) and a valid value for the variable name.");
                             }
 
                             if (type === "cjs") {
                                 statement = manager.makeCJSStatement(module, declarator, varname);
                             } else if (type === "dynamic") {
                                 statement = manager.makeDynamicStatement(module, declarator, varname);
-                            } else {
-                                throw new TypeError(`Invalid type '${type}'. Valid types are 'cjs', 'dynamic' and 'es6'.`);
                             }
                         }   
                         
