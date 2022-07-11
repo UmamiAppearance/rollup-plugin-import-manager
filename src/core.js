@@ -543,17 +543,6 @@ export default class ImportManager {
     //         methods for unit creation, replacement, etc.       //
 
     /**
-     * Makes sure, that the processed unit is of type 'es6'.
-     * @param {Object} unit - Unit Object. 
-     */
-    #ES6only(unit) {
-        if (unit.type !== "es6") {
-            throw new Error("This method is only available for ES6 imports.");
-        }
-    }
-
-    
-    /**
      * All manipulation via unit method is made on the
      * code slice of the unit. This methods writes it
      * to the code instance. 
@@ -570,8 +559,6 @@ export default class ImportManager {
      * @param {Object} unit - Unit Object.
      */
     remove(unit) {
-        this.#ES6only(unit);
-
         const charAfter = this.code.slice(unit.end, unit.end+1);
         const end = (charAfter === "\n") ? unit.end + 1 : unit.end;
         this.code.remove(unit.start, end);
@@ -579,6 +566,42 @@ export default class ImportManager {
         this.imports[unit.type].count --;
     }
 
+    /**
+     * Helper method to declare a variable.
+     * @param {string} declarator - const|let|var|global 
+     * @param {string} varname - Variable Name. 
+     * @returns {string} - Declarator + Varname + Equal Sign.
+     */
+    #genDeclaration(declarator, varname) {
+        let declaration;
+        if (declarator === "global") {
+            declaration = varname;
+        } else {
+            declaration = `${declarator} ${varname}`;
+        }
+        return declaration;
+    }
+
+    /**
+     * Generates a CJS Import Statement.
+     * @param {string} module - Module (path).
+     * @returns {string} - CJS Import Statement.
+     */
+    makeCJSStatement(module, declarator, varname) {
+        const declaration = this.#genDeclaration(declarator, varname);
+        return `${declaration} = require("${module}")`;
+    }
+
+    /**
+     * Generates a Dynamic Import Statement.
+     * @param {string} module - Module (path).
+     * @returns {string} - CJS Import Statement.
+     */
+    makeDynamicStatement(module, declarator, varname) {
+        const declaration = this.#genDeclaration(declarator, varname);
+        return `${declaration} = await import("${module}")`;
+    }
+    
 
     /**
      * Generates an ES6 Import Statement.
@@ -649,8 +672,7 @@ export default class ImportManager {
      * @param {string} statement - ES6 Import Statement. 
      */
     insertAtUnit(unit, mode, statement) {
-        this.#ES6only(unit);
-        
+
         let index;
         if (mode === "append") {
             index = unit.end;

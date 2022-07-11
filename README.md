@@ -55,6 +55,8 @@ A Rollup plugin which makes it possible to manipulate import statement. Deleting
     - [Debugging Units](#debugging-units)
   - [License](#license)
 
+TODO: Add variable declarator 
+
 ## Install
 Using npm:
 ```console
@@ -202,7 +204,7 @@ A possibility to specify the unit type. Valid parameters are:
  * `cjs`
  * `dynamic`
 
-This _can_ be helpful if there are overlapping matches across the types. For example if es6 and dynamic import share the same module name. But there are actually few situations where it is necessary to specify the type, to be honest. But the option is there.
+This argument is mainly necessary when creating new units. Without members or default members the type cannot be guessed and needs to be specified. But the argument _can_ also be helpful for selecting modules, if there are overlapping matches across the types. For example if es6 and dynamic import share the same module name. Which is admittedly a very unusual scenario. 
 
 
 #### `createModule` <samp>[option for units]</samp>

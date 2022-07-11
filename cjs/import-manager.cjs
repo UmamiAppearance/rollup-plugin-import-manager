@@ -899,17 +899,6 @@ class ImportManager {
     //         methods for unit creation, replacement, etc.       //
 
     /**
-     * Makes sure, that the processed unit is of type 'es6'.
-     * @param {Object} unit - Unit Object. 
-     */
-    #ES6only(unit) {
-        if (unit.type !== "es6") {
-            throw new Error("This method is only available for ES6 imports.");
-        }
-    }
-
-    
-    /**
      * All manipulation via unit method is made on the
      * code slice of the unit. This methods writes it
      * to the code instance. 
@@ -926,8 +915,6 @@ class ImportManager {
      * @param {Object} unit - Unit Object.
      */
     remove(unit) {
-        this.#ES6only(unit);
-
         const charAfter = this.code.slice(unit.end, unit.end+1);
         const end = (charAfter === "\n") ? unit.end + 1 : unit.end;
         this.code.remove(unit.start, end);
@@ -935,6 +922,42 @@ class ImportManager {
         this.imports[unit.type].count --;
     }
 
+    /**
+     * Helper method to declare a variable.
+     * @param {string} declarator - const|let|var|global 
+     * @param {string} varname - Variable Name. 
+     * @returns {string} - Declarator + Varname + Equal Sign.
+     */
+    #genDeclaration(declarator, varname) {
+        let declaration;
+        if (declarator === "global") {
+            declaration = varname;
+        } else {
+            declaration = `${declarator} ${varname}`;
+        }
+        return declaration;
+    }
+
+    /**
+     * Generates a CJS Import Statement.
+     * @param {string} module - Module (path).
+     * @returns {string} - CJS Import Statement.
+     */
+    makeCJSStatement(module, declarator, varname) {
+        const declaration = this.#genDeclaration(declarator, varname);
+        return `${declaration} = require("${module}")`;
+    }
+
+    /**
+     * Generates a Dynamic Import Statement.
+     * @param {string} module - Module (path).
+     * @returns {string} - CJS Import Statement.
+     */
+    makeDynamicStatement(module, declarator, varname) {
+        const declaration = this.#genDeclaration(declarator, varname);
+        return `${declaration} = await import("${module}")`;
+    }
+    
 
     /**
      * Generates an ES6 Import Statement.
@@ -1005,8 +1028,7 @@ class ImportManager {
      * @param {string} statement - ES6 Import Statement. 
      */
     insertAtUnit(unit, mode, statement) {
-        this.#ES6only(unit);
-        
+
         let index;
         if (mode === "append") {
             index = unit.end;
@@ -1336,6 +1358,8 @@ const importManager = (options={}) => {
                         }
 
                         const module = unitSection.createModule;
+                        let type = unitSection.type;
+
                         const mem = {
                             defaultMembers: [],
                             members: []
@@ -1350,7 +1374,34 @@ const importManager = (options={}) => {
                             }
                         }
 
-                        const statement = manager.makeES6Statement(module, mem.defaultMembers, mem.members);
+                        if (mem.defaultMembers.length || mem.members.length) {
+                            type = "es6";
+                        }
+
+                        let statement;
+                        if (!type) {
+                            throw new TypeError("If no (default) members are specified, the type cannot be determined and must be specified by passing 'type: \"cjs\"|\"dynamic\"|\"es6\"'");
+                        } else if (type === "es6") {
+                            statement = manager.makeES6Statement(module, mem.defaultMembers, mem.members);
+                        } else {
+                            let declarator;
+                            let varname;
+
+                            const declarators = /^(const|let|var|global)$/;
+                            [ declarator, varname ] = Object.entries(unitSection).filter(e => declarators.test(e)).at(0) || [ null, null ];
+
+                            if (!declarator || !varname) {
+                                throw new TypeError("Dynamic and CJS Imports need a valid declarator key (const|let|var|global) and a valid value for the variable name.");
+                            }
+
+                            if (type === "cjs") {
+                                statement = manager.makeCJSStatement(module, declarator, varname);
+                            } else if (type === "dynamic") {
+                                statement = manager.makeDynamicStatement(module, declarator, varname);
+                            } else {
+                                throw new TypeError(`Invalid type '${type}'. Valid types are 'cjs', 'dynamic' and 'es6'.`);
+                            }
+                        }   
                         
                         let mode;
                         for (const key in unitSection) {
@@ -1363,10 +1414,7 @@ const importManager = (options={}) => {
                         
                         if (mode) {
                             // look for the target with the values at key 'append|prepend|replace'
-                            const targetUnitSection = unitSection[mode];
-                            targetUnitSection.type = "es6";
-
-                            const target = selectUnit(targetUnitSection);
+                            const target = selectUnit(unitSection[mode]);
                             
                             // insert if match is found
                             // (which can be undefined if no file specified)

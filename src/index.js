@@ -123,6 +123,8 @@ const importManager = (options={}) => {
                         }
 
                         const module = unitSection.createModule;
+                        let type = unitSection.type;
+
                         const mem = {
                             defaultMembers: [],
                             members: []
@@ -137,7 +139,34 @@ const importManager = (options={}) => {
                             }
                         }
 
-                        const statement = manager.makeES6Statement(module, mem.defaultMembers, mem.members);
+                        if (mem.defaultMembers.length || mem.members.length) {
+                            type = "es6";
+                        }
+
+                        let statement;
+                        if (!type) {
+                            throw new TypeError("If no (default) members are specified, the type cannot be determined and must be specified by passing 'type: \"cjs\"|\"dynamic\"|\"es6\"'");
+                        } else if (type === "es6") {
+                            statement = manager.makeES6Statement(module, mem.defaultMembers, mem.members);
+                        } else {
+                            let declarator;
+                            let varname;
+
+                            const declarators = /^(const|let|var|global)$/;
+                            [ declarator, varname ] = Object.entries(unitSection).filter(e => declarators.test(e)).at(0) || [ null, null ];
+
+                            if (!declarator || !varname) {
+                                throw new TypeError("Dynamic and CJS Imports need a valid declarator key (const|let|var|global) and a valid value for the variable name.");
+                            }
+
+                            if (type === "cjs") {
+                                statement = manager.makeCJSStatement(module, declarator, varname);
+                            } else if (type === "dynamic") {
+                                statement = manager.makeDynamicStatement(module, declarator, varname);
+                            } else {
+                                throw new TypeError(`Invalid type '${type}'. Valid types are 'cjs', 'dynamic' and 'es6'.`);
+                            }
+                        }   
                         
                         let mode;
                         for (const key in unitSection) {
@@ -150,10 +179,7 @@ const importManager = (options={}) => {
                         
                         if (mode) {
                             // look for the target with the values at key 'append|prepend|replace'
-                            const targetUnitSection = unitSection[mode];
-                            targetUnitSection.type = "es6";
-
-                            const target = selectUnit(targetUnitSection);
+                            const target = selectUnit(unitSection[mode]);
                             
                             // insert if match is found
                             // (which can be undefined if no file specified)
