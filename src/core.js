@@ -647,16 +647,29 @@ export default class ImportManager {
 
         if (pos !== "top" && this.imports.es6.count > 0) {
             index = this.imports.es6.units.at(-1).end;
-            if (this.code.slice(index, index+1) === "\n") {
+
+            // move the index if the following char is a newline
+            // (if the line was removed in an earlier operation
+            // this will throw an error, don't do any change in
+            // this case
+
+            let nextChar;
+            try {
+                nextChar = this.code.slice(index, index+1);
+            } catch {
+                nextChar = null;
+            }
+
+            if (nextChar === "\n") {
                 index ++;
             }
-        } else {
-            // find description part if present and
-            // move the index
-            const description = this.code.toString().match(/^\s*?\/\*[\s\S]*?\*\/\s?/);
-            if (description) {
-                index += description[0].length;
-            }
+        }
+        
+        else {
+            // find the first meaningful (not a comment)
+            // code and use the start as insertion point
+            
+            index = this.parsedCode.body.at(0).start;
         }
         
         this.code.appendRight(index, statement);

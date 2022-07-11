@@ -1003,16 +1003,20 @@ class ImportManager {
 
         if (pos !== "top" && this.imports.es6.count > 0) {
             index = this.imports.es6.units.at(-1).end;
-            if (this.code.slice(index, index+1) === "\n") {
+            let nextChar;
+            try {
+                nextChar = this.code.slice(index, index+1);
+            } catch {
+                nextChar = null;
+            }
+            if (nextChar === "\n") {
                 index ++;
             }
         } else {
-            // find description part if present and
-            // move the index
-            const description = this.code.toString().match(/^\s*?\/\*[\s\S]*?\*\/\s?/);
-            if (description) {
-                index += description[0].length;
-            }
+            // find the first meaningful (not a comment)
+            // code section and use the start as insertion
+            // point
+            index = this.parsedCode.body.at(0).start;
         }
         
         this.code.appendRight(index, statement);
@@ -1351,55 +1355,64 @@ const importManager = (options={}) => {
 
                     
                     // creating units from scratch
-                    if ("createModule" in unitSection) {
+                    if ("createModule" in unitSection || "addCode" in unitSection) {
 
-                        if (allowNull) {
-                            manager.warning("No file specified for import statement creation! If the build fails, this could be the reason.");
-                        }
+                        let codeSnippet;
 
-                        const module = unitSection.createModule;
-                        let type = unitSection.type;
+                        if ("createModule" in unitSection) {
 
-                        const mem = {
-                            defaultMembers: [],
-                            members: []
-                        };
+                            if (allowNull) {
+                                manager.warning("No file specified for import statement creation! If the build fails, this could be the reason.");
+                            }
 
-                        if ("actions" in unitSection) {
-                            for (let action of ensureArray(unitSection.actions)) {
-                                action = ensureObj(action);
-                                if ((action.select === "members" || action.select === "defaultMembers") && "add" in action) {
-                                    mem[action.select] = ensureArray(action.add); 
+                            const module = unitSection.createModule;
+                            let type = unitSection.type;
+
+                            const mem = {
+                                defaultMembers: [],
+                                members: []
+                            };
+
+                            if ("actions" in unitSection) {
+                                for (let action of ensureArray(unitSection.actions)) {
+                                    action = ensureObj(action);
+                                    if ((action.select === "members" || action.select === "defaultMembers") && "add" in action) {
+                                        mem[action.select] = ensureArray(action.add); 
+                                    }
+                                }
+                            }
+
+                            if (mem.defaultMembers.length || mem.members.length) {
+                                type = "es6";
+                            }
+
+                            
+                            if (!type) {
+                                throw new TypeError("If no (default) members are specified, the type cannot be determined and must be specified by passing 'type: \"cjs\"|\"dynamic\"|\"es6\"'");
+                            } else if (type === "es6") {
+                                codeSnippet = manager.makeES6Statement(module, mem.defaultMembers, mem.members);
+                            } else {
+                                const declarators = /^(?:const|let|var|global)$/;
+                                const [ declarator, varname ] = Object.entries(unitSection).filter(e => declarators.test(e[0])).at(0) || [ null, null ];
+
+                                if (!declarator || !varname) {
+                                    throw new TypeError("dynamic and cjs imports require a valid declarator key (const|let|var|global) and a valid value for the variable name.");
+                                }
+
+                                if (type === "cjs") {
+                                    codeSnippet = manager.makeCJSStatement(module, declarator, varname);
+                                } else if (type === "dynamic") {
+                                    codeSnippet = manager.makeDynamicStatement(module, declarator, varname);
                                 }
                             }
                         }
-
-                        if (mem.defaultMembers.length || mem.members.length) {
-                            type = "es6";
+                        
+                        else {
+                            codeSnippet = unitSection.addCode;
+                            if (!(codeSnippet && typeof codeSnippet === "string")) {
+                                throw new TypeError("'addCode' must be a non empty string.");
+                            }
                         }
-
-                        let statement;
-                        if (!type) {
-                            throw new TypeError("If no (default) members are specified, the type cannot be determined and must be specified by passing 'type: \"cjs\"|\"dynamic\"|\"es6\"'");
-                        } else if (type === "es6") {
-                            statement = manager.makeES6Statement(module, mem.defaultMembers, mem.members);
-                        } else {
-                            let declarator;
-                            let varname;
-
-                            const declarators = /^(const|let|var|global)$/;
-                            [ declarator, varname ] = Object.entries(unitSection).filter(e => declarators.test(e[0])).at(0) || [ null, null ];
-
-                            if (!declarator || !varname) {
-                                throw new TypeError("dynamic and cjs imports require a valid declarator key (const|let|var|global) and a valid value for the variable name.");
-                            }
-
-                            if (type === "cjs") {
-                                statement = manager.makeCJSStatement(module, declarator, varname);
-                            } else if (type === "dynamic") {
-                                statement = manager.makeDynamicStatement(module, declarator, varname);
-                            }
-                        }   
                         
                         let mode;
                         for (const key in unitSection) {
@@ -1417,12 +1430,12 @@ const importManager = (options={}) => {
                             // insert if match is found
                             // (which can be undefined if no file specified)
                             if (target) {
-                                manager.insertAtUnit(target, mode, statement);
+                                manager.insertAtUnit(target, mode, codeSnippet);
                             }
                         }
 
                         else {
-                            manager.insertStatement(statement, unitSection.insert);
+                            manager.insertStatement(codeSnippet, unitSection.insert);
                         }
 
                         continue;
