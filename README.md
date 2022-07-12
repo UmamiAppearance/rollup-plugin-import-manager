@@ -39,6 +39,10 @@ A Rollup plugin which makes it possible to manipulate import statement. Deleting
         - [`add`](#add-option-for-actions)
   - [Examples](#examples)
     - [Creating an Import Statement](#creating-an-import-statement)
+      - [Basic ES6 Statement via createModule](#basic-es6-statement-via-createmodule)
+      - [Basic CJS Statement via createModule](#basic-cjs-statement-via-createmodule)
+      - [Basic Dynamic Import Statement via createModule](#basic-dynamic-import-statement-via-createmodule)
+      - [Manual Statement creation via addCode](#manual-statement-creation-via-addcode) 
       - [Creating an Import Statement, appended after another statement](#creating-an-import-statement-appended-after-another-statement)
       - [Creating an Import Statement, prepended before another statement](#creating-an-import-statement-prepended-before-another-statement)
       - [Creating an Import Statement by replacing another statement](#creating-an-import-statement-by-replacing-another-statement)
@@ -359,7 +363,7 @@ This is an extra option to [rename](#rename-option-for-actions) a (default) memb
 Type: `Any`  
 Default: `null`  
 
-When no part was selected, this removes the entire unit &rarr; import statement. The value is irrelevant. If this is the only action it can be passed as a string: `actions: "remove"`. If a part is [selected](#select-option-for-actions) (`defaultMembers`, `members`, `module` or [`alias`](#alias-option-for-actions)) only the according part is getting removed.
+When no part was selected, this removes the entire unit &rarr; import statement. The value is irrelevant. If this is the only action it can be passed as a string: `actions: "remove"`. If a part is [selected](#select-option-for-actions) (`defaultMembers`, `members`, `module` or [`alias`](#alias-option-for-actions)) only the according (most specific) part is getting removed.
 
 
 ##### `add` <samp>[option for actions]</samp>
@@ -396,8 +400,7 @@ plugins: [
 ]
 ```
 
-Without specifying [`insert`](#insert-option-for-units) or [`append`](#append-option-for-units)/[`prepend`](#prepend-option-for-units) the following import statement is getting inserted after the last import statement.  
-Result:
+Without specifying [`insert`](#insert-option-for-units) or [`append`](#append-option-for-units)/[`prepend`](#prepend-option-for-units) the following import statement is getting inserted after the last import statement:
 ```js
 import bar, { baz as qux } from "./path/to/foo.js";
 ```
@@ -459,13 +462,13 @@ plugins: [
 ]
 ```
 
-Result:
+Result:Manual Statement creation via
 ```js
 let foobar;
 import('fs').then(fs => foobar = fs.readFileSync('./path/to/foobar.txt"'));
 ```
 
-The [`addCode`](#addcode-option-for-units) value can contain any code you like. You probably should not get too creative. It is designed to add import statements and gets appended to existing statements. 
+The [`addCode`](#addcode-option-for-units) value can contain any code you like. You probably should not get too creative. It isResult: designed to add import statements and gets appended to existing statements. 
 
 
 #### Creating an Import Statement, appended after another statement:
@@ -612,7 +615,7 @@ plugins: [
 ]
 ```
 
-Result:
+Result:remove
 ```js
 import foo from "bar";
 ```
@@ -771,7 +774,7 @@ plugins: [
                     select: "member",
                     name: "foo",
                     alias: null,
-                    remove: null // optional **
+                    remove: null // redundant **
                 },
                 {
                     select: "member",
@@ -788,12 +791,10 @@ plugins: [
     })
 ]
 
-// ** remove can be set, but if the
-//    alias is null, setting remove
-//    is redundant
-//    (the option to pass remove is
-//    only added to keep the methods
-//    consistent)
+// ** remove can be set, but if the alias
+//    is null, this is redundant
+//    (the option is only there to keep the
+//    method syntactically consistent)
 ```  
 
 Result:
@@ -804,7 +805,7 @@ import { foo, baz as corge, quux as grault } from "quuz";
 ## General Hints
 
 ### Chaining
-It is possible to address every part of a statement in one go. The order doesn't matter. But one part should not selected twice, which might produce unwanted results. To address every part of a [`unit`](#units) with its [`actions`](#actions-option-for-units) can be as complex as follows.
+It is possible to address every part of a statement in one go. The order doesn't matter. But one part should not be selected twice, which might produce unwanted results. To address every part of a [`unit`](#units) with its [`actions`](#actions-option-for-units) can be as complex as follows.
 
 Example Statement:
 ```js
@@ -857,8 +858,7 @@ import qux, { bar as quux, quuz, corge } from "grault";
 This is in no way an efficient, but an example to show the complexity modifications are allowed to have. 
 
 ### Array and Object shortening
-As a general rule all arrays can be unpacked if only one member is inside. Objects with meaningless values, can be passed as a string, if syntactically allowed. An example is shown [here](#shorthand-method)
-
+As a general rule, all arrays can be unpacked if only one member is inside. Objects with meaningless values, can be passed as a string, if syntactically allowed. An example is shown [here](#shorthand-method).
 
 
 ## Debugging
@@ -907,7 +907,7 @@ plugins: [
 ]
 ```
 
-In both cases the [`include`](#include) keyword is also passed. Otherwise the debug key would make the build process stop at the very first file it touches (if there is only one file anyway it is not necessary to pass it).
+In both cases the [`include`](#include) keyword is also passed. Otherwise the debug key would make the build process stop at the very first file it touches (if there is only one file involved at all, it is not necessary to pass it).
 
 ### Debugging Units
 Also a single unit can be debugged. The keyword can be added to the existing list in an [actions](#actions-option-for-units) object.
