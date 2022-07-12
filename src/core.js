@@ -283,8 +283,8 @@ export default class ImportManager {
             name: node.source.value.split("/").at(-1),
             start: node.source.start - node.start,
             end: node.source.end - node.start,
-            quotes: node.source.raw.at(0),
-            type: "string"
+            type: "literal",
+            quotes: node.source.raw.at(0)
         };
 
         
@@ -312,11 +312,9 @@ export default class ImportManager {
             end: importObject.source.end - node.start
         };
 
-        if (importObject.source.type === "Literal") {
-            module.type = "string";
+        module.type = importObject.source.type.toLowerCase();
+        if (module.type === "literal") {
             module.quotes = importObject.source.raw.at(0);
-        } else {
-            module.type = "literal";
         }
 
         const unit = {
@@ -327,7 +325,6 @@ export default class ImportManager {
             type: "dynamic",
         };
 
-        console.log("DYN_UNIT: ", unit);
         return unit;
     }
 
@@ -341,6 +338,12 @@ export default class ImportManager {
             start: modulePart.start - node.start,
             end: modulePart.end - node.start
         };
+
+        
+        module.type = modulePart.source.type.toLowerCase();
+        if (module.type === "literal") {
+            module.quotes = modulePart.source.raw.at(0);
+        }
 
         const unit = {
             code: new MagicString(code),
