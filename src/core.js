@@ -19,7 +19,6 @@ export default class ImportManager {
      * @param {string} source - The unmodified source code-
      * @param {string} filename - The filename of the input file.  
      * @param {object} warnSpamProtection - A Set which contains all previously printed warning hashes. 
-     * @param {boolean} [autoSearch=true] - Automatic code analysis can be disabled by passing "false". 
      */
     constructor(source, filename, warnSpamProtection) {
 
@@ -55,18 +54,22 @@ export default class ImportManager {
         this.hashList = {};
         this.filename = filename;
         this.warnSpamProtection = warnSpamProtection;
+        
         this.parsedCode = parse(source, {
             ecmaVersion: "latest",
             sourceType: "module"
         });
-        this.blackenedCode = this.prepareSource();
+        
+        this.analyze();
     }
 
 
     /**
-     * TODO: -
+     * Analyzes the source and stores all import
+     * statements as unit objects in the class 
+     * variable "imports".
      */
-    prepareSource() {
+    analyze() {
   
         let cjsId = this.imports.cjs.idScope;
         let cjsIndex = 0;
@@ -128,7 +131,7 @@ export default class ImportManager {
 
         const makeInput = (unit) => {
             
-            const getProps = list => {
+            const joinProps = list => {
                 list.forEach(member => {
                     inputStr += member.name;
                     if (member.alias) {
@@ -137,27 +140,32 @@ export default class ImportManager {
                 });
             }; 
 
-            let inputStr = unit.module.name + unit.type;
+            let inputStr = unit.module.name
+                         + unit.type
+                         + this.filename;
             
             if (unit.members) {
-                getProps(unit.members.entities);
+                joinProps(unit.members.entities);
             }
 
             if (unit.defaultMembers) {
-                getProps(unit.defaultMembers.entities);
+                joinProps(unit.defaultMembers.entities);
             }
 
-            return inputStr + this.filename;
+            return inputStr;
         };
 
         const input = makeInput(unit);
         let hash = String(simpleHash(input));
 
-        // handle duplicates (which should not exist in reality)
+        // handle duplicates
         if (hash in this.hashList) {
             
-            if (hash.slice(0, 3) !== "N/A") {
+            console.log("NAME", unit.module.name);
+            if (unit.module.name.slice(0, 3) !== "N/A") {
                 this.warning(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
+            } else {
+                console.log("CASE");
             }
             
             for (let nr=2;; nr++) {

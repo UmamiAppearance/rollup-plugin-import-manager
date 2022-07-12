@@ -484,7 +484,7 @@ class ImportManager {
 
         const makeInput = (unit) => {
             
-            const getProps = list => {
+            const joinProps = list => {
                 list.forEach(member => {
                     inputStr += member.name;
                     if (member.alias) {
@@ -493,27 +493,32 @@ class ImportManager {
                 });
             }; 
 
-            let inputStr = unit.module.name + unit.type;
+            let inputStr = unit.module.name
+                         + unit.type
+                         + this.filename;
             
             if (unit.members) {
-                getProps(unit.members.entities);
+                joinProps(unit.members.entities);
             }
 
             if (unit.defaultMembers) {
-                getProps(unit.defaultMembers.entities);
+                joinProps(unit.defaultMembers.entities);
             }
 
-            return inputStr + this.filename;
+            return inputStr;
         };
 
         const input = makeInput(unit);
         let hash = String(simpleHash(input));
 
-        // handle duplicates (which should not exist in reality)
+        // handle duplicates
         if (hash in this.hashList) {
             
-            if (hash.slice(0, 3) !== "N/A") {
+            console.log("NAME", unit.module.name);
+            if (unit.module.name.slice(0, 3) !== "N/A") {
                 this.warning(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
+            } else {
+                console.log("CASE");
             }
             
             for (let nr=2;; nr++) {
