@@ -203,7 +203,7 @@ const importManager = (options={}) => {
                     }
                     
 
-                    // select exiting units
+                    // select existing units
                     const unit = selectUnit(unitSection);
                     if (!unit) {
                         continue;

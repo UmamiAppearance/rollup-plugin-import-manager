@@ -433,12 +433,9 @@ class ImportManager {
         let es6Id = this.imports.es6.idScope;
         let es6Index = 0;
 
-        let searchCJS = true;
         this.parsedCode.body.forEach(node => {
+
             if (node.type === "ImportDeclaration") {
-                if (searchCJS) {
-                    searchCJS = false;
-                }
                 const unit = this.es6NodeToUnit(node);
                 unit.id = es6Id ++;
                 unit.index = es6Index ++;
@@ -451,6 +448,7 @@ class ImportManager {
                      node.type === "ExpressionStatement")
             {
                 let prevPart;
+
                 acornWalk.full(node, part => {
                     if (part.type === "ImportExpression") {
                         const unit = this.dynamicNodeToUnit(node, part);
@@ -459,16 +457,17 @@ class ImportManager {
                         unit.hash = this.#makeHash(unit);
                         this.imports.dynamic.units.push(unit);
                         this.imports.dynamic.count ++;
-                    } else if (searchCJS && part.type === "Identifier" && part.name === "require") {
-                        console.log("REQUIRE!!");
+                    }
+                    
+                    else if (part.type === "Identifier" && part.name === "require") {
                         const unit = this.cjsNodeToUnit(node, prevPart);
                         unit.id = cjsId ++;
                         unit.index = cjsIndex ++;
                         unit.hash = this.#makeHash(unit);
                         this.imports.cjs.units.push(unit);
                         this.imports.cjs.count ++;
-                        console.log(unit);
                     }
+
                     prevPart = part;
                 });
             }
@@ -494,7 +493,7 @@ class ImportManager {
                 });
             }; 
 
-            let inputStr = unit.module.name;
+            let inputStr = unit.module.name + unit.type;
             
             if (unit.members) {
                 getProps(unit.members.entities);
@@ -652,7 +651,7 @@ class ImportManager {
 
 
     dynamicNodeToUnit(node, importObject) {
-        console.log("NODE", JSON.stringify(node, null, 4));
+
         const code = this.code.slice(node.start, node.end);
 
         const module = {
@@ -682,7 +681,7 @@ class ImportManager {
 
 
     cjsNodeToUnit(node, modulePart) {
-        console.log("NODE", JSON.stringify(node, null, 4));
+
         const code = this.code.slice(node.start, node.end);
 
         const module = {
@@ -699,7 +698,6 @@ class ImportManager {
             type: "cjs",
         };
 
-        console.log("CODE", code.slice(module.start, module.end), "|");
         return unit;
     }
 
@@ -1449,7 +1447,7 @@ const importManager = (options={}) => {
                     }
                     
 
-                    // select exiting units
+                    // select existing units
                     const unit = selectUnit(unitSection);
                     if (!unit) {
                         continue;
