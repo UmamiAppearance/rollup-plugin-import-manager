@@ -10,9 +10,9 @@ export default class ImportManagerUnitMethods {
      * Stores the handed over unit and creates
      * an update method.
      * @param {Object} unit - The unit a user requests 
-     * @param {*} es6StrToObj - Method to analyze a 
+     * @param {*} es6NodeToUnit - Method to analyze a 
      */
-    constructor(unit, es6StrToObj) {
+    constructor(unit, es6NodeToUnit) {
         this.unit = unit;
 
         // After a change in the code of a es6 unit is made
@@ -22,21 +22,12 @@ export default class ImportManagerUnitMethods {
         // function is the same as for the initial file
         // analyses and gets handed over by the main class.
 
-        this.updateUnit = (memberPart=null) => {
+        this.updateUnit = () => {
 
-            if (memberPart === null) {
-                const memberPartStart = this.unit.defaultMembers.start || this.unit.members.start;
-                const memberPartEnd = this.unit.members.end || this.unit.defaultMembers.end;
-                memberPart = this.unit.code.slice(memberPartStart, memberPartEnd);
-            }
-
-            const unit = es6StrToObj(
+            const unit = es6NodeToUnit(
                 this.unit.code.toString(),
                 this.unit.start,
-                this.unit.end,
-                this.unit.code.toString(),
-                memberPart,
-                this.unit.code.slice(this.unit.module.start, this.unit.module.end)
+                this.unit.end
             );
 
             Object.assign(this.unit, unit);

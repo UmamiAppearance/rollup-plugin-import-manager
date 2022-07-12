@@ -22,6 +22,10 @@ A Rollup plugin which makes it possible to manipulate import statement. Deleting
       - [`append`](#append-option-for-units)
       - [`prepend`](#prepend-option-for-units)
       - [`replace`](#replace-option-for-units)
+      - [`const`](#const-option-for-units)
+      - [`let`](#let-option-for-units)
+      - [`var`](#var-option-for-units)
+      - [`global`](#global-option-for-units)
       - [`actions`](#actions-option-for-units)
         - [`debug`](#debug-option-for-actions)
         - [`select`](#select-option-for-actions)
@@ -54,6 +58,7 @@ A Rollup plugin which makes it possible to manipulate import statement. Deleting
     - [Debugging Files](#debugging-files)
     - [Debugging Units](#debugging-units)
   - [License](#license)
+
 
 ## Install
 Using npm:
@@ -102,7 +107,7 @@ Then call `rollup` either via the [CLI](https://www.rollupjs.org/guide/en/#comma
 Type: `String` | `Array[...String]`  
 Default: `null`  
 
-A [minimatch pattern](https://github.com/isaacs/minimatch), or array of patterns, which specifies the files in the build the plugin should operate on. By default all files are targeted. Each unit has the possibility to target a specific file. See LINK
+A [minimatch pattern](https://github.com/isaacs/minimatch), or array of patterns, which specifies the files in the build the plugin should operate on. By default all files are targeted. On top of that each unit has the possibility to [target a specific file](#file-option-for-units).
 
 
 ### `exclude`  
@@ -202,7 +207,7 @@ A possibility to specify the unit type. Valid parameters are:
  * `cjs`
  * `dynamic`
 
-This _can_ be helpful if there are overlapping matches across the types. For example if es6 and dynamic import share the same module name. But there are actually few situations where it is necessary to specify the type, to be honest. But the option is there.
+This argument is mainly necessary when creating new units. Without members or default members the type cannot be guessed and needs to be specified. But the argument _can_ also be helpful for selecting modules, if there are overlapping matches across the types. For example if es6 and dynamic import share the same module name. Which is admittedly a very unusual scenario. 
 
 
 #### `createModule` <samp>[option for units]</samp>
@@ -244,8 +249,36 @@ Additional parameter for [`createModule`](#createModule-options-for-units). Inst
 [Example](#creating-an-import-statement-by-replacing-another-statement). 
 
 
+#### `const` <samp>[option for units]</samp>
+Type: `String`  
+Default: `null`
+
+Additional parameter for [`createModule`](#createModule-options-for-units). Only has an effect if _cjs_ or _dynamic_ modules are getting created. `const` is the declarator type, the value is the variable name for the import.
+
+
+#### `let` <samp>[option for units]</samp>
+Type: `String`  
+Default: `null`
+
+Additional parameter for [`createModule`](#createModule-options-for-units). Only has an effect if _cjs_ or _dynamic_ modules are getting created. `let` is the declarator type, the value is the variable name for the import.
+
+
+#### `var` <samp>[option for units]</samp>
+Type: `String`  
+Default: `null`
+
+Additional parameter for [`createModule`](#createModule-options-for-units). Only has an effect if _cjs_ or _dynamic_ modules are getting created. `var` is the declarator type, the value is the variable name for the import.
+
+
+#### `global` <samp>[option for units]</samp>
+Type: `String`  
+Default: `null`
+
+Additional parameter for [`createModule`](#createModule-options-for-units). Only has an effect if _cjs_ or _dynamic_ modules are getting created. If `global` is set, there is no declarator type and the variable should be declared before. The value is the variable name for the import.
+
+
 #### `actions` <samp>[option for units]</samp>  
-Type: `Object | `Array[...Object]`  
+Type: `Object` | `Array[...Object]`  
 Default: `null`  
 
 This is the place where the actual manipulation of a unit (and ultimately statement) taken place. Several actions/**options** can be passed, for a singular option, use an object for multiple an array of objects:
@@ -300,9 +333,9 @@ This option is used to rename a [selected](#select-option-for-actions) specific 
 
 ##### `modType` <samp>[option for actions]</samp>
 Type: `String`  
-Default: `"string"|"literal"`  
+Default: `"literal"|"raw"`  
 
-If [renaming](#rename-option-for-actions) is done with modType `string` there are quotation marks set around the input by default, mode `literal` is not doing that. This can be useful for replacing the module by anything other than a string (which is only valid for cjs and dynamic imports). By default the modType is defined by the existing statement. If it is not a string, type literal is assumed (those are rare occasions).
+If [renaming](#rename-option-for-actions) is done with modType `literal` there are quotation marks set around the input by default, mode `raw` is not doing that. This can be useful for replacing the module by anything other than a string (which is only valid for _cjs_ and _dynamic_ imports). By default the `modType` is defined by the existing statement. If it is not a string, type `raw` is assumed (those are rare occasions).
 
 
 ##### `keepAlias` <samp>[option for actions]</samp>
@@ -320,7 +353,7 @@ When no part was selected, this removes the entire unit &rarr; import statement.
 
 
 ##### `add` <samp>[option for actions]</samp>
-Type: `String | `Array[...String]`
+Type: `String` | `Array[...String]`
 Default: `null`  
 
 An additional parameter for `defaultMembers` or `members`. It adds one or multiple (default) members to the existing ones. The group has to be [selected](#select-option-for-actions).
@@ -329,6 +362,9 @@ An additional parameter for `defaultMembers` or `members`. It adds one or multip
 ## Examples
 
 ### Creating an Import Statement
+
+TODO: add dynamic and cjs
+
 ```js
 plugins: [
     importManager({
@@ -432,12 +468,10 @@ plugins: [
 ]
 ```  
 
-
 Leeds to:
 ```js
 import * as qux from "./path/to/baz.js";
 ```
-
 
 
 ### Removing an Import Statement

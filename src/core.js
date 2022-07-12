@@ -1,14 +1,15 @@
 import ImportManagerUnitMethods from "./unit-methods.js";
 import { DebuggingError, MatchError } from "./errors.js";
+import { parse } from "acorn";
+import { full as fullWalk } from "acorn-walk"; 
 import MagicString from "magic-string";
 import { bold, yellow } from "colorette";
-
 
 /**
  * The plugins core class. It handles the 
  * code analysis, creates units from import
  * statements, attaches methods to the units
- * and more. 
+ * and more.
  */
 export default class ImportManager {
 
@@ -18,9 +19,8 @@ export default class ImportManager {
      * @param {string} source - The unmodified source code-
      * @param {string} filename - The filename of the input file.  
      * @param {object} warnSpamProtection - A Set which contains all previously printed warning hashes. 
-     * @param {boolean} [autoSearch=true] - Automatic code analysis can be disabled by passing "false". 
      */
-    constructor(source, filename, warnSpamProtection, autoSearch=true) {
+    constructor(source, filename, warnSpamProtection) {
 
         this.scopeMulti = 1000;
 
@@ -50,88 +50,75 @@ export default class ImportManager {
         this.idTypes = Object.fromEntries(Object.entries(this.imports).map(([k, v]) => [v.idScope, k]));
 
         this.code = new MagicString(source);
-        this.blackenedCode = this.prepareSource();
+
         this.hashList = {};
         this.filename = filename;
         this.warnSpamProtection = warnSpamProtection;
-
-        if (autoSearch) {
-            this.getDynamicImports();
-            this.getES6Imports();
-            this.getCJSImports();
-        }
-    }
-
-    /**
-     * Helper function for finding matches in the source
-     * for a given regex and replace those with consecutive
-     * dashes.
-     * @param {Object} src - Source a a MagicString. 
-     * @param {Object} regex - RegExp Object.  
-     * @param {boolean} [nl=false] - True if matches should be able to go across multiple lines. 
-     */
-    #matchAndStrike(src, regex, nl=false) {
         
-        // replacement function
-        let genBlackenedStr = "";
-        if (nl) {
-            genBlackenedStr = str => str.split("")
-                .map(c => c === "\n" ? "\n" : "-")
-                .join("");
-        } else {
-            genBlackenedStr = str => ("-").repeat(str.length);
-        }
-
-        const collection = src.toString().matchAll(regex);
-        let next = collection.next();
+        this.parsedCode = parse(source, {
+            ecmaVersion: "latest",
+            sourceType: "module"
+        });
         
-        while (!next.done) {
-            const match = next.value;
-            const start = match.index;
-            const end = start + match[0].length;
-            src.overwrite(start, end, genBlackenedStr(match[0]));
-            next = collection.next();
-        }
+        this.analyze();
     }
 
 
     /**
-     * Prepares the source by replacing problematic
-     * content.
-     * @returns {string} - The blackened source.
+     * Analyzes the source and stores all import
+     * statements as unit objects in the class 
+     * variable "imports".
      */
-    prepareSource() {
+    analyze() {
+  
+        let cjsId = this.imports.cjs.idScope;
+        let cjsIndex = 0;
 
-        // clone the original code
-        const src = this.code.clone();
+        let dynamicId = this.imports.dynamic.idScope;
+        let dynamicIndex = 0;
 
-        // blacken double and single quoted strings
-        this.#matchAndStrike(
-            src,
-            /(["'])(?:\\\1|.)*?\1/g
-        );
+        let es6Id = this.imports.es6.idScope;
+        let es6Index = 0;
+
+        this.parsedCode.body.forEach(node => {
+
+            if (node.type === "ImportDeclaration") {
+                const unit = this.es6NodeToUnit(node);
+                unit.id = es6Id ++;
+                unit.index = es6Index ++;
+                unit.hash = this.#makeHash(unit);
+                this.imports.es6.units.push(unit);
+                this.imports.es6.count ++;
+            }
         
-        // blacken template string literals
-        this.#matchAndStrike(
-            src,
-            /`(?:\\`|\s|\S)*?`/g,
-            true
-        );
+            else if (node.type === "VariableDeclaration" ||
+                     node.type === "ExpressionStatement")
+            {
+                let prevPart;
 
-        // blacken multi line comments
-        this.#matchAndStrike(
-            src,
-            /\/\*[\s\S]*?\*\//g,
-            true
-        );
+                fullWalk(node, part => {
+                    if (part.type === "ImportExpression") {
+                        const unit = this.dynamicNodeToUnit(node, part);
+                        unit.id = dynamicId ++;
+                        unit.index = dynamicIndex ++;
+                        unit.hash = this.#makeHash(unit);
+                        this.imports.dynamic.units.push(unit);
+                        this.imports.dynamic.count ++;
+                    }
+                    
+                    else if (part.type === "Identifier" && part.name === "require") {
+                        const unit = this.cjsNodeToUnit(node, prevPart);
+                        unit.id = cjsId ++;
+                        unit.index = cjsIndex ++;
+                        unit.hash = this.#makeHash(unit);
+                        this.imports.cjs.units.push(unit);
+                        this.imports.cjs.count ++;
+                    }
 
-        // blacken single line comments
-        this.#matchAndStrike(
-            src,
-            /\/\/.*/g
-        );
-        
-        return src.toString();
+                    prevPart = part;
+                });
+            }
+        });
     }
 
     /**
@@ -144,42 +131,49 @@ export default class ImportManager {
 
         const makeInput = (unit) => {
             
-            const getProps = list => {
+            const joinProps = list => {
                 list.forEach(member => {
-                    input += member.name;
+                    inputStr += member.name;
                     if (member.alias) {
-                        input += member.alias.name;
+                        inputStr += member.alias.name;
                     }
                 });
             }; 
 
-            let input = unit.module.name;
+            let inputStr = unit.module.name
+                         + unit.type
+                         + this.filename;
             
             if (unit.members) {
-                getProps(unit.members.entities);
+                joinProps(unit.members.entities);
             }
 
             if (unit.defaultMembers) {
-                getProps(unit.defaultMembers.entities);
+                joinProps(unit.defaultMembers.entities);
             }
 
-            return input + this.filename;
+            return inputStr;
         };
 
         const input = makeInput(unit);
         let hash = String(simpleHash(input));
 
-        // handle duplicates (which should not exist in reality)
+        // handle duplicates
         if (hash in this.hashList) {
-            this.warning(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
-            let nr = 2;
-            for (;;) {
+            
+            console.log("NAME", unit.module.name);
+            if (unit.module.name.slice(0, 3) !== "N/A") {
+                this.warning(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
+            } else {
+                console.log("CASE");
+            }
+            
+            for (let nr=2;; nr++) {
                 const nHash = `${hash}#${nr}`;
                 if (!(nHash in this.hashList)) {
                     hash = nHash;
                     break;
                 }
-                nr ++;
             }
         }
         
@@ -188,346 +182,175 @@ export default class ImportManager {
         return hash;
     }
 
+
     /**
-     * Method to generate a unit object from a
-     * ES6 Import Statement.
-     * @param {string} code - The complete import statement. 
-     * @param {number} start - Start index of the source code file.
-     * @param {number} end - End index of the source code file. 
-     * @param {string} statement - The complete statement from the regex match in the prepared source code.  
-     * @param {string} memberPart - The member part (default and non default).
-     * @param {string} module - The module part. 
-     * @returns {Object} - Unit Object.
+     * Method to generate a unit object from an acorn
+     * node, originated from an ES6 Import Statement. 
+     * @param {Object|string} node - acorn node or es6 import statement string. 
+     * @param {number} [oStart] - For updating units the original start index has to be passed. 
+     * @param {number} [oEnd] - For updating units the original end index has to be passed.
+     * @returns 
      */
-    es6StrToObj(code, start, end, statement, memberPart, module) {
-        // separating members
-        const members = {
-            count: 0,
-            entities: []
-        };
+    es6NodeToUnit(node, oStart, oEnd) {
 
-        const defaultMembers = {
-            count: 0,
-            entities: []
-        };
-
-        const allMembersStr = memberPart ? memberPart.trim() : null;
+        let code;
+        if (typeof node === "string") {
+            code = node;
+            node = parse(node, {
+                ecmaVersion: "latest",
+                sourceType: "module"
+            }).body.at(0);
+        } else {
+            code = this.code.slice(node.start, node.end);
+        }
         
-        if (allMembersStr) {
-            // find position of all members
-            const relAllMembersStart = code.indexOf(allMembersStr);
-
-            // initialize default string
-            let defaultStr = null;
-
-            // but begin with non default members, those
-            // are addressed by looking for everything between
-            // the curly braces (if present)
-            const nonDefaultMatch = allMembersStr.match(/{[\s\S]*?}/);
-            
-            if (nonDefaultMatch) {
-                const relNonDefaultStart = nonDefaultMatch.index;
-                let nonDefaultStr = nonDefaultMatch[0];
-
-                members.start = relAllMembersStart + relNonDefaultStart;
-                members.end = members.start + nonDefaultStr.length;
-
-                if (relNonDefaultStart > 0) {
-                    defaultStr = allMembersStr.slice(0, nonDefaultMatch.index);
-                }
-
-                // split the individual members (ignore curly braces left and right)
-                const m = allMembersStr.slice(relNonDefaultStart+1, relNonDefaultStart+nonDefaultStr.length-1)
-                    .split(",")
-                    .map(m => m.trim())
-                    .filter(m => m);
-
-                // get the position of each of each member 
-                let searchIndex = 0;
-                m.forEach((member, index) => {
-                    members.count ++;
-                    const relMemberPos = nonDefaultStr.indexOf(member, searchIndex);
-                    
-                    let name = member;
-                    let len;
-
-                    // isolate aliases
-                    const aliasMatch = member.match(/(\s+as\s+)/);
-                    const newMember = {};
-
-                    if (aliasMatch) {
-                        len = aliasMatch.index;
-                        name = member.slice(0, len);
-                        newMember.name = name;
-                        const aliasStart = aliasMatch.index + aliasMatch[0].length;
-                        newMember.alias = {
-                            name: member.slice(aliasStart),
-                            start: relAllMembersStart + relNonDefaultStart + relMemberPos + aliasStart,
-                            end: relAllMembersStart + relNonDefaultStart + relMemberPos + member.length
-                        };
-                    } else {
-                        newMember.name = name;
-                        len = member.length;
-                    }
-                    newMember.start = relAllMembersStart + relNonDefaultStart + relMemberPos;
-                    newMember.end = newMember.start + len;
-                    newMember.absEnd = newMember.start + member.length;
-                    newMember.index = index;
-
-                    // store the current member start as
-                    // a property of the last and the last
-                    // member end as a property of the 
-                    // current index
-                    if (index > 0) {
-                        newMember.last = members.entities[index-1].absEnd;
-                        members.entities[index-1].next = newMember.start;
-                    }
-
-                    members.entities.push(newMember);
-
-                    // raise the search index by the length
-                    // of the member to ignore the current
-                    // member in the next round
-                    searchIndex = relMemberPos + member.length;
-                });
+        const mem = {
+            defaultMembers: {
+                count: 0,
+                entities: []
+            },
+            members: {
+                count: 0,
+                entities: []
             }
-            
-            // if no non default members were found
-            // the default member string is the whole
-            // member string 
-            else {
-                defaultStr = allMembersStr;
-            }
+        };
 
-            // if a default str is present process
-            // it similarly to the non default members
-            if (defaultStr) {
-                defaultMembers.start = relAllMembersStart;
-                defaultMembers.end = defaultMembers.start + defaultStr.length;
-
-                const dm = defaultStr.split(",")
-                    .map(m => m.trim())
-                    .filter(m => m);
+        if (node.specifiers) {
+            for (const spec of node.specifiers) {
                 
-                let searchIndex = 0;
-                dm.forEach((defaultMember, index) => {
-                    defaultMembers.count ++;
-                    const relDefaultMemberPos = defaultStr.indexOf(defaultMember, searchIndex);
-                    let name = defaultMember;
-                    let len;
-                    const newDefMember = {};
-                    const aliasMatch = defaultMember.match(/(\s+as\s+)/);
-                    
-                    if (aliasMatch) {
-                        len = aliasMatch.index;
-                        name = defaultMember.slice(0, len);
-                        newDefMember.name = name;
-                        const aliasStart = aliasMatch.index + aliasMatch[0].length;
-                        newDefMember.alias = {
-                            name: defaultMember.slice(aliasStart),
-                            start: relAllMembersStart + relDefaultMemberPos + aliasStart,
-                            end: relAllMembersStart + relDefaultMemberPos + defaultMember.length
-                        };
-                    } else {
-                        newDefMember.name = name;
-                        len = defaultMember.length;
-                    }
+                const memType = spec.type === "ImportSpecifier" ? "members" : "defaultMembers";
+                const index = mem[memType].count;
+                const hasAlias = spec.local.start !== spec.start;
 
-                    newDefMember.start = relAllMembersStart + relDefaultMemberPos;
-                    newDefMember.end = newDefMember.start + len;
-                    newDefMember.absEnd = newDefMember.start + defaultMember.length;
-                    newDefMember.index = index;
-
-                    if (index > 0) {
-                        newDefMember.last = defaultMembers.entities[index-1].absEnd;
-                        defaultMembers.entities[index-1].next = newDefMember.start;
-                    }
-
-                    defaultMembers.entities.push(newDefMember);
-                    searchIndex = relDefaultMemberPos + len + 1;
-                });
-
-                // if there are default and non default members
-                // add the start position of the non default
-                // members as the next value for the last default
-                // member
-                if (members.count > 1 && defaultMembers.count > 1) {
-                    defaultMembers.entities.at(-1).next = members.start;
+                const start = spec.start - node.start;
+                let end;
+                if (!hasAlias) {
+                    end = spec.end - node.start;
+                } else {
+                    end = (memType === "members") ? spec.imported.end-node.start : start+1;
                 }
+                const name = code.slice(start, end);
+                
+
+                const member = {
+                    index,
+                    name,
+                    start,
+                    end,
+                    absEnd: spec.end - node.start
+                };
+
+                if (hasAlias) {
+                    member.alias = {
+                        name: spec.local.name,
+                        start: spec.local.start - node.start,
+                        end: spec.local.end - node.start
+                    };
+                }
+
+                if (index > 0) {
+                    member.last = mem[memType].entities[index-1].absEnd;
+                    mem[memType].entities[index-1].next = member.start;
+                }
+                
+                mem[memType].entities.push(member);
+                mem[memType].count ++;
+
             }
         }
 
-        // create a fresh object for the current unit
-        const moduleStr = {};
+        if (mem.members.count > 0) {
+            const nonDefaultMatch = code.match(/{[\s\S]*?}/);
+            mem.members.start = nonDefaultMatch.index;
+            mem.members.end = mem.members.start + nonDefaultMatch.at(0).length;    
+        }
 
-        // find the position of the module string
-        moduleStr.start = statement.indexOf(module);
-        moduleStr.end = moduleStr.start + module.length;
-        moduleStr.name = code.slice(moduleStr.start+1, moduleStr.end-1).split("/").at(-1);
-        moduleStr.quotes = code.charAt(moduleStr.start);
-        moduleStr.type = "string";
+        if (mem.defaultMembers.count > 0) {
+            mem.defaultMembers.start = mem.defaultMembers.entities.at(0).start;
+            mem.defaultMembers.end = (mem.members.count > 0)
+                ? mem.members.start
+                : mem.defaultMembers.entities.at(-1).absEnd;  
+        }
 
         // store the first separator of the non default
         // and default members for a consistent style
         // if one wants to add members
-        defaultMembers.separator = (defaultMembers.entities.length > 1) ? code.slice(defaultMembers.entities[0].absEnd, defaultMembers.entities[0].next) : ", ";
-        members.separator = (members.entities.length > 1) ? code.slice(members.entities[0].absEnd, members.entities[0].next) : ", ";
+        mem.defaultMembers.separator = (mem.defaultMembers.count > 1) ? code.slice(mem.defaultMembers.entities[0].absEnd, mem.defaultMembers.entities[0].next) : ", ";
+        mem.members.separator = (mem.members.count > 1) ? code.slice(mem.members.entities[0].absEnd, mem.members.entities[0].next) : ", ";
 
-        // make a new unit
+
+        const module = {
+            name: node.source.value.split("/").at(-1),
+            start: node.source.start - node.start,
+            end: node.source.end - node.start,
+            quotes: node.source.raw.at(0),
+            type: "string"
+        };
+
+        
         const unit = {
             code: new MagicString(code),
-            defaultMembers,
-            members,
-            module: moduleStr,
-            start,
-            end
+            defaultMembers: mem.defaultMembers,
+            members: mem.members,
+            module,
+            start: oStart || node.start,
+            end: oEnd || node.end,
+            type: "es6"
         };
 
         return unit;
     }
 
-    /**
-     * Collect all es6 imports from a source code.
-     * Destructure the string, and store the findings
-     * in an object which gets stored in the class
-     * instance.
-     */
-    getES6Imports() {
-        
-        const es6ImportCollection = this.blackenedCode.matchAll(/import\s+(?:([\w*{},\s]+)from\s+)?(-+);?/g);
-        // match[0]: the complete import statement
-        // match[1]: the member part of the statement (may be empty)
-        // match[2]: the module part
-        
-        let id = this.imports.es6.idScope;
-        let next = es6ImportCollection.next();
-        let index = 0;
-        
-        while (!next.done) {
-            this.imports.es6.count ++;
 
-            const match = next.value;
+    dynamicNodeToUnit(node, importObject) {
 
-            const start = match.index;
-            const end = start + match[0].length;
+        const code = this.code.slice(node.start, node.end);
 
-            // get the equivalent string from the 
-            // original code
-            const code = this.code.slice(start, end);
-
-            const unit = this.es6StrToObj(code, start, end, ...match);
-            
-            unit.type = "es6";
-            unit.id = id++;
-            unit.index = index ++;
-            unit.hash = this.#makeHash(unit);
-
-            // push the fresh unit to es6 unit array
-            this.imports.es6.units.push(unit);
-            
-            next = es6ImportCollection.next();
-        }
-        this.imports.es6.searched = true;
-    }
-
-
-    /**
-     * Generic method to find dynamic and common js
-     * import properties.
-     * Both methods matches have the following children:
-     *  - match[0] - the complete import statement
-     *  - match[1] - index 0 until the beginning of the module
-     *               (the length is the start index of the module string)
-     *  - match[2] - the module string (or more unlikely var/fn)
-     * 
-     * @param {string} type - "cjs" or "dynamic" 
-     * @param {Object} match - A match object returned by a regex match fn. 
-     * @param {number} id 
-     */
-    #makeImport(type, match, id, index) {
-        const start = match.index;
-        const end = start + match[0].length;
-        const code = this.code.slice(start, end);
-        
-        const module = {};
-        module.start = match[1].length;
-        module.end = module.start + match[2].length;
-        const char0 = code.charAt(module.start);
-
-        // as dynamic and cjs imports allow variables
-        // (or even functions) to provide the module
-        // string this type has to be figured out and
-        // stored
-
-        if (char0.match(/["'`]/)) {
-            module.type = "string";
-            module.quotes = char0;
-            module.name = code.slice(module.start+1, module.end-1).split("/").at(-1);
-        } else {
-            module.type = "literal";
-            module.name = code.slice(module.start, module.end);
-        }
-        
-        // make a fresh unit
-        const unit = {
-            id,
-            index,
-            code: new MagicString(code),
-            module,
-            start,
-            end,
-            type,
-            get codeString() {
-                return [ this.code.toString() ];
-            }
+        const module = {
+            name: importObject.source.value || "N/A",
+            start: importObject.source.start - node.start,
+            end: importObject.source.end - node.start
         };
 
-        // add hash
-        unit.hash = this.#makeHash(unit);
-
-        this.imports[type].units.push(unit);
-    }
-
-
-    /**
-     * Find all dynamic import statements in the 
-     * (prepared) source code.
-     */
-    getDynamicImports() {
-        let id = this.imports.dynamic.idScope;
-
-        const dynamicImportCollection = this.blackenedCode.matchAll(/(import\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
-        let next = dynamicImportCollection.next();
-
-        while (!next.done) {
-            this.imports.dynamic.count ++;
-            this.#makeImport("dynamic", next.value, id++, this.imports.dynamic.count-1);
-            next = dynamicImportCollection.next();
+        if (importObject.source.type === "Literal") {
+            module.type = "string";
+            module.quotes = importObject.source.raw.at(0);
+        } else {
+            module.type = "literal";
         }
 
-        this.imports.dynamic.searched = true;
+        const unit = {
+            code: new MagicString(code),
+            module,
+            start: node.start,
+            end: node.end,
+            type: "dynamic",
+        };
+
+        console.log("DYN_UNIT: ", unit);
+        return unit;
     }
 
 
-    /**
-     * Find all common js import statements in the 
-     * (prepared) source code.
-     */
-    getCJSImports() {
-        let id = this.imports.cjs.idScope;
+    cjsNodeToUnit(node, modulePart) {
 
-        const cjsImportCollection = this.blackenedCode.matchAll(/(require\s*?\(\s*?)(\S+)(?:\s*?\);?)/g);
-        let next = cjsImportCollection.next();
+        const code = this.code.slice(node.start, node.end);
 
-        while (!next.done) {
-            while (!next.done) {
-                this.imports.cjs.count ++;
-                this.#makeImport("cjs", next.value, id++, this.imports.cjs.count-1);
-                next = cjsImportCollection.next();
-            }
-        } 
+        const module = {
+            name: modulePart.name,
+            start: modulePart.start - node.start,
+            end: modulePart.end - node.start
+        };
 
-        this.imports.cjs.searched = true;
+        const unit = {
+            code: new MagicString(code),
+            module,
+            start: node.start,
+            end: node.end,
+            type: "cjs",
+        };
+
+        return unit;
     }
 
     //              ___________________              //
@@ -647,7 +470,7 @@ export default class ImportManager {
 
         // finally add methods for manipulation to the unit
         const unit = units[0];
-        unit.methods = new ImportManagerUnitMethods(unit, this.es6StrToObj);
+        unit.methods = new ImportManagerUnitMethods(unit, this.es6NodeToUnit);
 
         return unit;
     }
@@ -692,7 +515,7 @@ export default class ImportManager {
 
         // add unit methods
         const unit = units[0];
-        unit.methods = new ImportManagerUnitMethods(unit, this.es6StrToObj);
+        unit.methods = new ImportManagerUnitMethods(unit, this.es6NodeToUnit);
 
         return unit;
     }
@@ -724,17 +547,6 @@ export default class ImportManager {
     //         methods for unit creation, replacement, etc.       //
 
     /**
-     * Makes sure, that the processed unit is of type 'es6'.
-     * @param {Object} unit - Unit Object. 
-     */
-    #ES6only(unit) {
-        if (unit.type !== "es6") {
-            throw new Error("This method is only available for ES6 imports.");
-        }
-    }
-
-    
-    /**
      * All manipulation via unit method is made on the
      * code slice of the unit. This methods writes it
      * to the code instance. 
@@ -751,8 +563,6 @@ export default class ImportManager {
      * @param {Object} unit - Unit Object.
      */
     remove(unit) {
-        this.#ES6only(unit);
-
         const charAfter = this.code.slice(unit.end, unit.end+1);
         const end = (charAfter === "\n") ? unit.end + 1 : unit.end;
         this.code.remove(unit.start, end);
@@ -760,6 +570,42 @@ export default class ImportManager {
         this.imports[unit.type].count --;
     }
 
+    /**
+     * Helper method to declare a variable.
+     * @param {string} declarator - const|let|var|global 
+     * @param {string} varname - Variable Name. 
+     * @returns {string} - Declarator + Varname + Equal Sign.
+     */
+    #genDeclaration(declarator, varname) {
+        let declaration;
+        if (declarator === "global") {
+            declaration = varname;
+        } else {
+            declaration = `${declarator} ${varname}`;
+        }
+        return declaration;
+    }
+
+    /**
+     * Generates a CJS Import Statement.
+     * @param {string} module - Module (path).
+     * @returns {string} - CJS Import Statement.
+     */
+    makeCJSStatement(module, declarator, varname) {
+        const declaration = this.#genDeclaration(declarator, varname);
+        return `${declaration} = require("${module}");\n`;
+    }
+
+    /**
+     * Generates a Dynamic Import Statement.
+     * @param {string} module - Module (path).
+     * @returns {string} - CJS Import Statement.
+     */
+    makeDynamicStatement(module, declarator, varname) {
+        const declaration = this.#genDeclaration(declarator, varname);
+        return `${declaration} = await import("${module}");\n`;
+    }
+    
 
     /**
      * Generates an ES6 Import Statement.
@@ -805,16 +651,29 @@ export default class ImportManager {
 
         if (pos !== "top" && this.imports.es6.count > 0) {
             index = this.imports.es6.units.at(-1).end;
-            if (this.code.slice(index, index+1) === "\n") {
+
+            // move the index if the following char is a newline
+            // (if the line was removed in an earlier operation
+            // this will throw an error, don't do any change in
+            // this case
+
+            let nextChar;
+            try {
+                nextChar = this.code.slice(index, index+1);
+            } catch {
+                nextChar = null;
+            }
+
+            if (nextChar === "\n") {
                 index ++;
             }
-        } else {
-            // find description part if present and
-            // move the index
-            const description = this.code.toString().match(/^\s*?\/\*[\s\S]*?\*\/\s?/);
-            if (description) {
-                index += description[0].length;
-            }
+        }
+        
+        else {
+            // find the first meaningful (not a comment)
+            // code and use the start as insertion point
+            
+            index = this.parsedCode.body.at(0).start;
         }
         
         this.code.appendRight(index, statement);
@@ -830,8 +689,7 @@ export default class ImportManager {
      * @param {string} statement - ES6 Import Statement. 
      */
     insertAtUnit(unit, mode, statement) {
-        this.#ES6only(unit);
-        
+
         let index;
         if (mode === "append") {
             index = unit.end;
