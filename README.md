@@ -328,7 +328,7 @@ Type: `String`
 Default: `null`  
 
 For the selection of a specific part (`defaultMember` or `member`) the name needs to be specified. The name is directly related to the name of a member or default member (without its alias if present).   
-A member part of `{memberA as aliasA, memberB}` can be selected with `name: "memberA"` or `name: "memberB"`.
+A member part of `{ foobar as foo, baz }` can be selected with `name: "foobar"` and `name: "baz"`.
 
 
 ##### `alias` <samp>[option for actions]</samp>
