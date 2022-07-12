@@ -18,7 +18,7 @@ A Rollup plugin which makes it possible to manipulate import statement. Deleting
       - [`file`](#file-option-for-units)
       - [`type`](#type-option-for-units)
       - [`createModule`](#createmodule-option-for-units)
-      - [`addCode`](#addcode-module-option-for-units)
+      - [`addCode`](#addcode-option-for-units)
       - [`insert`](#insert-option-for-units)
       - [`append`](#append-option-for-units)
       - [`prepend`](#prepend-option-for-units)
