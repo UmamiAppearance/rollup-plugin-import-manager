@@ -375,7 +375,6 @@ class ImportManager {
      * @param {string} source - The unmodified source code-
      * @param {string} filename - The filename of the input file.  
      * @param {object} warnSpamProtection - A Set which contains all previously printed warning hashes. 
-     * @param {boolean} [autoSearch=true] - Automatic code analysis can be disabled by passing "false". 
      */
     constructor(source, filename, warnSpamProtection) {
 
@@ -411,18 +410,22 @@ class ImportManager {
         this.hashList = {};
         this.filename = filename;
         this.warnSpamProtection = warnSpamProtection;
+        
         this.parsedCode = acorn.parse(source, {
             ecmaVersion: "latest",
             sourceType: "module"
         });
-        this.blackenedCode = this.prepareSource();
+        
+        this.analyze();
     }
 
 
     /**
-     * TODO: -
+     * Analyzes the source and stores all import
+     * statements as unit objects in the class 
+     * variable "imports".
      */
-    prepareSource() {
+    analyze() {
   
         let cjsId = this.imports.cjs.idScope;
         let cjsIndex = 0;
