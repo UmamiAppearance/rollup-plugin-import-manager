@@ -372,9 +372,9 @@ An additional parameter for `defaultMembers` or `members`. It adds one or multip
 ## Examples
 
 ### Creating an Import Statement
+There are a few options on how to create new import statements. The [`createModule`](#createModule-options-for-units) is working a lot like the the methods for selecting existing statements.
 
-TODO: add dynamic and cjs and addCode
-
+#### Basic ES6 Statement via [`createModule`](#createmodule-option-for-units)
 ```js
 plugins: [
     importManager({
@@ -395,13 +395,81 @@ plugins: [
     })
 ]
 ```
-Without specifying [`insert`](#insert-option-for-units) or [`append`](#append-option-for-units)/[`prepend`](#prepend-option-for-units) the following import statement is getting inserted after the last import statement.
+
+Without specifying [`insert`](#insert-option-for-units) or [`append`](#append-option-for-units)/[`prepend`](#prepend-option-for-units) the following import statement is getting inserted after the last import statement.  
+Result:
 ```js
 import bar, { baz as qux } from "./path/to/foo.js";
 ```
 
+#### Basic CJS Statement via [`createModule`](#createmodule-option-for-units)
+CJS Imports are also supported. But this time the [`type`](#type-option-for-units) needs to be specified. Also a variable name has to be set. In this example the [`const`](#const-option-for-units) _foo_. (Other declaration types are: [`let`](#let-option-for-units), [`var`](#var-option-for-units) and [`global`](#global-option-for-units))
+
+```js
+plugins: [
+    importManager({
+        units: {
+            file: "**/index.js",
+            createModule: "./path/to/foo.js", 
+            type: "cjs",
+            const: "foo"
+        }
+    })
+]
+```
+
+Result:
+```js
+const foo = require("./path/to/foo.js");
+```
+
+#### Basic Dynamic Import Statement via [`createModule`](#createmodule-option-for-units)
+Almost exactly the same (only the [`type`](#type-option-for-units) differs) goes for dynamic imports:
+
+```js
+plugins: [
+    importManager({
+        units: {
+            file: "**/index.js",
+            createModule: "./path/to/foo.js", 
+            type: "dynamic",
+            let: "foo"
+        }
+    })
+]
+```
+
+Result:
+```js
+let foo = await import("./path/to/foo.js");
+```
+
+#### Manual Statement creation via [`addCode`](#addcode-option-for-units)
+If this is all to much predetermination this is a very handy feature. [`addCode`](#addcode-option-for-units) allows to inject a string containing the code snippet (most likely an import statement). Which is very different but behaves exactly the same in other regards ([inserting](#insert-option-for-units), [appending](#append-option-for-units)/[prepending](#prepend-option-for-units)).
+
+Example:
+```js
+plugins: [
+    importManager({
+        units: {
+            file: "index.js",
+            addCode: "let foobar;\nimport('fs').then(fs => fs.readFileSync('./path/to/foobar.txt"'));\n",
+        }
+    })
+]
+```
+
+Result:
+```js
+let foobar;
+import('fs').then(fs => foobar = fs.readFileSync('./path/to/foobar.txt"'));
+```
+
+The [`addCode`](#addcode-option-for-units) value can contain any code you like. You probably should not get too creative. It is designed to add import statements and gets appended to existing statements. 
+
+
 #### Creating an Import Statement, appended after another statement:
-Example: 
+Example Target module: 
 ```js
 import { foo } from "bar";
 ```
@@ -424,7 +492,7 @@ plugins: [
 ]
 ```  
 
-Leeds to:
+Result:
 ```js
 import { foo } from "bar";
 import * as qux from "./path/to/baz.js";
@@ -478,7 +546,7 @@ plugins: [
 ]
 ```  
 
-Leeds to:
+Result:
 ```js
 import * as qux from "./path/to/baz.js";
 ```
@@ -491,7 +559,7 @@ import { foo } from "bar";
 import * as qux from "./path/to/baz.js";
 ```
 
-Module _"bar"_ can be removed like this:
+Module _bar_ can be removed like this:
 ```js
 plugins: [
     importManager({
