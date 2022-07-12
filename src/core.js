@@ -328,6 +328,7 @@ export default class ImportManager {
         return unit;
     }
 
+    FIXME: literal&raw
 
     cjsNodeToUnit(node, modulePart) {
 
@@ -338,8 +339,8 @@ export default class ImportManager {
             start: modulePart.start - node.start,
             end: modulePart.end - node.start
         };
-
-        
+        console.log(code.slice(module.start, module.end));
+        console.log(JSON.stringify(node, null, 4));     
         module.type = modulePart.source.type.toLowerCase();
         if (module.type === "literal") {
             module.quotes = modulePart.source.raw.at(0);

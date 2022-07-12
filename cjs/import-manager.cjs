@@ -85,14 +85,14 @@ class ImportManagerUnitMethods {
     /**
      * Changes the module part of a import statement.
      * @param {string} name - The new module part/path.
-     * @param {*} modType - Module type (sting|literal).
+     * @param {*} modType - Module type (literal|raw).
      */
     renameModule(name, modType) {
-        if (modType === "string") {
+        if (modType === "literal") {
             const q = this.unit.module.quotes;
             name = q + name + q;
-        } else if (modType !== "literal") {
-            throw new TypeError(`Unknown modType '${modType}'. Valid types are 'string' and 'literal'.`);
+        } else if (modType !== "raw") {
+            throw new TypeError(`Unknown modType '${modType}'. Valid types are 'literal' and 'raw'.`);
         }
         
         this.unit.code.overwrite(this.unit.module.start, this.unit.module.end, name);
@@ -639,8 +639,8 @@ class ImportManager {
             name: node.source.value.split("/").at(-1),
             start: node.source.start - node.start,
             end: node.source.end - node.start,
-            quotes: node.source.raw.at(0),
-            type: "string"
+            type: "literal",
+            quotes: node.source.raw.at(0)
         };
 
         
@@ -668,11 +668,9 @@ class ImportManager {
             end: importObject.source.end - node.start
         };
 
-        if (importObject.source.type === "Literal") {
-            module.type = "string";
+        module.type = importObject.source.type.toLowerCase();
+        if (module.type === "literal") {
             module.quotes = importObject.source.raw.at(0);
-        } else {
-            module.type = "literal";
         }
 
         const unit = {
@@ -683,7 +681,6 @@ class ImportManager {
             type: "dynamic",
         };
 
-        console.log("DYN_UNIT: ", unit);
         return unit;
     }
 
@@ -697,6 +694,12 @@ class ImportManager {
             start: modulePart.start - node.start,
             end: modulePart.end - node.start
         };
+        console.log(code.slice(module.start, module.end));
+        console.log(JSON.stringify(node, null, 4));     
+        module.type = modulePart.source.type.toLowerCase();
+        if (module.type === "literal") {
+            module.quotes = modulePart.source.raw.at(0);
+        }
 
         const unit = {
             code: new MagicString__default["default"](code),
@@ -1477,7 +1480,7 @@ const importManager = (options={}) => {
                                 // module
                                 if (action.select === "module" && "rename" in action) {
                                     const modType = ("modType" in action) ? action.modType : unit.module.type;
-                                    unit.methods.renameModule(action.rename, modType);
+                                    unit.methods.renameModule(action.rename, modType.toLowerCase());
                                 }
 
                                 // single (default) member
