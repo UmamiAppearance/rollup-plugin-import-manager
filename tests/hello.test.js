@@ -10,8 +10,6 @@ test("hello", async (t) => {
         input: "./tests/fixtures/hi.js",
         plugins: [
             importManager({
-                showDiff: null,
-                //debug: "verbose",
                 units: {
                     file: "**/hi.js",
                     module: "hello",
@@ -19,8 +17,7 @@ test("hello", async (t) => {
                         select: "member",
                         name: "hello",
                         rename: "helloWorld",
-                        keepAlias: true,
-                        //debug: null
+                        keepAlias: true
                     }
                 }
             })
