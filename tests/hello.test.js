@@ -3,7 +3,10 @@ import { rollup } from "rollup";
 import { importManager } from "../src/index.js";
 import { parse } from "acorn";
 
-console.log(process.cwd());
+const PARSER_OPTIONS = {
+    ecmaVersion: "latest",
+    sourceType: "module"
+};
 
 test("hello", async (t) => {
     const bundle = await rollup({
@@ -25,10 +28,7 @@ test("hello", async (t) => {
     });
     
     const { output } = await bundle.generate({ format: "es" });
-    const parsedCode = parse(output.at(0).code, {
-        ecmaVersion: "latest",
-        sourceType: "module"
-    });
+    const parsedCode = parse(output.at(0).code, PARSER_OPTIONS);
     
     const replaced = parsedCode.body.at(0).declarations.at(0).init.body.value;
 
