@@ -88,11 +88,11 @@ class ImportManagerUnitMethods {
      * @param {*} modType - Module type (literal|raw).
      */
     renameModule(name, modType) {
-        if (modType === "literal") {
+        if (modType === "string") {
             const q = this.unit.module.quotes;
             name = q + name + q;
         } else if (modType !== "raw") {
-            throw new TypeError(`Unknown modType '${modType}'. Valid types are 'literal' and 'raw'.`);
+            throw new TypeError(`Unknown modType '${modType}'. Valid types are 'string' and 'raw'.`);
         }
         
         this.unit.code.overwrite(this.unit.module.start, this.unit.module.end, name);
@@ -450,9 +450,20 @@ class ImportManager {
             else if (node.type === "VariableDeclaration" ||
                      node.type === "ExpressionStatement")
             {
-                let prevPart;
+
+                let last;
+                let trigger = false;
 
                 acornWalk.full(node, part => {
+
+                    if (trigger) {
+                        console.log("TRIGGER");
+                        console.log("PART", part);
+                        console.log("last", last);
+                        console.log(node);
+                        trigger = false;
+                    }                    
+
                     if (part.type === "ImportExpression") {
                         const unit = this.dynamicNodeToUnit(node, part);
                         unit.id = dynamicId ++;
@@ -463,7 +474,8 @@ class ImportManager {
                     }
                     
                     else if (part.type === "Identifier" && part.name === "require") {
-                        const unit = this.cjsNodeToUnit(node, prevPart);
+                        trigger = true;
+                        const unit = this.cjsNodeToUnit(node);
                         unit.id = cjsId ++;
                         unit.index = cjsIndex ++;
                         unit.hash = this.#makeHash(unit);
@@ -471,7 +483,7 @@ class ImportManager {
                         this.imports.cjs.count ++;
                     }
 
-                    prevPart = part;
+                    last = part;
                 });
             }
         });
@@ -668,9 +680,11 @@ class ImportManager {
             end: importObject.source.end - node.start
         };
 
-        module.type = importObject.source.type.toLowerCase();
-        if (module.type === "literal") {
+        if (importObject.source.type === "Literal") {
+            module.type = "string";
             module.quotes = importObject.source.raw.at(0);
+        } else {
+            module.type = "raw";
         }
 
         const unit = {
@@ -681,24 +695,26 @@ class ImportManager {
             type: "dynamic",
         };
 
+        console.log(JSON.stringify(node, null, 4));
         return unit;
     }
 
-
-    cjsNodeToUnit(node, modulePart) {
+    cjsNodeToUnit(node) {
 
         const code = this.code.slice(node.start, node.end);
 
+        const modulePart = node.declarations.at(0).init.arguments.at(0); // TODO: test if this is robust
         const module = {
-            name: modulePart.name,
+            name: modulePart.value || "N/A",
             start: modulePart.start - node.start,
             end: modulePart.end - node.start
         };
-        console.log(code.slice(module.start, module.end));
-        console.log(JSON.stringify(node, null, 4));     
-        module.type = modulePart.source.type.toLowerCase();
-        if (module.type === "literal") {
-            module.quotes = modulePart.source.raw.at(0);
+
+        if (modulePart.type === "Literal") {
+            module.type = "string";
+            module.quotes = modulePart.raw.at(0);
+        } else {
+            module.type = "raw";
         }
 
         const unit = {
@@ -709,6 +725,7 @@ class ImportManager {
             type: "cjs",
         };
 
+        console.log(JSON.stringify(node, null, 4));
         return unit;
     }
 
@@ -1480,7 +1497,7 @@ const importManager = (options={}) => {
                                 // module
                                 if (action.select === "module" && "rename" in action) {
                                     const modType = ("modType" in action) ? action.modType : unit.module.type;
-                                    unit.methods.renameModule(action.rename, modType.toLowerCase());
+                                    unit.methods.renameModule(action.rename, modType);
                                 }
 
                                 // single (default) member

@@ -94,9 +94,20 @@ export default class ImportManager {
             else if (node.type === "VariableDeclaration" ||
                      node.type === "ExpressionStatement")
             {
-                let prevPart;
+
+                let last;
+                let trigger = false;
 
                 fullWalk(node, part => {
+
+                    if (trigger) {
+                        console.log("TRIGGER");
+                        console.log("PART", part);
+                        console.log("last", last);
+                        console.log(node);
+                        trigger = false;
+                    }                    
+
                     if (part.type === "ImportExpression") {
                         const unit = this.dynamicNodeToUnit(node, part);
                         unit.id = dynamicId ++;
@@ -107,7 +118,8 @@ export default class ImportManager {
                     }
                     
                     else if (part.type === "Identifier" && part.name === "require") {
-                        const unit = this.cjsNodeToUnit(node, prevPart);
+                        trigger = true;
+                        const unit = this.cjsNodeToUnit(node);
                         unit.id = cjsId ++;
                         unit.index = cjsIndex ++;
                         unit.hash = this.#makeHash(unit);
@@ -115,7 +127,7 @@ export default class ImportManager {
                         this.imports.cjs.count ++;
                     }
 
-                    prevPart = part;
+                    last = part;
                 });
             }
         });
@@ -312,9 +324,11 @@ export default class ImportManager {
             end: importObject.source.end - node.start
         };
 
-        module.type = importObject.source.type.toLowerCase();
-        if (module.type === "literal") {
+        if (importObject.source.type === "Literal") {
+            module.type = "string";
             module.quotes = importObject.source.raw.at(0);
+        } else {
+            module.type = "raw";
         }
 
         const unit = {
@@ -325,25 +339,26 @@ export default class ImportManager {
             type: "dynamic",
         };
 
+        console.log(JSON.stringify(node, null, 4));
         return unit;
     }
 
-    FIXME: literal&raw
-
-    cjsNodeToUnit(node, modulePart) {
+    cjsNodeToUnit(node) {
 
         const code = this.code.slice(node.start, node.end);
 
+        const modulePart = node.declarations.at(0).init.arguments.at(0); // TODO: test if this is robust
         const module = {
-            name: modulePart.name,
+            name: modulePart.value || "N/A",
             start: modulePart.start - node.start,
             end: modulePart.end - node.start
         };
-        console.log(code.slice(module.start, module.end));
-        console.log(JSON.stringify(node, null, 4));     
-        module.type = modulePart.source.type.toLowerCase();
-        if (module.type === "literal") {
-            module.quotes = modulePart.source.raw.at(0);
+
+        if (modulePart.type === "Literal") {
+            module.type = "string";
+            module.quotes = modulePart.raw.at(0);
+        } else {
+            module.type = "raw";
         }
 
         const unit = {
@@ -354,6 +369,7 @@ export default class ImportManager {
             type: "cjs",
         };
 
+        console.log(JSON.stringify(node, null, 4));
         return unit;
     }
 

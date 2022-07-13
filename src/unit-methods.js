@@ -52,11 +52,11 @@ export default class ImportManagerUnitMethods {
      * @param {*} modType - Module type (literal|raw).
      */
     renameModule(name, modType) {
-        if (modType === "literal") {
+        if (modType === "string") {
             const q = this.unit.module.quotes;
             name = q + name + q;
         } else if (modType !== "raw") {
-            throw new TypeError(`Unknown modType '${modType}'. Valid types are 'literal' and 'raw'.`);
+            throw new TypeError(`Unknown modType '${modType}'. Valid types are 'string' and 'raw'.`);
         }
         
         this.unit.code.overwrite(this.unit.module.start, this.unit.module.end, name);

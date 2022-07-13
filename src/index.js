@@ -225,7 +225,7 @@ const importManager = (options={}) => {
                                 // module
                                 if (action.select === "module" && "rename" in action) {
                                     const modType = ("modType" in action) ? action.modType : unit.module.type;
-                                    unit.methods.renameModule(action.rename, modType.toLowerCase());
+                                    unit.methods.renameModule(action.rename, modType);
                                 }
 
                                 // single (default) member
