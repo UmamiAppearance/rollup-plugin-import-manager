@@ -53,6 +53,9 @@ export default class ImportManagerUnitMethods {
      */
     renameModule(name, modType) {
         if (modType === "string") {
+            if (!this.unit.module.quotes) {
+                this.unit.module.quotes = "\"";
+            }
             const q = this.unit.module.quotes;
             name = q + name + q;
         } else if (modType !== "raw") {

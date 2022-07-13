@@ -94,19 +94,7 @@ export default class ImportManager {
             else if (node.type === "VariableDeclaration" ||
                      node.type === "ExpressionStatement")
             {
-
-                let last;
-                let trigger = false;
-
                 fullWalk(node, part => {
-
-                    if (trigger) {
-                        console.log("TRIGGER");
-                        console.log("PART", part);
-                        console.log("last", last);
-                        console.log(node);
-                        trigger = false;
-                    }                    
 
                     if (part.type === "ImportExpression") {
                         const unit = this.dynamicNodeToUnit(node, part);
@@ -118,7 +106,6 @@ export default class ImportManager {
                     }
                     
                     else if (part.type === "Identifier" && part.name === "require") {
-                        trigger = true;
                         const unit = this.cjsNodeToUnit(node);
                         unit.id = cjsId ++;
                         unit.index = cjsIndex ++;
@@ -126,8 +113,7 @@ export default class ImportManager {
                         this.imports.cjs.units.push(unit);
                         this.imports.cjs.count ++;
                     }
-
-                    last = part;
+                    
                 });
             }
         });
