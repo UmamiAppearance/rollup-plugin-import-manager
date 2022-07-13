@@ -113,7 +113,7 @@ export default class ImportManager {
                         this.imports.cjs.units.push(unit);
                         this.imports.cjs.count ++;
                     }
-                    
+
                 });
             }
         });
@@ -159,11 +159,8 @@ export default class ImportManager {
         // handle duplicates
         if (hash in this.hashList) {
             
-            console.log("NAME", unit.module.name);
-            if (unit.module.name.slice(0, 3) !== "N/A") {
+            if (unit.module.name !== "N/A") {
                 this.warning(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
-            } else {
-                console.log("CASE");
             }
             
             for (let nr=2;; nr++) {
@@ -325,7 +322,6 @@ export default class ImportManager {
             type: "dynamic",
         };
 
-        console.log(JSON.stringify(node, null, 4));
         return unit;
     }
 
@@ -355,7 +351,6 @@ export default class ImportManager {
             type: "cjs",
         };
 
-        console.log(JSON.stringify(node, null, 4));
         return unit;
     }
 
