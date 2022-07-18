@@ -92,7 +92,7 @@ export default {
     plugins: [
         importManager({
             units: [
-                file: "**/index.js",
+                file: "**/my-file.js",
                 module: "my-module.js",
                 actions: [
                     // ...
@@ -384,7 +384,7 @@ There are a few options on how to create new import statements. The [`createModu
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             createModule: "./path/to/foo.js", 
             actions: [
                 {
@@ -413,7 +413,7 @@ CJS Imports are also supported. But this time the [`type`](#type-option-for-unit
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             createModule: "./path/to/foo.js", 
             type: "cjs",
             const: "foo"
@@ -434,7 +434,7 @@ Almost exactly the same (only the [`type`](#type-option-for-units) differs) goes
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             createModule: "./path/to/foo.js", 
             type: "dynamic",
             let: "foo"
@@ -482,7 +482,7 @@ import { foo } from "bar";
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             createModule: "./path/to/baz.js", 
             actions: {
                 "select": "defaultMembers",
@@ -512,7 +512,7 @@ import { foo } from "bar";
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             createModule: "./path/to/baz.js", 
             actions: {
                 "select": "defaultMembers",
@@ -536,7 +536,7 @@ import { foo } from "bar";
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             createModule: "./path/to/baz.js", 
             actions: {
                 "select": "defaultMembers",
@@ -568,7 +568,7 @@ Module _bar_ can be removed like this:
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             module: "bar",
             actions: [
                 {
@@ -586,7 +586,7 @@ The above can be shortened by a lot as the removal is the only action and the va
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             module: "bar",
             actions: "remove"
         }
@@ -605,7 +605,7 @@ This can be achieved like this:
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             module: "bar.js",
             actions: {
                 select: "module",
@@ -635,7 +635,7 @@ A default Member can be added like this:
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             module: "bar",
             actions: {
                 select: "defaultMembers",
@@ -660,7 +660,7 @@ import foo from "bar";
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             module: "bar",
             actions: {
                 select: "members",
@@ -688,7 +688,7 @@ import { foo, bar, baz } from "qux";
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             module: "qux",
             actions: {
                 select: "member",
@@ -715,7 +715,7 @@ import foo from "bar";
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             module: "bar",
             actions: {
                 select: "defaultMember",
@@ -738,7 +738,7 @@ By default the alias gets overwritten, but this can be prevented.
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             module: "bar",
             actions: {
                 select: "member",
@@ -768,7 +768,7 @@ import { foo as bar, baz as qux, quux } from "quuz";
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             module: "bar",
             actions: [
                 {
@@ -817,7 +817,7 @@ import foo, { bar } from "baz";
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             module: "baz", 
             actions: [
                 {
@@ -886,7 +886,7 @@ To visualize the properties of a specific file, it can help to stop the building
 ```js
 plugins: [
     importManager({
-        include: "**/index.js"
+        include: "**/my-file.js"
         debug: null,
         units: {
             //...
@@ -899,7 +899,7 @@ Or more verbose:
 ```js
 plugins: [
     importManager({
-        include: "**/index.js"
+        include: "**/my-file.js"
         debug: "verbose",
         units: {
             //...
@@ -917,7 +917,7 @@ Also a single unit can be debugged. The keyword can be added to the existing lis
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             module: "foo",
             actions: {
                 select: "defaultMember",
@@ -935,7 +935,7 @@ Or as a shorthand, if it is the only option:
 plugins: [
     importManager({
         units: {
-            file: "**/index.js",
+            file: "**/my-file.js",
             module: "foo",
             actions: "debug"
         }
