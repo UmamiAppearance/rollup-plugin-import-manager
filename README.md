@@ -227,7 +227,7 @@ Eg: `createModule: "./path/to/my-module.js"`
 Type: `String`  
 Default: `null`
 
-This is the manual version of [`createModule`](#createModule-options-for-units). The value is a string which gets [inserted](#insert-option-for-units), [appended](#append-option-for-units) or [prepended](#prepend-option-for-units) to the code.  
+This is the manual version of [`createModule`](#createmodule-options-for-units). The value is a string which gets [inserted](#insert-option-for-units), [appended](#append-option-for-units) or [prepended](#prepend-option-for-units) to the code.  
 [Example](#creating-an-import-statement)
 
 
@@ -235,7 +235,7 @@ This is the manual version of [`createModule`](#createModule-options-for-units).
 Type: `String`  
 Default: `"bottom"`
 
-Additional parameter for [`createModule`](#createModule-options-for-units)/[`addCode`](#addcode-option-for-units). If set to bottom, the file is analyzed and the import statement is appended after the last found es6 import statement (which is the default behavior if not set). Setting it top top will append the statement on top of the file, directly after the the description if present (this is the default if no other es import statement was found).  
+Additional parameter for [`createModule`](#createmodule-options-for-units)/[`addCode`](#addcode-option-for-units). If set to bottom, the file is analyzed and the import statement is appended after the last found es6 import statement (which is the default behavior if not set). Setting it top top will append the statement on top of the file, directly after the the description if present (this is the default if no other es import statement was found).  
 [Example](#creating-an-import-statement)
 
 
@@ -243,7 +243,7 @@ Additional parameter for [`createModule`](#createModule-options-for-units)/[`add
 Type: `Object`  
 Default: `null`
 
-Additional parameter for [`createModule`](#createModule-options-for-units)/[`addCode`](#addcode-option-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to append it after another import statement. This works by passing a [`unit`](#units) as a value.  
+Additional parameter for [`createModule`](#createmodule-options-for-units)/[`addCode`](#addcode-option-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to append it after another import statement. This works by passing a [`unit`](#units) as a value.  
 [Example](#creating-an-import-statement-appended-after-another-statement). 
 
 
@@ -251,7 +251,7 @@ Additional parameter for [`createModule`](#createModule-options-for-units)/[`add
 Type: `Object`  
 Default: `null`
 
-Additional parameter for [`createModule`](#createModule-options-for-units)/[`addCode`](#addcode-option-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to prepend it before another import statement. This works by passing a [`unit`](#units) as a value.  
+Additional parameter for [`createModule`](#createmodule-options-for-units)/[`addCode`](#addcode-option-for-units). Instead of inserting a fresh statement at the top or bottom of the other statements, it is also possible to prepend it before another import statement. This works by passing a [`unit`](#units) as a value.  
 [Example](#creating-an-import-statement-prepended-before-another-statement). 
 
 
@@ -259,7 +259,7 @@ Additional parameter for [`createModule`](#createModule-options-for-units)/[`add
 Type: `Object`  
 Default: `null`
 
-Additional parameter for [`createModule`](#createModule-options-for-units)/[`addCode`](#addcode-option-for-units). Instead of somehow adding it around another unit, this keyword replaces the according import statement, which is also passed as a [`unit`](#units) object.  
+Additional parameter for [`createModule`](#createmodule-options-for-units)/[`addCode`](#addcode-option-for-units). Instead of somehow adding it around another unit, this keyword replaces the according import statement, which is also passed as a [`unit`](#units) object.  
 [Example](#creating-an-import-statement-by-replacing-another-statement). 
 
 
@@ -267,28 +267,28 @@ Additional parameter for [`createModule`](#createModule-options-for-units)/[`add
 Type: `String`  
 Default: `null`
 
-Additional parameter for [`createModule`](#createModule-options-for-units). Only has an effect if _cjs_ or _dynamic_ modules are getting created. `const` is the declarator type, the value is the variable name for the import.
+Additional parameter for [`createModule`](#createmodule-options-for-units). Only has an effect if _cjs_ or _dynamic_ modules are getting created. `const` is the declarator type, the value is the variable name for the import.
 
 
 #### `let` <samp>[option for units]</samp>
 Type: `String`  
 Default: `null`
 
-Additional parameter for [`createModule`](#createModule-options-for-units). Only has an effect if _cjs_ or _dynamic_ modules are getting created. `let` is the declarator type, the value is the variable name for the import.
+Additional parameter for [`createModule`](#createmodule-options-for-units). Only has an effect if _cjs_ or _dynamic_ modules are getting created. `let` is the declarator type, the value is the variable name for the import.
 
 
 #### `var` <samp>[option for units]</samp>
 Type: `String`  
 Default: `null`
 
-Additional parameter for [`createModule`](#createModule-options-for-units). Only has an effect if _cjs_ or _dynamic_ modules are getting created. `var` is the declarator type, the value is the variable name for the import.
+Additional parameter for [`createModule`](#createmodule-options-for-units). Only has an effect if _cjs_ or _dynamic_ modules are getting created. `var` is the declarator type, the value is the variable name for the import.
 
 
 #### `global` <samp>[option for units]</samp>
 Type: `String`  
 Default: `null`
 
-Additional parameter for [`createModule`](#createModule-options-for-units). Only has an effect if _cjs_ or _dynamic_ modules are getting created. If `global` is set, there is no declarator type and the variable should be declared before this statement. The value is the variable name for the import.
+Additional parameter for [`createModule`](#createmodule-options-for-units). Only has an effect if _cjs_ or _dynamic_ modules are getting created. If `global` is set, there is no declarator type and the variable should be declared before this statement. The value is the variable name for the import.
 
 
 #### `actions` <samp>[option for units]</samp>  
@@ -377,7 +377,7 @@ An additional parameter for `defaultMembers` or `members`. It adds one or multip
 ## Examples
 
 ### Creating an Import Statement
-There are a few options on how to create new import statements. The [`createModule`](#createModule-options-for-units) is working a lot like the the methods for selecting existing statements.
+There are a few options on how to create new import statements. The [`createModule`](#createmodule-options-for-units) is working a lot like the the methods for selecting existing statements.
 
 #### Basic ES6 Statement via [`createModule`](#createmodule-option-for-units)
 ```js
