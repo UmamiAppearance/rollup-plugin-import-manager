@@ -295,7 +295,7 @@ Additional parameter for [`createModule`](#createModule-options-for-units). Only
 Type: `Object` | `Array[...Object]`  
 Default: `null`  
 
-This is the place where the actual manipulation of a unit (and ultimately statement) is taking place. Several actions/**options** can be passed, for a singular option, use an object for multiple an array of objects:
+This is the place where the actual manipulation of a unit (and ultimately a statement) is taking place. Several actions/**options** can be passed, for a singular option, use an object for multiple an array of objects:
 
 ---
 
@@ -370,7 +370,8 @@ When no part was selected, this removes the entire unit &rarr; import statement.
 Type: `String` | `Array[...String]`
 Default: `null`  
 
-An additional parameter for `defaultMembers` or `members`. It adds one or multiple (default) members to the existing ones. The group has to be [selected](#select-option-for-actions).
+An additional parameter for `defaultMembers` or `members`. It adds one or multiple (default) members to the existing ones. The group has to be [selected](#select-option-for-actions) for the `add` keyword to have an effect.  
+[Example](#adding-a-defaultmember)
 
 
 ## Examples
@@ -462,13 +463,13 @@ plugins: [
 ]
 ```
 
-Result:Manual Statement creation via
+Result:
 ```js
 let foobar;
 import('fs').then(fs => foobar = fs.readFileSync('./path/to/foobar.txt"'));
 ```
 
-The [`addCode`](#addcode-option-for-units) value can contain any code you like. You probably should not get too creative. It isResult: designed to add import statements and gets appended to existing statements. 
+The [`addCode`](#addcode-option-for-units) value can contain any code you like. You probably should not get too creative. It is designed to add import statements and gets appended to existing statements. 
 
 
 #### Creating an Import Statement, appended after another statement:
