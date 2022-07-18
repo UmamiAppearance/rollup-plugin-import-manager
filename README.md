@@ -692,7 +692,7 @@ plugins: [
             module: "qux",
             actions: {
                 select: "member",
-                name: "bar,
+                name: "bar",
                 remove: null
             }
         }
