@@ -8,7 +8,7 @@ const PARSER_OPTIONS = {
     sourceType: "module"
 };
 
-test("hello", async (t) => {
+test("select module module by name", async (t) => {
     const bundle = await rollup({
         input: "./tests/fixtures/hi.js",
         plugins: [

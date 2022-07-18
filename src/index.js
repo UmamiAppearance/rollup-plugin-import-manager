@@ -19,21 +19,19 @@ const ensureArray = (arr) => Array.isArray(arr) ? arr : [arr];
 
 // helper to allow string and object
 const ensureObj = (input) => {
-    let output;
 
     if (typeof input === "string") {
-        output = {};
+        const output = {};
         output[input] = null;
+        return output;
     }
     
     else if (isObject(input)) {
-        output = input;
-    }
-    else {
-        throw new TypeError("Only strings and objects are allowed for actions.");
+        return input;
     }
     
-    return output;
+    throw new TypeError("Only strings and objects are allowed for actions.");
+    
 };
 
 // makes the life of the user a little bit easier
