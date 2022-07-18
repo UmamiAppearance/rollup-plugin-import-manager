@@ -456,7 +456,7 @@ Example:
 plugins: [
     importManager({
         units: {
-            file: "index.js",
+            file: "**/my-file.js",
             addCode: "let foobar;\nimport('fs').then(fs => fs.readFileSync('./path/to/foobar.txt"'));\n",
         }
     })
