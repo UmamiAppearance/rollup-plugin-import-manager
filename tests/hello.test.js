@@ -10,7 +10,7 @@ const PARSER_OPTIONS = {
     sourceType: "module"
 };
 
-test("select module module by name", async (t) => {
+test("select unit by module name", async (t) => {
     
     const debug = await t.throwsAsync(() => {
         return rollup({
@@ -32,7 +32,7 @@ test("select module module by name", async (t) => {
 });
 
 
-test("select module module by hash", async (t) => {
+test("select unit by hash", async (t) => {
     
     const debug = await t.throwsAsync(() => {
         return rollup({
@@ -54,7 +54,7 @@ test("select module module by hash", async (t) => {
 });
 
 
-test("select module module by id", async (t) => {
+test("select unit by id", async (t) => {
     
     const debug = await t.throwsAsync(() => {
         return rollup({
@@ -71,13 +71,40 @@ test("select module module by id", async (t) => {
             ]
         }); 
 
-    }, {instanceOf: DebuggingError});
+    }, { instanceOf: DebuggingError });
 
     const unit = JSON.parse(debug.message);
     t.is(unit.module.name, "hello.js");
 });
 
-test("replace", async (t) => {
+
+test("remove an import statement", async (t) => {
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: "remove"
+                }
+            })
+        ]
+    });
+    
+    const { output } = await bundle.generate({ format: "es" });
+    const code = output.at(0).code;
+
+    t.notRegex(code, /hello!/);
+    t.notRegex(code, /hallo!/);
+    t.notRegex(code, /hello world!/);
+
+});
+
+
+
+
+test("dummy - TODO: remove me", async (t) => {
     const bundle = await rollup({
         input: "./tests/fixtures/hi.js",
         plugins: [
