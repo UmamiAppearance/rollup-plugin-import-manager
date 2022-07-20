@@ -59,7 +59,9 @@ const importManager = (options={}) => {
         transform (source, id) {
             if (!filter(id)) return;
 
-            const manager = new ImportManager(source, id, warnSpamProtection);       
+            const warnings = typeof options.warnings === "undefined" ? true : bool(options.warnings);
+
+            const manager = new ImportManager(source, id, warnSpamProtection, warnings);       
 
             if (!("units" in options) || "debug" in options) {
                 if (showObjects(options.debug)) {

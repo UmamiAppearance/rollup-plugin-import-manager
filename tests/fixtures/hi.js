@@ -1,5 +1,11 @@
-import { hello as hi } from "./lib/hello.js";
+import helloWorld, {
+    hello as hi,
+    hallo
+} from "./lib/hello.js";
 
-const greeting = () => hi();
+const englishGreeting = () => hi();
+const germanGreeting = () => hallo;
+const nerdGreeting = () => helloWorld;
 
-export default greeting;
+export default englishGreeting;
+export { germanGreeting, nerdGreeting };

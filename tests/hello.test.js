@@ -42,7 +42,7 @@ test("select module module by hash", async (t) => {
                 importManager({
                     units: {
                         file: "**/hi.js",
-                        hash: 1695308381,
+                        hash: 3790884003,
                         actions: "debug"
                     }
                 })
@@ -63,6 +63,7 @@ test("select module module by id", async (t) => {
             input: "./tests/fixtures/hi.js",
             plugins: [
                 importManager({
+                    warnings: false,
                     units: {
                         file: "**/hi.js",
                         id: 1000,
@@ -78,11 +79,34 @@ test("select module module by id", async (t) => {
     t.is(unit.module.name, "hello.js");
 });
 
+test("replace", async (t) => {
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: {
+                        select: "member",
+                        name: "hello",
+                        rename: "hallo",
+                        keepAlias: true
+                    }
+                }
+            })
+        ]
+    });
+    
+    const { output } = await bundle.generate({ format: "es" });
+    const parsedCode = parse(output.at(0).code, PARSER_OPTIONS);
+    
+    const replaced = parsedCode.body.at(0).declarations.at(0).init.body.value;
+
+    t.is(replaced, "hallo!");
+});
 
 
 
 
-// test result file
-//const parsedCode = parse(output.at(0).code, PARSER_OPTIONS);
-//const replaced = parsedCode.body.at(0).declarations.at(0).init.body.value;
-// t.is(replaced, "hello world");
+

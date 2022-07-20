@@ -11,6 +11,7 @@ A Rollup plugin which makes it possible to manipulate import statement. Deleting
     - [`exclude`](#exclude)
     - [`showDiff`](#showdiff)
     - [`debug`](#debug)
+    - [`warnings`](#warnings)
     - [`units`](#units)
       - [`module`](#module-option-for-units)
       - [`hash`](#hash-option-for-units)
@@ -134,6 +135,13 @@ Type: `String`
 Default: `null`  
 
 A [debugging](#debugging) method. If more than one source file is involved, this really only is useful in combination with [include](#include). It stops the building process by throwing an intentional error and lists all units of the first file, that is processed. Even more verbose information about all unit objects can be made accessible by passing the strings `verbose`, `object(s)` or `import(s)` (which one to use doesn't matter). 
+
+
+### `warnings`
+Type: `Boolean`  
+Default: `true`  
+
+Set to `false` to prevent displaying warning messages.  
 
 ### `units`
 Type: `Object` | `Array[...Object]`  

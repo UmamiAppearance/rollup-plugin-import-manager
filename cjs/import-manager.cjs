@@ -375,10 +375,11 @@ class ImportManager {
      * The constructor creates a class import
      * object and kicks of the code analysis.
      * @param {string} source - The unmodified source code-
-     * @param {string} filename - The filename of the input file.  
-     * @param {object} warnSpamProtection - A Set which contains all previously printed warning hashes. 
+     * @param {string} filename - The filename of the input file. 
+     * @param {object} warnSpamProtection - A Set which contains all previously printed warning hashes.
+     * @param {boolean} [warnings=true] - Pass false to suppress warning messages.
      */
-    constructor(source, filename, warnSpamProtection) {
+    constructor(source, filename, warnSpamProtection=new Set(), warnings=true) {
 
         this.scopeMulti = 1000;
 
@@ -417,6 +418,12 @@ class ImportManager {
             ecmaVersion: "latest",
             sourceType: "module"
         });
+
+        if (!warnings) {
+            this.warning = () => {
+                return;
+            };
+        }
         
         this.analyze();
     }
@@ -1314,7 +1321,9 @@ const importManager = (options={}) => {
         transform (source, id) {
             if (!filter(id)) return;
 
-            const manager = new ImportManager(source, id, warnSpamProtection);       
+            const warnings = typeof options.warnings === "undefined" ? true : bool(options.warnings);
+
+            const manager = new ImportManager(source, id, warnSpamProtection, warnings);       
 
             if (!("units" in options) || "debug" in options) {
                 if (showObjects(options.debug)) {
