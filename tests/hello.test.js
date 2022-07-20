@@ -25,8 +25,7 @@ test("select module module by name", async (t) => {
                 })
             ]
         }); 
-
-    }, {instanceOf: DebuggingError});
+    }, { instanceOf: DebuggingError });
 
     const unit = JSON.parse(debug.message);
     t.is(unit.module.name, "hello.js");
@@ -48,8 +47,7 @@ test("select module module by hash", async (t) => {
                 })
             ]
         }); 
-
-    }, {instanceOf: DebuggingError});
+    }, { instanceOf: DebuggingError });
 
     const unit = JSON.parse(debug.message);
     t.is(unit.module.name, "hello.js");

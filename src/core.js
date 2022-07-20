@@ -11,7 +11,7 @@ import { bold, yellow } from "colorette";
  * statements, attaches methods to the units
  * and more.
  */
-export default class ImportManager {
+class ImportManager {
 
     /**
      * The constructor creates a class import
@@ -788,3 +788,5 @@ const simpleHash = (input) => {
     return (h ^ h >>> 16) >>> 0;
 };
 
+export default ImportManager;
+export { simpleHash };

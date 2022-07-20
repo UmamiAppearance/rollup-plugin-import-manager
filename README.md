@@ -457,24 +457,29 @@ let foo = await import("./path/to/foo.js");
 ```
 
 #### Manual Statement creation via [`addCode`](#addcode-option-for-units)
-If this is all to much predetermination this is a very handy feature. [`addCode`](#addcode-option-for-units) allows to inject a string containing the code snippet (most likely an import statement). Which is very different but behaves exactly the same in other regards ([inserting](#insert-option-for-units), [appending](#append-option-for-units)/[prepending](#prepend-option-for-units)).
+If this is all to much predetermination this is a very handy feature. [`addCode`](#addcode-option-for-units) allows to inject a string containing the code snippet (most likely an import statement). Which is very different but behaves exactly the same in other regards ([inserting](#insert-option-for-units), [appending](#append-option-for-units)/[prepending](#prepend-option-for-units), [replacing](#replace-option-for-units)).
 
 Example:
 ```js
+const customImport = `
+let foobar;
+import("fs").then(fs => fs.readFileSync("./path/to/foobar.txt"));
+`;
+
 plugins: [
     importManager({
         units: {
             file: "**/my-file.js",
-            addCode: "let foobar;\nimport('fs').then(fs => fs.readFileSync('./path/to/foobar.txt'));\n",
+            addCode: customImport,
         }
-    })
+    })""
 ]
 ```
 
 Result:
 ```js
 let foobar;
-import('fs').then(fs => foobar = fs.readFileSync('./path/to/foobar.txt'));
+import("fs").then(fs => foobar = fs.readFileSync("./path/to/foobar.txt"));
 ```
 
 The [`addCode`](#addcode-option-for-units) value can contain any code you like. You probably should not get too creative. It is designed to add import statements and it gets appended to existing statements. 
