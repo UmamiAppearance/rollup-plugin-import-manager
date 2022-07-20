@@ -29,10 +29,9 @@ class MatchError extends Error {
  * for retrieving information.
  */
 class DebuggingError extends Error {
-    constructor(message, key="imports") {
-        super("You can find information above ^");
+    constructor(message) {
+        super(JSON.stringify(message, null, 4));
         this.name = "DebuggingError";
-        console.log(key, message);
     }
 }
 
@@ -360,7 +359,7 @@ class ImportManagerUnitMethods {
         const unit = { ...this.unit };
         delete unit.methods;
         unit.code = [ unit.code.toString() ];
-        throw new DebuggingError(JSON.stringify(unit, null, 4), "unit");
+        throw new DebuggingError(unit);
     }
 }
 
@@ -1100,7 +1099,7 @@ class ImportManager {
                 unit.code = [ unit.code.toString() ];
             });
         }
-        throw new DebuggingError(JSON.stringify(imports, null, 4));
+        throw new DebuggingError(imports);
     }
 
 
@@ -1275,21 +1274,19 @@ const ensureArray = (arr) => Array.isArray(arr) ? arr : [arr];
 
 // helper to allow string and object
 const ensureObj = (input) => {
-    let output;
 
     if (typeof input === "string") {
-        output = {};
+        const output = {};
         output[input] = null;
+        return output;
     }
     
     else if (isObject(input)) {
-        output = input;
-    }
-    else {
-        throw new TypeError("Only strings and objects are allowed for actions.");
+        return input;
     }
     
-    return output;
+    throw new TypeError("Only strings and objects are allowed for actions.");
+    
 };
 
 // makes the life of the user a little bit easier

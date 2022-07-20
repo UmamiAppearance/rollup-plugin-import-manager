@@ -324,6 +324,6 @@ export default class ImportManagerUnitMethods {
         const unit = { ...this.unit };
         delete unit.methods;
         unit.code = [ unit.code.toString() ];
-        throw new DebuggingError(JSON.stringify(unit, null, 4), "unit");
+        throw new DebuggingError(unit);
     }
 }

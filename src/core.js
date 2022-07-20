@@ -741,7 +741,7 @@ export default class ImportManager {
                 unit.code = [ unit.code.toString() ];
             });
         }
-        throw new DebuggingError(JSON.stringify(imports, null, 4));
+        throw new DebuggingError(imports);
     }
 
 

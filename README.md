@@ -457,7 +457,7 @@ plugins: [
     importManager({
         units: {
             file: "**/my-file.js",
-            addCode: "let foobar;\nimport('fs').then(fs => fs.readFileSync('./path/to/foobar.txt"'));\n",
+            addCode: "let foobar;\nimport('fs').then(fs => fs.readFileSync('./path/to/foobar.txt'));\n",
         }
     })
 ]
@@ -466,10 +466,10 @@ plugins: [
 Result:
 ```js
 let foobar;
-import('fs').then(fs => foobar = fs.readFileSync('./path/to/foobar.txt"'));
+import('fs').then(fs => foobar = fs.readFileSync('./path/to/foobar.txt'));
 ```
 
-The [`addCode`](#addcode-option-for-units) value can contain any code you like. You probably should not get too creative. It is designed to add import statements and gets appended to existing statements. 
+The [`addCode`](#addcode-option-for-units) value can contain any code you like. You probably should not get too creative. It is designed to add import statements and it gets appended to existing statements. 
 
 
 #### Creating an Import Statement, appended after another statement:
