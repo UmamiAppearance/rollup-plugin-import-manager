@@ -125,6 +125,148 @@ test("changing a module (renaming)", async (t) => {
 });
 
 
+test("adding a member", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: {
+                        select: "members",
+                        add: "bonJour"
+                    }
+                }
+            })
+        ]
+    });
+
+    const mod = bundle
+        .cache.modules.at(1).ast    // parse tree
+        .body.at(0)                 // first import statement
+        .specifiers.at(3)           // the member at index 3
+        .imported.name;             // name
+    
+    t.is(mod, "bonJour");
+});
+
+
+test("renaming a member", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: {
+                        select: "member",
+                        name: "hallo",
+                        rename: "bonJour"
+                    }
+                }
+            })
+        ]
+    });
+
+    const mod = bundle
+        .cache.modules.at(1).ast    // parse tree
+        .body.at(0)                 // first import statement
+        .specifiers.at(2)           // the member at index 2
+        .imported.name;             // name
+    
+    t.is(mod, "bonJour");
+});
+
+
+test("renaming a member (keeping the alias)", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: {
+                        select: "member",
+                        name: "hello",
+                        rename: "bonJour"
+                        
+                    }
+                }
+            })
+        ]
+    });
+
+    const mod = bundle
+        .cache.modules.at(1).ast    // parse tree
+        .body.at(0)                 // first import statement
+        .specifiers.at(2)           // the member at index 2
+        .imported.name;             // name
+    
+    t.is(mod, "bonJour");
+});
+
+
+
+test("removing a member", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: {
+                        select: "member",
+                        name: "hallo",
+                        remove: null
+                    }
+                }
+            })
+        ]
+    });
+    
+    const { output } = await bundle.generate({ format: "es" });
+    const code = output.at(0).code;
+
+    t.notRegex(code, /hallo!/);
+});
+
+
+test("removing all members", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: {
+                        select: "members",
+                        remove: null
+                    }
+                }
+            })
+        ]
+    });
+    
+    const { output } = await bundle.generate({ format: "es" });
+    const code = output.at(0).code;
+
+    t.notRegex(code, /hello!/);
+    t.notRegex(code, /hallo!/);
+});
+
+
+
+
 
 
 test("dummy - TODO: remove me", async (t) => {
