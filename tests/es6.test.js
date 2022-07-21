@@ -12,7 +12,7 @@ const PARSER_OPTIONS = {
 
 console.log("Testing ES6 features:");
 
-test("select unit by module name", async (t) => {
+test("selecting unit by module name", async (t) => {
     
     const debug = await t.throwsAsync(() => {
         return rollup({
@@ -34,7 +34,7 @@ test("select unit by module name", async (t) => {
 });
 
 
-test("select unit by hash", async (t) => {
+test("selecting unit by hash", async (t) => {
     
     const debug = await t.throwsAsync(() => {
         return rollup({
@@ -56,7 +56,7 @@ test("select unit by hash", async (t) => {
 });
 
 
-test("select unit by id", async (t) => {
+test("selecting unit by id", async (t) => {
     
     const debug = await t.throwsAsync(() => {
         return rollup({
@@ -80,7 +80,7 @@ test("select unit by id", async (t) => {
 });
 
 
-test("remove import statement", async (t) => {
+test("removing import statement", async (t) => {
     
     const bundle = await rollup({
         input: "./tests/fixtures/hi.js",
@@ -194,21 +194,18 @@ test("renaming a member (keeping the alias)", async (t) => {
                     actions: {
                         select: "member",
                         name: "hello",
-                        rename: "bonJour"
-                        
+                        rename: "bonJour",
+                        keepAlias: true
                     }
                 }
             })
         ]
     });
 
-    const mod = bundle
-        .cache.modules.at(1).ast    // parse tree
-        .body.at(0)                 // first import statement
-        .specifiers.at(2)           // the member at index 2
-        .imported.name;             // name
-    
-    t.is(mod, "bonJour");
+    const { output } = await bundle.generate({ format: "es" });
+    const code = output.at(0).code;
+
+    t.regex(code, /bon jour!/);
 });
 
 
@@ -265,11 +262,42 @@ test("removing all members", async (t) => {
 });
 
 
+test("adding a default member (by chaining)", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: [
+                        {
+                            select: "members",
+                            remove: null,
+                        },
+                        {
+                            select: "defaultMembers",
+                            add: "* as all"
+                        }
+                    ]
+                }
+            })
+        ]
+    });
+
+    const importStatement = bundle.cache.modules.at(1).code.split("\n").at(0);
+    
+    t.is(
+        importStatement,
+        "import helloWorld, * as all from \"./lib/hello.js\";"
+    );
+    
+});
 
 
-
-
-test("dummy - TODO: remove me", async (t) => {
+test("renaming a default member", async (t) => {
+    
     const bundle = await rollup({
         input: "./tests/fixtures/hi.js",
         plugins: [
@@ -278,10 +306,75 @@ test("dummy - TODO: remove me", async (t) => {
                     file: "**/hi.js",
                     module: "hello",
                     actions: {
-                        select: "member",
-                        name: "hello",
-                        rename: "hallo",
-                        keepAlias: true
+                        select: "defaultMember",
+                        name: "helloWorld",
+                        rename: "helloEverybody"
+                    }
+                }
+            })
+        ]
+    });
+
+    const mod = bundle
+        .cache.modules.at(1).ast    // parse tree
+        .body.at(0)                 // first import statement
+        .specifiers.at(0)           // the default member at index 0
+        .local.name;                // name
+    
+    t.is(mod, "helloEverybody");
+});
+
+
+test("removing a default member (by chaining)", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: [
+                        {
+                            select: "members",
+                            remove: null
+                        },
+                        {
+                            select: "defaultMembers",
+                            add: "* as all"
+                        },
+                        {
+                            select: "defaultMember",
+                            name: "helloWorld",
+                            remove: null
+                        }
+                    ]
+                }
+            })
+        ]
+    });
+    
+    const importStatement = bundle.cache.modules.at(1).code.split("\n").at(0);
+
+    t.is(
+        importStatement,
+        "import * as all from \"./lib/hello.js\";"
+    );
+});
+
+
+test("removing all default members", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: {
+                        select: "defaultMembers",
+                        remove: null
                     }
                 }
             })
@@ -289,14 +382,10 @@ test("dummy - TODO: remove me", async (t) => {
     });
     
     const { output } = await bundle.generate({ format: "es" });
-    const parsedCode = parse(output.at(0).code, PARSER_OPTIONS);
-    
-    const replaced = parsedCode.body.at(0).declarations.at(0).init.body.value;
+    const code = output.at(0).code;
 
-    t.is(replaced, "hallo!");
+    t.notRegex(code, /hello world!/);
+    t.regex(code, /hello!/);
+    t.regex(code, /hallo!/);
 });
-
-
-
-
 
