@@ -356,7 +356,7 @@ This option is used to rename a [selected](#select-option-for-actions) specific 
 
 ##### `modType` <samp>[option for actions]</samp>
 Type: `String`  
-Default: `"literal"|"raw"`  
+Default: `"string"|"raw"`  
 
 If [renaming](#rename-option-for-actions) is done with modType `string` there are quotation marks set around the input by default, mode `raw` is not doing that. This can be useful for replacing the module by anything other than a string (which is only valid for _cjs_ and _dynamic_ imports). By default the `modType` is defined by the existing statement. If it is not a string, type `raw` is assumed (those are rare occasions).  
 

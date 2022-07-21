@@ -4,8 +4,8 @@ import helloWorld, {
 } from "./lib/hello.js";
 
 const englishGreeting = () => hi();
-const germanGreeting = () => hallo();
+const nonEnglishGreeting = () => hallo();
 const nerdGreeting = () => helloWorld();
 
 export default englishGreeting;
-export { germanGreeting, nerdGreeting };
+export { nonEnglishGreeting, nerdGreeting };
