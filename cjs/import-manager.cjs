@@ -643,7 +643,7 @@ class ImportManager {
             name: node.source.value.split("/").at(-1),
             start: node.source.start - node.start,
             end: node.source.end - node.start,
-            type: "literal",
+            type: "string",
             quotes: node.source.raw.at(0)
         };
 
@@ -1419,7 +1419,7 @@ const importManager = (options={}) => {
                                 const [ declarator, varname ] = Object.entries(unitSection).filter(e => declarators.test(e[0])).at(0) || [ null, null ];
 
                                 if (!declarator || !varname) {
-                                    throw new TypeError("dynamic and cjs imports require a valid declarator key (const|let|var|global) and a valid value for the variable name.");
+                                    throw new TypeError("dynamic and cjs imports require a valid declarator key (const|let|var|global) and a value for the variable name.");
                                 }
 
                                 if (type === "cjs") {

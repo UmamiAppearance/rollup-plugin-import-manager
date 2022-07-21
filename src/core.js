@@ -285,7 +285,7 @@ class ImportManager {
             name: node.source.value.split("/").at(-1),
             start: node.source.start - node.start,
             end: node.source.end - node.start,
-            type: "literal",
+            type: "string",
             quotes: node.source.raw.at(0)
         };
 

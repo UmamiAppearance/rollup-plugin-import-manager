@@ -10,6 +10,8 @@ const PARSER_OPTIONS = {
     sourceType: "module"
 };
 
+console.log("Testing ES6 features:");
+
 test("select unit by module name", async (t) => {
     
     const debug = await t.throwsAsync(() => {
@@ -78,7 +80,7 @@ test("select unit by id", async (t) => {
 });
 
 
-test("remove an import statement", async (t) => {
+test("remove import statement", async (t) => {
     const bundle = await rollup({
         input: "./tests/fixtures/hi.js",
         plugins: [
@@ -98,7 +100,30 @@ test("remove an import statement", async (t) => {
     t.notRegex(code, /hello!/);
     t.notRegex(code, /hallo!/);
     t.notRegex(code, /hello world!/);
+});
 
+
+test("changing a module (renaming)", async (t) => {
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: {
+                        select: "module",
+                        rename: "./lib/hello-clone.js"
+                    }
+                }
+            })
+        ]
+    });
+     
+    const modPath = bundle.watchFiles
+        .filter(mod => mod.indexOf("hello-clone.js") > -1).at(0);
+
+    t.truthy(modPath);
 });
 
 

@@ -53,6 +53,7 @@ A Rollup plugin which makes it possible to manipulate import statement. Deleting
     - [Addressing the (default) members](#addressing-the-default-members)
       - [Adding a defaultMember](#adding-a-defaultmember)
       - [Removing a member](#removing-a-member)
+      - [Removing a group of members](#removing-a-group-of-members)
       - [Changing a defaultMember name](#changing-a-defaultmember-name)
         - [Renaming but keeping the alias](#renaming-but-keeping-the-alias)
         - [Addressing an alias](#addressing-an-alias)
@@ -716,7 +717,32 @@ plugins: [
 Result:
 ```js
 import { foo, baz } from "qux";
+``` 
+
+#### Removing a group of members
+```js
+import foo, { bar, baz } from "qux";
 ```  
+
+```js
+plugins: [
+    importManager({
+        units: {
+            file: "**/my-file.js",
+            module: "qux",
+            actions: {
+                select: "members",
+                remove: null
+            }
+        }
+    })
+]
+```
+
+Result:
+```js
+import foo from "qux";
+``` 
 
 #### Changing a defaultMember name
 Example:
