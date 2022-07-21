@@ -630,7 +630,7 @@ plugins: [
 ]
 ```
 
-Result:remove
+Result:
 ```js
 import foo from "bar";
 ```
