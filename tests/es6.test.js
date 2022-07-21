@@ -1,14 +1,8 @@
 import test from "ava";
-import { parse } from "acorn";
 import { rollup } from "rollup";
 import { importManager } from "../src/index.js";
-import { DebuggingError, MatchError } from "../src/errors.js";
+import { DebuggingError } from "../src/errors.js";
 
-
-const PARSER_OPTIONS = {
-    ecmaVersion: "latest",
-    sourceType: "module"
-};
 
 console.log("Testing ES6 features:");
 
