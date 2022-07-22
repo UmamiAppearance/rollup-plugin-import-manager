@@ -334,6 +334,13 @@ class ImportManagerUnitMethods {
      * @param {string} [set] - A new name or nothing for removal
      */
     setAlias(memberType, name, set) {
+        if (memberType === "defaultMember") {
+            if (name !== "*") {
+                throw new TypeError("The modification of a default member alias is only possible if the module is an asterisk. For other changes use the 'rename' method.");
+            } else if (!set) {
+                throw new TypeError("Removing the alias of an asterisk is invalid. Use the 'rename' method for other changes.");
+            }
+        }
         const aliasStr = set ? `${name} as ${set}` : name;
         this.renameMember(memberType, name, aliasStr, false);
         this.updateUnit();
@@ -556,10 +563,28 @@ class ImportManager {
         let code;
         if (typeof node === "string") {
             code = node;
-            node = acorn.parse(node, {
-                ecmaVersion: "latest",
-                sourceType: "module"
-            }).body.at(0);
+            try {
+                node = acorn.parse(node, {
+                    ecmaVersion: "latest",
+                    sourceType: "module"
+                }).body.at(0);
+            } catch(e) {
+                if (e instanceof SyntaxError) {
+                    let msg = "\n\nGenerated Code Snipped\n----------------------\n";
+                    let { line, column } = e.loc;
+                    line --;
+                    code.toString().split("\n").forEach((l, i) => {
+                        msg += l + "\n";
+                        if (line === i) {
+                            msg += colorette.bold(" ".repeat(column) + "^\n");
+                        }
+                    });
+
+
+                    throw new SyntaxError(msg);
+                }
+                throw new Error(e);
+            }
         } else {
             code = this.code.slice(node.start, node.end);
         }

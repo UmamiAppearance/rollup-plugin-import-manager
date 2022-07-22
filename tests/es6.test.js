@@ -256,6 +256,93 @@ test("removing all members", async (t) => {
 });
 
 
+test("adding a member alias", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: {
+                        select: "member",
+                        name: "hallo",
+                        alias: "hey"
+                    }
+                }
+            })
+        ]
+    });
+    
+    const mod = bundle
+        .cache.modules.at(1).ast    // parse tree
+        .body.at(0)                 // first import statement
+        .specifiers.at(2)           // the default member at index 2
+        .local.name;                // name
+    
+    t.is(mod, "hey");
+});
+
+
+test("renaming a member alias", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: {
+                        select: "member",
+                        name: "hello",
+                        alias: "hey"
+                    }
+                }
+            })
+        ]
+    });
+    
+    const mod = bundle
+        .cache.modules.at(1).ast    // parse tree
+        .body.at(0)                 // first import statement
+        .specifiers.at(1)           // the default member at index 2
+        .local.name;                // name
+    
+    t.is(mod, "hey");
+});
+
+
+test("removing a member alias", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: {
+                        select: "member",
+                        name: "hello",
+                        alias: null
+                    }
+                }
+            })
+        ]
+    });
+    
+    const mod = bundle
+        .cache.modules.at(1).ast    // parse tree
+        .body.at(0)                 // first import statement
+        .specifiers.at(1)           // the default member at index 2
+        .local.name;                // name
+    
+    t.is(mod, "hello");
+});
+
+
 test("adding a default member (by chaining)", async (t) => {
     
     const bundle = await rollup({
@@ -381,5 +468,45 @@ test("removing all default members", async (t) => {
     t.notRegex(code, /hello world!/);
     t.regex(code, /hello!/);
     t.regex(code, /hallo!/);
+});
+
+
+test("renaming a default member alias (by chaining)", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    module: "hello",
+                    actions: [
+                        {
+                            select: "members",
+                            remove: null
+                        },
+                        {
+                            select: "defaultMember",
+                            name: "helloWorld",
+                            rename: "* as helloWorld"
+                        },
+                        {
+                            select: "defaultMember",
+                            name: "*",
+                            alias: "hey"
+                        }
+                    ]
+                }
+            })
+        ]
+    });
+    
+    const mod = bundle
+        .cache.modules.at(1).ast    // parse tree
+        .body.at(0)                 // first import statement
+        .specifiers.at(0)           // the default member at index 0
+        .local.name;                // name
+
+    t.is(mod, "hey");
 });
 

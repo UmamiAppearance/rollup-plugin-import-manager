@@ -299,6 +299,13 @@ export default class ImportManagerUnitMethods {
      * @param {string} [set] - A new name or nothing for removal
      */
     setAlias(memberType, name, set) {
+        if (memberType === "defaultMember") {
+            if (name !== "*") {
+                throw new TypeError("The modification of a default member alias is only possible if the module is an asterisk. For other changes use the 'rename' method.");
+            } else if (!set) {
+                throw new TypeError("Removing the alias of an asterisk is invalid. Use the 'rename' method for other changes.");
+            }
+        }
         const aliasStr = set ? `${name} as ${set}` : name;
         this.renameMember(memberType, name, aliasStr, false);
         this.updateUnit();

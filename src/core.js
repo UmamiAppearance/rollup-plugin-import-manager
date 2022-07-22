@@ -198,10 +198,28 @@ class ImportManager {
         let code;
         if (typeof node === "string") {
             code = node;
-            node = parse(node, {
-                ecmaVersion: "latest",
-                sourceType: "module"
-            }).body.at(0);
+            try {
+                node = parse(node, {
+                    ecmaVersion: "latest",
+                    sourceType: "module"
+                }).body.at(0);
+            } catch(e) {
+                if (e instanceof SyntaxError) {
+                    let msg = "\n\nGenerated Code Snipped\n----------------------\n";
+                    let { line, column } = e.loc;
+                    line --;
+                    code.toString().split("\n").forEach((l, i) => {
+                        msg += l + "\n";
+                        if (line === i) {
+                            msg += bold(" ".repeat(column) + "^\n");
+                        }
+                    });
+
+
+                    throw new SyntaxError(msg);
+                }
+                throw new Error(e);
+            }
         } else {
             code = this.code.slice(node.start, node.end);
         }
