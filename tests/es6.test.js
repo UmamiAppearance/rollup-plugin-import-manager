@@ -510,7 +510,7 @@ test("renaming a default member alias (by chaining)", async (t) => {
 });
 
 
-test("creating a module", async (t) => {
+test("creating an import statement", async (t) => {
     
     const bundle = await rollup({
         input: "./tests/fixtures/hi.js",
@@ -538,8 +538,121 @@ test("creating a module", async (t) => {
         ]
     });
 
-    const importStatement = bundle.cache.modules.at(2).code.split("\n");
-    // TODO: goto ast and pick module
-    console.log(importStatement);
+    const code = bundle.cache.modules.at(2).code;
+
+    const node = bundle
+        .cache.modules.at(2).ast    // parse tree
+        .body.at(1);                // second import statement
+    
+
+    const importStatement = code.slice(node.start, node.end);
+    t.is(
+        importStatement,
+        "import salutonMondo, { ciao, hej, hola } from './lib/create.js';"
+    );
 });
 
+
+test("inserting an import statement before the very first module", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    createModule: "./lib/create.js",
+                    actions: {
+                        select: "members",
+                        add: [
+                            "ciao",
+                            "hola"
+                        ]
+                    },
+                    insert: "top"
+                }
+            })
+        ]
+    });
+
+    const code = bundle.cache.modules.at(2).code;
+
+    const node = bundle
+        .cache.modules.at(2).ast    // parse tree
+        .body.at(0);                // first import statement
+    
+
+    const importStatement = code.slice(node.start, node.end);
+    t.is(
+        importStatement,
+        "import { ciao, hola } from './lib/create.js';"
+    );
+});
+
+
+test("appending an import statement after a specific module", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    createModule: "./lib/create.js",
+                    actions: {
+                        select: "defaultMembers",
+                        add: "salutonMondo"
+                    },
+                    append: {
+                        module: "hello"
+                    }
+                }
+            })
+        ]
+    });
+
+    const code = bundle.cache.modules.at(2).code;
+
+    const node = bundle
+        .cache.modules.at(2).ast    // parse tree
+        .body.at(1);                // second import statement
+    
+
+    const importStatement = code.slice(node.start, node.end);
+    t.is(
+        importStatement,
+        "import salutonMondo from './lib/create.js';"
+    );
+});
+
+
+test("prepending a manual created statement before a specific module, selected via hash", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    addCode: "import { hej } from './lib/create.js';\n",
+                    prepend: {
+                        hash: 3790884003
+                    }
+                }
+            })
+        ]
+    });
+
+    const code = bundle.cache.modules.at(2).code;
+
+    const node = bundle
+        .cache.modules.at(2).ast    // parse tree
+        .body.at(0);                // first import statement
+    
+
+    const importStatement = code.slice(node.start, node.end);
+    t.is(
+        importStatement,
+        "import { hej } from './lib/create.js';"
+    );
+});

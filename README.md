@@ -344,7 +344,7 @@ A member part of `{ foobar as foo, baz }` can be selected with `name: "foobar"` 
 Type: `String`  
 Default: `null`  
 
-An option to target an alias of a [selected](#select-option-for-actions) `defaultMember` or `member`. If a value is set, this will change or initially set the alias to the this value. Aliases can also be [removed](#remove-option-for-actions), in this case the value for alias be be ignored.
+An option to target an alias of a [selected](#select-option-for-actions) `defaultMember` or `member`. If a value is set, this will change or initially set the alias to the this value. Aliases for _members_ can also be [removed](#remove-option-for-actions), in this case the value for alias will be ignored.
 
 
 ##### `rename` <samp>[option for actions]</samp>
@@ -458,7 +458,7 @@ let foo = await import("./path/to/foo.js");
 ```
 
 #### Manual Statement creation via [`addCode`](#addcode-option-for-units)
-If this is all to much predetermination this is a very handy feature. [`addCode`](#addcode-option-for-units) allows to inject a string containing the code snippet (most likely an import statement). Which is very different but behaves exactly the same in other regards ([inserting](#insert-option-for-units), [appending](#append-option-for-units)/[prepending](#prepend-option-for-units), [replacing](#replace-option-for-units)).
+If this is all to much predetermination, the [`addCode`](#addcode-option-for-units) method is a very handy feature. It allows to inject a string containing the code snippet (most likely an import statement). Which is very different but behaves exactly the same in other regards ([inserting](#insert-option-for-units), [appending](#append-option-for-units)/[prepending](#prepend-option-for-units), [replacing](#replace-option-for-units)).
 
 Example:
 ```js
@@ -473,7 +473,7 @@ plugins: [
             file: "**/my-file.js",
             addCode: customImport,
         }
-    })""
+    })
 ]
 ```
 
