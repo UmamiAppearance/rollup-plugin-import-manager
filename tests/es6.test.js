@@ -203,7 +203,6 @@ test("renaming a member (keeping the alias)", async (t) => {
 });
 
 
-
 test("removing a member", async (t) => {
     
     const bundle = await rollup({
@@ -508,5 +507,39 @@ test("renaming a default member alias (by chaining)", async (t) => {
         .local.name;                // name
 
     t.is(mod, "hey");
+});
+
+
+test("creating a module", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.js",
+                    createModule: "./lib/create.js",
+                    actions: [
+                        {
+                            select: "defaultMembers",
+                            add: "salutonMondo" 
+                        },
+                        {
+                            select: "members",
+                            add: [
+                                "ciao",
+                                "hej",
+                                "hola"
+                            ]
+                        }
+                    ]
+                }
+            })
+        ]
+    });
+
+    const importStatement = bundle.cache.modules.at(2).code.split("\n");
+    // TODO: goto ast and pick module
+    console.log(importStatement);
 });
 
