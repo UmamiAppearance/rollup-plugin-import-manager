@@ -198,16 +198,21 @@ test("prepending a manual created statement before a specific module, selected v
     });
 
     const code = bundle.cache.modules.at(0).code;
-    const node = bundle
-        .cache.modules.at(0).ast    // parse tree
-        .body.at(0);                // first import statement
-    
+    const astBody = bundle.cache.modules.at(0).ast.body;
 
-    const varDeclaration = code.slice(node.start, node.end);
+    const nodeDecl = astBody.at(0);    
+    const nodeStatement = astBody.at(1);
+
+    const varDeclaration = code.slice(nodeDecl.start, nodeDecl.end);
+    const importStatement = code.slice(nodeStatement.start, nodeStatement.end);
+
     t.is(
         varDeclaration,
         "let create;"
     );
 
-    // TODO: test the import statement
+    t.is(
+        importStatement,
+        "import(\"./lib/create.js\").then(i => create = i);"
+    );
 });
