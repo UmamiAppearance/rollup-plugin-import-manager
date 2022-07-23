@@ -196,7 +196,8 @@ const importManager = (options={}) => {
                         }
 
                         else {
-                            manager.insertStatement(codeSnippet, unitSection.insert);
+                            const type = unitSection.type === "cjs" ? "cjs" : "es6";
+                            manager.insertStatement(codeSnippet, unitSection.insert, type);
                         }
 
                         continue;

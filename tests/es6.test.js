@@ -4,17 +4,15 @@ import { importManager } from "../src/index.js";
 import { DebuggingError } from "../src/errors.js";
 
 
-console.log("Testing ES6 features:");
-
 test("selecting unit by module name", async (t) => {
     
     const debug = await t.throwsAsync(() => {
         return rollup({
-            input: "./tests/fixtures/hi.js",
+            input: "./tests/fixtures/hi.es6.js",
             plugins: [
                 importManager({
                     units: {
-                        file: "**/hi.js",
+                        file: "**/hi.es6.js",
                         module: "hello",
                         actions: "debug"
                     }
@@ -32,12 +30,12 @@ test("selecting unit by hash", async (t) => {
     
     const debug = await t.throwsAsync(() => {
         return rollup({
-            input: "./tests/fixtures/hi.js",
+            input: "./tests/fixtures/hi.es6.js",
             plugins: [
                 importManager({
                     units: {
-                        file: "**/hi.js",
-                        hash: 3790884003,
+                        file: "**/hi.es6.js",
+                        hash: 3832119296,
                         actions: "debug"
                     }
                 })
@@ -54,12 +52,12 @@ test("selecting unit by id", async (t) => {
     
     const debug = await t.throwsAsync(() => {
         return rollup({
-            input: "./tests/fixtures/hi.js",
+            input: "./tests/fixtures/hi.es6.js",
             plugins: [
                 importManager({
                     warnings: false,
                     units: {
-                        file: "**/hi.js",
+                        file: "**/hi.es6.js",
                         id: 1000,
                         actions: "debug"
                     }
@@ -77,11 +75,11 @@ test("selecting unit by id", async (t) => {
 test("removing import statement", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: "remove"
                 }
@@ -96,11 +94,11 @@ test("removing import statement", async (t) => {
 test("changing a module (renaming)", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: {
                         select: "module",
@@ -122,11 +120,11 @@ test("changing a module (renaming)", async (t) => {
 test("adding a member", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: {
                         select: "members",
@@ -150,11 +148,11 @@ test("adding a member", async (t) => {
 test("renaming a member", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: {
                         select: "member",
@@ -179,11 +177,11 @@ test("renaming a member", async (t) => {
 test("renaming a member (keeping the alias)", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: {
                         select: "member",
@@ -206,11 +204,11 @@ test("renaming a member (keeping the alias)", async (t) => {
 test("removing a member", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: {
                         select: "member",
@@ -232,11 +230,11 @@ test("removing a member", async (t) => {
 test("removing all members", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: {
                         select: "members",
@@ -258,11 +256,11 @@ test("removing all members", async (t) => {
 test("adding a member alias", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: {
                         select: "member",
@@ -287,11 +285,11 @@ test("adding a member alias", async (t) => {
 test("renaming a member alias", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: {
                         select: "member",
@@ -316,11 +314,11 @@ test("renaming a member alias", async (t) => {
 test("removing a member alias", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: {
                         select: "member",
@@ -345,11 +343,11 @@ test("removing a member alias", async (t) => {
 test("adding a default member (by chaining)", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: [
                         {
@@ -379,11 +377,11 @@ test("adding a default member (by chaining)", async (t) => {
 test("renaming a default member", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: {
                         select: "defaultMember",
@@ -408,11 +406,11 @@ test("renaming a default member", async (t) => {
 test("removing a default member (by chaining)", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: [
                         {
@@ -446,11 +444,11 @@ test("removing a default member (by chaining)", async (t) => {
 test("removing all default members", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: {
                         select: "defaultMembers",
@@ -473,11 +471,11 @@ test("removing all default members", async (t) => {
 test("renaming a default member alias (by chaining)", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     module: "hello",
                     actions: [
                         {
@@ -513,11 +511,11 @@ test("renaming a default member alias (by chaining)", async (t) => {
 test("creating an import statement", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     createModule: "./lib/create.js",
                     actions: [
                         {
@@ -539,7 +537,6 @@ test("creating an import statement", async (t) => {
     });
 
     const code = bundle.cache.modules.at(2).code;
-
     const node = bundle
         .cache.modules.at(2).ast    // parse tree
         .body.at(1);                // second import statement
@@ -556,11 +553,11 @@ test("creating an import statement", async (t) => {
 test("inserting an import statement before the very first module", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     createModule: "./lib/create.js",
                     actions: {
                         select: "members",
@@ -576,7 +573,6 @@ test("inserting an import statement before the very first module", async (t) => 
     });
 
     const code = bundle.cache.modules.at(2).code;
-
     const node = bundle
         .cache.modules.at(2).ast    // parse tree
         .body.at(0);                // first import statement
@@ -593,11 +589,11 @@ test("inserting an import statement before the very first module", async (t) => 
 test("appending an import statement after a specific module", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     createModule: "./lib/create.js",
                     actions: {
                         select: "defaultMembers",
@@ -612,7 +608,6 @@ test("appending an import statement after a specific module", async (t) => {
     });
 
     const code = bundle.cache.modules.at(2).code;
-
     const node = bundle
         .cache.modules.at(2).ast    // parse tree
         .body.at(1);                // second import statement
@@ -629,14 +624,14 @@ test("appending an import statement after a specific module", async (t) => {
 test("prepending a manual created statement before a specific module, selected via hash", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.js",
+        input: "./tests/fixtures/hi.es6.js",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.js",
+                    file: "**/hi.es6.js",
                     addCode: "import { hej } from './lib/create.js';\n",
                     prepend: {
-                        hash: 3790884003
+                        hash: 3832119296
                     }
                 }
             })
@@ -644,7 +639,6 @@ test("prepending a manual created statement before a specific module, selected v
     });
 
     const code = bundle.cache.modules.at(2).code;
-
     const node = bundle
         .cache.modules.at(2).ast    // parse tree
         .body.at(0);                // first import statement

@@ -570,7 +570,7 @@ class ImportManager {
                 }).body.at(0);
             } catch(e) {
                 if (e instanceof SyntaxError) {
-                    let msg = "\n\nGenerated Code Snipped\n----------------------\n";
+                    let msg = "\n\nGenerated Code Snippet\n----------------------\n";
                     let { line, column } = e.loc;
                     line --;
                     code.toString().split("\n").forEach((l, i) => {
@@ -692,7 +692,7 @@ class ImportManager {
         const code = this.code.slice(node.start, node.end);
 
         const module = {
-            name: importObject.source.value || "N/A",
+            name: importObject.source.value.split("/").at(-1) || "N/A",
             start: importObject.source.start - node.start,
             end: importObject.source.end - node.start
         };
@@ -1036,12 +1036,12 @@ class ImportManager {
      * @param {string} statement - ES6 Import Statement.
      * @param {number} pos - 'top' or 'bottom'
      */
-    insertStatement(statement, pos) {
+    insertStatement(statement, pos, type) {
 
         let index = 0;
 
-        if (pos !== "top" && this.imports.es6.count > 0) {
-            index = this.imports.es6.units.at(-1).end;
+        if (pos !== "top" && this.imports[type].count > 0) {
+            index = this.imports[type].units.at(-1).end;
 
             // move the index if the following char is a newline
             // (if the line was removed in an earlier operation
@@ -1483,7 +1483,8 @@ const importManager = (options={}) => {
                         }
 
                         else {
-                            manager.insertStatement(codeSnippet, unitSection.insert);
+                            const type = unitSection.type === "cjs" ? "cjs" : "es6";
+                            manager.insertStatement(codeSnippet, unitSection.insert, type);
                         }
 
                         continue;
