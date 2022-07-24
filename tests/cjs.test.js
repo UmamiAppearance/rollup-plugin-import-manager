@@ -75,11 +75,11 @@ test("selecting unit by id", async (t) => {
 test("removing import statement", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.dynamic.js",
+        input: "./tests/fixtures/hi.cjs.cjs",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.dynamic.js",
+                    file: "**/hi.cjs.cjs",
                     module: "hello",
                     actions: "remove"
                 }
@@ -94,39 +94,39 @@ test("removing import statement", async (t) => {
 test("changing a module (renaming)", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.dynamic.js",
+        input: "./tests/fixtures/hi.cjs.cjs",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.dynamic.js",
+                    file: "**/hi.cjs.cjs",
                     module: "hello",
                     actions: {
                         select: "module",
-                        rename: "./lib/hello-clone.js"
+                        rename: "./lib/hello-clone.cjs"
                     }
                 }
             })
         ]
     });
-     
-    const modPath = Boolean(
-        bundle.watchFiles.filter(f => f.indexOf("hello-clone.js") > -1).at(0)
-    );
 
-    t.truthy(modPath);
+    const importVal = bundle.cache.modules.at(0).ast    // parse tree
+        .body.at(0).declarations.at(0)                  // first declaration
+        .init.arguments.at(0).value;                    // first arguments value
+
+    t.is(importVal, "./lib/hello-clone.cjs");
 });
 
 
 test("creating an import statement", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.dynamic.js",
+        input: "./tests/fixtures/hi.cjs.cjs",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.dynamic.js",
+                    file: "**/hi.cjs.cjs",
                     createModule: "./lib/create.js",
-                    type: "dynamic",
+                    type: "cjs",
                     const: "create"
                 }
             })
@@ -136,13 +136,13 @@ test("creating an import statement", async (t) => {
     const code = bundle.cache.modules.at(0).code;
     const node = bundle
         .cache.modules.at(0).ast    // parse tree
-        .body.at(0);                // first import statement
+        .body.at(1);                // first import statement
     
 
     const importStatement = code.slice(node.start, node.end);
     t.is(
         importStatement,
-        "const create = await import(\"./lib/create.js\");"
+        "const create = require(\"./lib/create.js\");"
     );
 });
 
@@ -150,14 +150,14 @@ test("creating an import statement", async (t) => {
 test("appending an import statement after a specific module", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.dynamic.js",
+        input: "./tests/fixtures/hi.cjs.cjs",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.dynamic.js",
+                    file: "**/hi.cjs.cjs",
                     createModule: "./lib/create.js",
-                    type: "dynamic",
-                    let: "create",
+                    type: "cjs",
+                    var: "create",
                     append: {
                         module: "hello"
                     }
@@ -175,7 +175,7 @@ test("appending an import statement after a specific module", async (t) => {
     const importStatement = code.slice(node.start, node.end);
     t.is(
         importStatement,
-        "let create = await import(\"./lib/create.js\");"
+        "var create = require(\"./lib/create.js\");"
     );
 });
 
@@ -183,14 +183,14 @@ test("appending an import statement after a specific module", async (t) => {
 test("prepending a manual created statement before a specific module, selected via hash", async (t) => {
     
     const bundle = await rollup({
-        input: "./tests/fixtures/hi.dynamic.js",
+        input: "./tests/fixtures/hi.cjs.cjs",
         plugins: [
             importManager({
                 units: {
-                    file: "**/hi.dynamic.js",
-                    addCode: "let create;\nimport(\"./lib/create.js\").then(i => create = i);\n",
+                    file: "**/hi.cjs.cjs",
+                    addCode: "const create = require(\"./lib/create.js\")\n",
                     prepend: {
-                        hash: 119470642
+                        hash: 2177228089
                     }
                 }
             })
@@ -201,18 +201,10 @@ test("prepending a manual created statement before a specific module, selected v
     const astBody = bundle.cache.modules.at(0).ast.body;
 
     const nodeDecl = astBody.at(0);    
-    const nodeStatement = astBody.at(1);
-
-    const varDeclaration = code.slice(nodeDecl.start, nodeDecl.end);
-    const importStatement = code.slice(nodeStatement.start, nodeStatement.end);
-
-    t.is(
-        varDeclaration,
-        "let create;"
-    );
+    const importStatement = code.slice(nodeDecl.start, nodeDecl.end);
 
     t.is(
         importStatement,
-        "import(\"./lib/create.js\").then(i => create = i);"
+        "const create = require(\"./lib/create.js\")"
     );
 });

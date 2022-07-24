@@ -721,7 +721,7 @@ class ImportManager {
 
         const modulePart = node.declarations.at(0).init.arguments.at(0); // TODO: test if this is robust
         const module = {
-            name: modulePart.value || "N/A",
+            name: modulePart.value.split("/").at(-1) || "N/A",
             start: modulePart.start - node.start,
             end: modulePart.end - node.start
         };
@@ -1559,6 +1559,7 @@ const importManager = (options={}) => {
                             }
 
                             // apply the changes to the code
+                            console.log("commit");
                             manager.commitChanges(unit);
                         }
                     }
