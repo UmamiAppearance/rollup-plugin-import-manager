@@ -650,3 +650,34 @@ test("prepending a manual created statement before a specific module, selected v
         "import { hej } from './lib/create.js';"
     );
 });
+
+
+test("replacing a statement with a manual created statement, selected via id", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.es6.js",
+        plugins: [
+            importManager({
+                warnings: false,
+                units: {
+                    file: "**/hi.es6.js",
+                    addCode: "import salutonMondo, { ciao as hi, hola as hallo } from './lib/create.js';\nconst helloWorld = salutonMondo;",
+                    replace: {
+                        id: 1000
+                    }
+                }
+            })
+        ]
+    });
+
+    const { output } = await bundle.generate({ format: "es" });
+    const codeArray = output.at(0).code.split("\n");
+
+    const salutonMondo = codeArray.filter(line => line.indexOf("saluton mondo!") > -1).length;
+    const ciao = codeArray.filter(line => line.indexOf("ciao!") > -1).length;
+    const hola = codeArray.filter(line => line.indexOf("hola!") > -1).length;
+    
+    t.truthy(salutonMondo);
+    t.truthy(ciao);
+    t.truthy(hola);
+});
