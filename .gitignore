@@ -1,2 +1,3 @@
 node_modules
 rollup-plugin-import-manager.code-workspace
+.vscode
