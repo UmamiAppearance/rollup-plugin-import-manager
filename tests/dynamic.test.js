@@ -216,3 +216,34 @@ test("prepending a manual created statement before a specific module, selected v
         "import(\"./lib/create.js\").then(i => create = i);"
     );
 });
+
+
+test("replacing a statement with a manual created statement, selected via id", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.dynamic.js",
+        plugins: [
+            importManager({
+                warnings: false,
+                units: {
+                    file: "**/hi.dynamic.js",
+                    addCode: "var hi = import(\"./lib/create.js\");\n",
+                    replace: {
+                        id: 2000
+                    }
+                }
+            })
+        ]
+    });
+
+    const code = bundle.cache.modules.at(0).code;
+    const astBody = bundle.cache.modules.at(0).ast.body;
+    
+    const nodeStatement = astBody.at(0);
+    const importStatement = code.slice(nodeStatement.start, nodeStatement.end);
+
+    t.is(
+        importStatement,
+        "var hi = import(\"./lib/create.js\");"
+    );
+});

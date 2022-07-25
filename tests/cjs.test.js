@@ -188,7 +188,7 @@ test("prepending a manual created statement before a specific module, selected v
             importManager({
                 units: {
                     file: "**/hi.cjs.cjs",
-                    addCode: "const create = require(\"./lib/create.js\")\n",
+                    addCode: "const create = require(\"./lib/create.js\");\n",
                     prepend: {
                         hash: 2177228089
                     }
@@ -200,11 +200,42 @@ test("prepending a manual created statement before a specific module, selected v
     const code = bundle.cache.modules.at(0).code;
     const astBody = bundle.cache.modules.at(0).ast.body;
 
-    const nodeDecl = astBody.at(0);    
-    const importStatement = code.slice(nodeDecl.start, nodeDecl.end);
+    const nodeStatement = astBody.at(0);
+    const importStatement = code.slice(nodeStatement.start, nodeStatement.end);
 
     t.is(
         importStatement,
-        "const create = require(\"./lib/create.js\")"
+        "const create = require(\"./lib/create.js\");"
+    );
+});
+
+
+test("replacing a statement with a manual created statement, selected via id", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.cjs.cjs",
+        plugins: [
+            importManager({
+                warnings: false,
+                units: {
+                    file: "**/hi.cjs.cjs",
+                    addCode: "var hi = require(\"./lib/create.js\");\n",
+                    replace: {
+                        id: 3000
+                    }
+                }
+            })
+        ]
+    });
+
+    const code = bundle.cache.modules.at(0).code;
+    const astBody = bundle.cache.modules.at(0).ast.body;
+
+    const nodeStatement = astBody.at(0);
+    const importStatement = code.slice(nodeStatement.start, nodeStatement.end);
+
+    t.is(
+        importStatement,
+        "var hi = require(\"./lib/create.js\");"
     );
 });
