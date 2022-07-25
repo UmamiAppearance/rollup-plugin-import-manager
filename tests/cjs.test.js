@@ -117,6 +117,33 @@ test("changing a module (renaming)", async (t) => {
 });
 
 
+test("changing a module (renaming) with 'modType': raw", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.cjs.cjs",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.cjs.cjs",
+                    module: "hello",
+                    actions: {
+                        select: "module",
+                        rename: "'./lib/hello-clone.cjs'",
+                        modType: "raw"
+                    }
+                }
+            })
+        ]
+    });
+
+    const importVal = bundle.cache.modules.at(0).ast    // parse tree
+        .body.at(0).declarations.at(0)                  // first declaration
+        .init.arguments.at(0).value;                    // first arguments value
+
+    t.is(importVal, "./lib/hello-clone.cjs");
+});
+
+
 test("creating an import statement", async (t) => {
     
     const bundle = await rollup({

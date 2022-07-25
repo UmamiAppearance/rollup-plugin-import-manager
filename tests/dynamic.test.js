@@ -117,6 +117,35 @@ test("changing a module (renaming)", async (t) => {
 });
 
 
+test("changing a module (renaming) with 'modType': raw", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.dynamic.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.dynamic.js",
+                    module: "hello",
+                    actions: {
+                        select: "module",
+                        rename: "'./lib/hello-clone.js'",
+                        modType: "raw"
+                    }
+                }
+            })
+        ]
+    });
+     
+    const modPath = Boolean(
+        bundle.watchFiles.filter(f => f.indexOf("hello-clone.js") > -1).at(0)
+    );
+
+    t.truthy(modPath);
+});
+
+
+
+
 test("creating an import statement", async (t) => {
     
     const bundle = await rollup({
@@ -245,5 +274,55 @@ test("replacing a statement with a manual created statement, selected via id", a
     t.is(
         importStatement,
         "var hi = import(\"./lib/create.js\");"
+    );
+});
+
+
+test("(whacky chaining) appending an import statement, replacing the original statement by leaving only the varname", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.dynamic.js",
+        plugins: [
+            importManager({
+                warnings: false,
+                units: [
+                    {
+                        file: "**/hi.dynamic.js",
+                        createModule: "./lib/create.js",
+                        type: "dynamic",
+                        global: "hi",
+                        append: {
+                            module: "hello"
+                        }
+                    },
+                    {
+                        file: "**/hi.dynamic.js",
+                        addCode: "let hi;\n",
+                        replace: {
+                            module: "hello"
+                        }
+                    }
+                ]
+            })
+        ]
+    });
+
+    const code = bundle.cache.modules.at(0).code;
+    const astBody = bundle.cache.modules.at(0).ast.body;
+
+    const nodeDecl = astBody.at(0);    
+    const nodeStatement = astBody.at(1);
+
+    const varDeclaration = code.slice(nodeDecl.start, nodeDecl.end);
+    const importStatement = code.slice(nodeStatement.start, nodeStatement.end);
+
+    t.is(
+        varDeclaration,
+        "let hi;"
+    );
+
+    t.is(
+        importStatement,
+        "hi = await import(\"./lib/create.js\");"
     );
 });
