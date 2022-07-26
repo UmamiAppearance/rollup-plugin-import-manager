@@ -74,7 +74,7 @@ npm install rollup-plugin-import-manager --save-dev
 ```
 
 ## How it works
-**rollup-plugin-import-manager** analyzes each file (which is uses for the rollup building process) for import statements. Those are converted into so called unit objects, on which the user can interact with. Also the creation of new units &rarr; import statements is possible. 
+**rollup-plugin-import-manager** analyzes each file (which is used for the rollup building process) for import statements. Those are collected as so called unit objects, on which the user can interact with. Also the creation of new units &rarr; import statements is possible. 
 
 
 ## Usage
@@ -94,7 +94,7 @@ export default {
         importManager({
             units: [
                 file: "**/my-file.js",
-                module: "my-module.js",
+                module: "my-module",
                 actions: [
                     // ...
                 ]
@@ -127,21 +127,22 @@ A [minimatch pattern](https://github.com/isaacs/minimatch), or array of patterns
 Type: `String`  
 Default: `null`  
 
-A [debugging](#debugging) method. If set to anything other than the string `"file"` a console output of [diff](https://github.com/kpdecker/jsdiff) is shown. It is modified a little and looks much like the default output of diff from the [GNU diffutils](https://www.gnu.org/software/diffutils/), with colors on top. If set to `"file"` the whole file with insertions and deletions is shown. Either way it only gets logged if there are any changes at all. If this is not the case, there is another global debugging method available:
+A [debugging](#debugging) method. If set to anything other than the string `"file"` a console output of [diff](https://github.com/kpdecker/jsdiff) is shown. It is modified a little and looks much like the default output of diff from the [GNU diffutils](https://www.gnu.org/software/diffutils/), with colors on top. If set to `"file"` the whole file with insertions and deletions is shown. Either way it only gets logged if there are any changes at all. If this is not the case, there is another (now following) global debugging method available.
 
 
 ### `debug`  
 Type: `String`  
 Default: `null`  
 
-A [debugging](#debugging) method. If more than one source file is involved, this really only is useful in combination with [include](#include). It stops the building process by throwing an intentional error and lists all units of the first file, that is processed. Even more verbose information about all unit objects can be made accessible by passing the strings `verbose`, `object(s)` or `import(s)` (which one to use doesn't matter). 
+A [debugging](#debugging) method. If more than one source file is involved, this really only is useful in combination with [include](#include). It stops the building process by throwing an intentional error and lists all units of the first file, that is getting processed. Even more verbose information about all unit objects can be made accessible by passing the strings `verbose`, `object(s)` or `import(s)` (which one to use doesn't matter). 
 
 
 ### `warnings`
 Type: `Boolean`  
 Default: `true`  
 
-Set to `false` to prevent displaying warning messages.  
+Set to `false` to prevent displaying warning messages.
+
 
 ### `units`
 Type: `Object` | `Array[...Object]`  
@@ -155,13 +156,13 @@ This is where the plugin comes to life. Here is the place where units are gettin
 Type: `String`  
 Default: `null`  
 
-Select a unit by its module name. Each import has a name object. This is constructed from the module (path).
-For relative imports the path information are getting removed. This may look like this:
+Selects a unit by its module name. Each import has a name object. This is constructed from the module.
+Path information are getting removed. This may look like this:
 ```js
 import foo from "./path/bar.js";
 ```
 The internal name will be `bar.js`. And can be matched with: `module: "bar.js"`  
-(The matching method is a little more generous. You can skip the extension ort even bigger parts if you like and if this doesn't lead to multiple matches).  
+(The matching method is actually a little more generous. You can skip the extension or even bigger parts if you like and if this doesn't lead to multiple matches).  
 
 Absolute imports are directly taken as the name attribute. Eg:
 ```js
@@ -174,7 +175,7 @@ The internal name will be `bar` and can be matched by that name: `module: "bar"`
 Type: `String`  
 Default: `null`  
 
-Selects a unit by its hash. This is more like an emergency solution. If for any reason it is not possible to match via the module name, this is an alternative. If you ask yourself, where on earth you can figure out the hash, you can rest assured. If multiple matches are found the hashes are logged to the console. Also by running a global [debugging](#debug), the hash can be found.  
+Selects a unit by its hash. This is more like an emergency solution. If for any reason it is not possible to match via the module name, this is an alternative. If multiple matches are found the hashes are logged to the console. Also by running a global [debugging](#debug), the hash can be found.  
 
 The hash is generated by the module name and its members and also the filename and path. If the filename (or path) or any of the other properties are changing so is the hash. The build will fail in this case, so no need to worry to overlook it. The matching via module name should nevertheless be preferred.
 
@@ -364,7 +365,7 @@ If [renaming](#rename-option-for-actions) is done with modType `string` there ar
 Type: `Boolean`  
 Default: `false`  
 
-This is an extra option to [rename](#rename-option-for-actions) a (default) members. If true, the alias will kept untouched, otherwise it gets overwritten in the renaming process, wether a new alias is set or not.
+This is an extra argument to [rename](#rename-option-for-actions) a (default) member. If true, the alias will kept untouched, otherwise it gets overwritten in the renaming process, wether a new alias is set or not.
 
 
 ##### `remove` <samp>[option for actions]</samp>
@@ -844,7 +845,7 @@ import { foo, baz as corge, quux as grault } from "quuz";
 ## General Hints
 
 ### Chaining
-It is possible to address every part of a statement in one go. The order doesn't matter. But one part should not be selected twice, which might produce unwanted results. To address every part of a [`unit`](#units) with its [`actions`](#actions-option-for-units) can be as complex as follows.
+It is possible to address every part of a statement in one go. The order usually doesn't matter. But one part should not be selected twice, which might produce unwanted results. To address every part of a [`unit`](#units) with its [`actions`](#actions-option-for-units) can be as complex as follows.
 
 Example Statement:
 ```js
@@ -903,7 +904,7 @@ As a general rule, all arrays can be unpacked if only one member is inside. Obje
 ## Debugging
 
 ### Show Diff
-A general hint while creating a `rollup.config.js` [configuration file](https://www.rollupjs.org/guide/en/#configuration-files): it is useful to enable [`diff`](#show-diff) logging:
+A general hint while creating a `rollup.config.js` [configuration file](https://www.rollupjs.org/guide/en/#configuration-files): it is useful to enable [`diff`](#show-diff) logging to see how the source file is actually getting manipulated.
 
 ```js
 plugins: [
