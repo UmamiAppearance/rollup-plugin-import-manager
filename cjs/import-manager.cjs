@@ -526,27 +526,8 @@ class ImportManager {
         };
 
         const input = makeInput(unit);
-        let hash = String(simpleHash(input));
 
-        // handle duplicates
-        if (hash in this.hashList) {
-            
-            if (unit.module.name !== "N/A") {
-                this.warning(`It seems like there are multiple imports of module '${unit.module.name}'. You should examine that.`);
-            }
-            
-            for (let nr=2;; nr++) {
-                const nHash = `${hash}#${nr}`;
-                if (!(nHash in this.hashList)) {
-                    hash = nHash;
-                    break;
-                }
-            }
-        }
-        
-        this.hashList[hash] = unit.id;
-
-        return hash;
+        throw new Error(input);
     }
 
 
