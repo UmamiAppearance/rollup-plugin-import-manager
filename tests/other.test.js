@@ -74,7 +74,7 @@ test("debugging a file (default method)", async (t) => {
     }, { instanceOf: DebuggingError });
 
     const msg = debug.message;
-    t.true(msg.indexOf("3832119296") > -1);
+    t.true(msg.indexOf("3541821124") > -1);
 
 });
 
@@ -93,7 +93,7 @@ test("debugging a file (verbose method)", async (t) => {
     }, { instanceOf: DebuggingError });
 
     const es6Imports = JSON.parse(debug.message).es6.units;
-    t.is(es6Imports.at(0).hash, "3832119296");
+    t.is(es6Imports.at(0).hash, "3541821124");
     
 });
 

@@ -53,7 +53,7 @@ class ImportManager {
         this.code = new MagicString(source);
 
         this.hashList = {};
-        this.filename = filename;
+        this.filename = filename.split(process.cwd()).at(1);
         this.warnSpamProtection = warnSpamProtection;
         
         this.parsedCode = parse(source, {

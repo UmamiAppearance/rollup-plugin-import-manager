@@ -35,7 +35,7 @@ test("selecting unit by hash", async (t) => {
                 importManager({
                     units: {
                         file: "**/hi.es6.js",
-                        hash: 3832119296,
+                        hash: 3541821124,
                         actions: "debug"
                     }
                 })
@@ -658,7 +658,7 @@ test("prepending a manual created statement before a specific module, selected v
                     file: "**/hi.es6.js",
                     addCode: "import { hej } from './lib/create.js';\n",
                     prepend: {
-                        hash: 3832119296
+                        hash: 3541821124
                     }
                 }
             })

@@ -418,7 +418,7 @@ class ImportManager {
         this.code = new MagicString__default["default"](source);
 
         this.hashList = {};
-        this.filename = filename;
+        this.filename = filename.split(process.cwd()).at(1);
         this.warnSpamProtection = warnSpamProtection;
         
         this.parsedCode = acorn.parse(source, {
