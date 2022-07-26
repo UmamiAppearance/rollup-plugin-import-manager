@@ -14,7 +14,7 @@ test.beforeEach(t => {
 });
 
 
-test.serial("show difference (default)", async (t) => {
+test.serial("showDiff method (default)", async (t) => {
 
     await rollup({
         input: "./tests/fixtures/hi.dynamic.js",
@@ -47,7 +47,7 @@ test.serial("show difference (default)", async (t) => {
 });
 
 
-test.serial("show difference (file)", async (t) => {
+test.serial("showDiff method (file)", async (t) => {
 
     await rollup({
         input: "./tests/fixtures/hi.dynamic.js",

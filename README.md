@@ -74,11 +74,10 @@ npm install rollup-plugin-import-manager --save-dev
 ```
 
 ## How it works
-**rollup-plugin-import-manager** analyzes each file (which is uses for the rollup building process) for import statements. Those are converted into unit objects, which the user can interact with. Also the creation of new units &rarr; import statements is possible. 
+**rollup-plugin-import-manager** analyzes each file (which is uses for the rollup building process) for import statements. Those are converted into so called unit objects, on which the user can interact with. Also the creation of new units &rarr; import statements is possible. 
 
 
 ## Usage
-
 Create a `rollup.config.js` [configuration file](https://www.rollupjs.org/guide/en/#configuration-files) and import the plugin.
 
 ```js
@@ -228,7 +227,7 @@ This argument is mainly necessary when creating new units. Without members or de
 Type: `String`  
 Default: `null`
 
-Creates a new module. Every selection method ([id](#id), [hash](#hash), [module](#module)) will get ignored if this key is passed to a unit. For the value set the module (path).  
+Creates a new module. Every selection method ([id](#id-option-for-units), [hash](#hash-option-for-units), [module](#module-option-for-units)) will get ignored if this key is passed to a unit. For the value set the module (path).  
 Eg: `createModule: "./path/to/my-module.js"`
 
 
