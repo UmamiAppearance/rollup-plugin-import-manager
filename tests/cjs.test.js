@@ -35,7 +35,7 @@ test("selecting unit by hash", async (t) => {
                 importManager({
                     units: {
                         file: "**/hi.cjs.cjs",
-                        hash: 421604043,
+                        hash: 3722821767,
                         actions: "debug"
                     }
                 })
@@ -73,7 +73,7 @@ test("selecting unit by id", async (t) => {
 
 
 test("removing import statement", async (t) => {
-    3832119296
+    
     const bundle = await rollup({
         input: "./tests/fixtures/hi.cjs.cjs",
         plugins: [
@@ -217,7 +217,7 @@ test("prepending a manual created statement before a specific module, selected v
                     file: "**/hi.cjs.cjs",
                     addCode: "const create = require(\"./lib/create.js\");\n",
                     prepend: {
-                        hash: 421604043
+                        hash: 3722821767
                     }
                 }
             })

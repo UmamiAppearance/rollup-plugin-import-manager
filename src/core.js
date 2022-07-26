@@ -21,7 +21,7 @@ class ImportManager {
      * @param {object} warnSpamProtection - A Set which contains all previously printed warning hashes.
      * @param {boolean} [warnings=true] - Pass false to suppress warning messages.
      */
-    constructor(source, filename, warnSpamProtection=new Set(), warnings=true) {
+    constructor(source, rollupID, warnSpamProtection=new Set(), warnings=true) {
 
         this.scopeMulti = 1000;
 
@@ -53,7 +53,7 @@ class ImportManager {
         this.code = new MagicString(source);
 
         this.hashList = {};
-        this.filename = filename.split(process.cwd()).at(1);
+        this.filename = rollupID.split("/").at(-1);
         this.warnSpamProtection = warnSpamProtection;
         
         this.parsedCode = parse(source, {
@@ -133,8 +133,6 @@ class ImportManager {
      * @returns {string} - a hash as a string 
      */
     #makeHash(unit) {
-
-        console.log(this.filename);
 
         const makeInput = (unit) => {
             

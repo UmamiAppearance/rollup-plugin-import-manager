@@ -386,7 +386,7 @@ class ImportManager {
      * @param {object} warnSpamProtection - A Set which contains all previously printed warning hashes.
      * @param {boolean} [warnings=true] - Pass false to suppress warning messages.
      */
-    constructor(source, filename, warnSpamProtection=new Set(), warnings=true) {
+    constructor(source, rollupID, warnSpamProtection=new Set(), warnings=true) {
 
         this.scopeMulti = 1000;
 
@@ -418,7 +418,7 @@ class ImportManager {
         this.code = new MagicString__default["default"](source);
 
         this.hashList = {};
-        this.filename = filename.split(process.cwd()).at(1);
+        this.filename = rollupID.split("/").at(-1);
         this.warnSpamProtection = warnSpamProtection;
         
         this.parsedCode = acorn.parse(source, {
