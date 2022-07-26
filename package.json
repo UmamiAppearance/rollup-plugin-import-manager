@@ -33,14 +33,14 @@
   ],
   "dependencies": {
     "@rollup/pluginutils": "^4.2.1",
-    "acorn": "^8.7.1",
+    "acorn": "^8.8.0",
     "colorette": "^2.0.19",
     "diff": "^5.1.0",
     "magic-string": "^0.26.2"
   },
   "devDependencies": {
-    "ava": "^4.3.0",
-    "eslint": "^8.16.0",
-    "rollup": "^2.75.6"
+    "ava": "^4.3.1",
+    "eslint": "^8.20.0",
+    "rollup": "^2.77.1"
   }
 }
