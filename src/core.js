@@ -134,6 +134,8 @@ class ImportManager {
      */
     #makeHash(unit) {
 
+        console.log(this.filename);
+
         const makeInput = (unit) => {
             
             const joinProps = list => {
