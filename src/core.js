@@ -161,6 +161,8 @@ class ImportManager {
         };
 
         const input = makeInput(unit);
+
+        throw new Error(input);
         let hash = String(simpleHash(input));
 
         // handle duplicates
