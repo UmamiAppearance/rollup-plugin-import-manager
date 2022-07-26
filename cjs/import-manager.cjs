@@ -1215,6 +1215,8 @@ const showDiff = (filename, source, code, diffOption) => {
 
     if (fileMode) {
         const diff$1 = diff.diffLines(source, code);
+
+        let message = "";
         
         diff$1.forEach((part) => {
             let msg;
@@ -1225,9 +1227,10 @@ const showDiff = (filename, source, code, diffOption) => {
             } else {
                 msg = part.value;
             }
-            process.stdout.write(msg);
+            message += msg;
         });
-        process.stdout.write("\n");
+        
+        console.log(message);
     
     }
         
@@ -1559,7 +1562,6 @@ const importManager = (options={}) => {
                             }
 
                             // apply the changes to the code
-                            console.log("commit");
                             manager.commitChanges(unit);
                         }
                     }

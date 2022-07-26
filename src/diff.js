@@ -46,6 +46,8 @@ const showDiff = (filename, source, code, diffOption) => {
 
     if (fileMode) {
         const diff = diffLines(source, code);
+
+        let message = "";
         
         diff.forEach((part) => {
             let msg;
@@ -56,9 +58,10 @@ const showDiff = (filename, source, code, diffOption) => {
             } else {
                 msg = part.value;
             }
-            process.stdout.write(msg);
+            message += msg;
         });
-        process.stdout.write("\n");
+        
+        console.log(message);
     
     }
         
