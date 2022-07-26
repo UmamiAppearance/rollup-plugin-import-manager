@@ -23,8 +23,11 @@
   "homepage": "https://github.com/UmamiAppearance/rollup-plugin-import-manager#readme",
   "keywords": [
     "add",
+    "cjs",
     "es6",
+    "dynamic",
     "import",
+    "modules",
     "remove",
     "rollup",
     "rollup-plugin",
