@@ -418,7 +418,7 @@ class ImportManager {
         this.code = new MagicString__default["default"](source);
 
         this.hashList = {};
-        this.filename = rollupID.split("/").at(-1);
+        this.filename = rollupID.split(process.cwd()).at(1);
         this.warnSpamProtection = warnSpamProtection;
         
         this.parsedCode = acorn.parse(source, {
@@ -526,8 +526,6 @@ class ImportManager {
         };
 
         const input = makeInput(unit);
-
-        console.error("INPUT", input);
         let hash = String(simpleHash(input));
 
         // handle duplicates
@@ -1298,7 +1296,7 @@ const showDiff = (filename, source, code, diffOption) => {
 /**
  * [rollup-plugin-import-manager]{@link https://github.com/UmamiAppearance/rollup-plugin-import-manager}
  *
- * @version 0.1.0
+ * @version 0.1.1
  * @author UmamiAppearance [mail@umamiappearance.eu]
  * @license MIT
  */

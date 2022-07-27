@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/github/license/UmamiAppearance/rollup-plugin-import-manager?color=009911&style=for-the-badge)](./LICENSE)
 [![npm](https://img.shields.io/npm/v/rollup-plugin-import-manager?color=009911&style=for-the-badge)](https://www.npmjs.com/package/rollup-plugin-import-manager)
 
-A Rollup plugin which makes it possible to manipulate import statements. Deleting, adding, changing the members and modules. Supports ES6 Import Statements, CommonJS and dynamic imports.
+A Rollup plugin which makes it possible to manipulate import statements. Features are deleting, adding, changing the members and modules and much more. Supports ES6 Import Statements, CommonJS and Dynamic Imports.
 
 ## Table of Contents
   - [Install](#install)
