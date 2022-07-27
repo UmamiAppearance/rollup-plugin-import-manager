@@ -53,7 +53,7 @@ class ImportManager {
         this.code = new MagicString(source);
 
         this.hashList = {};
-        this.filename = rollupID.split("/").at(-1);
+        this.filename = rollupID.split(process.cwd()).at(1);
         this.warnSpamProtection = warnSpamProtection;
         
         this.parsedCode = parse(source, {
@@ -161,8 +161,6 @@ class ImportManager {
         };
 
         const input = makeInput(unit);
-
-        console.error("INPUT", input);
         let hash = String(simpleHash(input));
 
         // handle duplicates
