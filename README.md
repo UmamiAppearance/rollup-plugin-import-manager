@@ -87,7 +87,7 @@ Create a `rollup.config.js` [configuration file](https://www.rollupjs.org/guide/
 import { importManager } from "rollup-plugin-import-manager";
 
 export default {
-    input: 'src/index.js',
+    input: "src/index.js",
     output: {   
         format: "es",
         name: "myBuild",
@@ -96,11 +96,13 @@ export default {
     plugins: [
         importManager({
             units: [
-                file: "**/my-file.js",
-                module: "my-module",
-                actions: [
-                    // ...
-                ]
+                {
+                    file: "**/my-file.js",
+                    module: "my-module",
+                    actions: [
+                        // ...
+                    ]
+                }
             ]
         })
     ]
