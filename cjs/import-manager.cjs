@@ -1296,7 +1296,7 @@ const showDiff = (filename, source, code, diffOption) => {
 /**
  * [rollup-plugin-import-manager]{@link https://github.com/UmamiAppearance/rollup-plugin-import-manager}
  *
- * @version 0.1.1
+ * @version 0.1.3
  * @author UmamiAppearance [mail@umamiappearance.eu]
  * @license MIT
  */
