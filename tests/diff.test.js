@@ -2,7 +2,6 @@ import test from "ava";
 import { rollup } from "rollup";
 import { importManager } from "../src/index.js";
 
-//const consoleLog = console.log.bind(console);
 
 test.before(t => {
     t.context.data = [];
@@ -32,17 +31,17 @@ test.serial("showDiff method (default)", async (t) => {
     }); 
 
     t.context.data.shift();
-    
+
     t.truthy(
-        t.context.data.filter(l => l.indexOf("(plugin ImportManager) diff for file" > -1)).length
+        t.context.data.filter(l => l.at(0).indexOf("(plugin ImportManager) diff for file") > -1).length
     );
 
     t.truthy(
-        t.context.data.filter(l => l.indexOf("const hi = await import(\"./lib/hello.js\");" > -1)).length
+        t.context.data.filter(l => l.at(0).indexOf("const hi = await import(\"./lib/hello.js\");") > -1).length
     );
 
     t.truthy(
-        t.context.data.filter(l => l.indexOf("import { hej } from './lib/create.js';" > -1)).length
+        t.context.data.filter(l => l.at(0).indexOf("import { hej } from './lib/create.js'") > -1).length
     );
 });
 
@@ -65,20 +64,20 @@ test.serial("showDiff method (file)", async (t) => {
     }); 
 
     t.context.data.shift();
-    
+
     t.truthy(
-        t.context.data.filter(l => l.indexOf("(plugin ImportManager) diff for file" > -1)).length
+        t.context.data.filter(l => l.at(0).indexOf("(plugin ImportManager) diff for file") > -1).length
     );
 
     t.truthy(
-        t.context.data.filter(l => l.indexOf("const hi = await import(\"./lib/hello.js\");" > -1)).length
+        t.context.data.filter(l => l.at(0).indexOf("const hi = await import(\"./lib/hello.js\");") > -1).length
     );
 
     t.truthy(
-        t.context.data.filter(l => l.indexOf("import { hej } from './lib/create.js';" > -1)).length
+        t.context.data.filter(l => l.at(0).indexOf("import { hej } from './lib/create.js'") > -1).length
     );
 
     t.truthy(
-        t.context.data.filter(l => l.indexOf("date.getFullYear === 1984" > -1)).length
+        t.context.data.filter(l => l.at(0).indexOf("date.getFullYear() === 1984") > -1).length
     );
 });
