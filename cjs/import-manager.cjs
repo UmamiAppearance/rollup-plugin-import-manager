@@ -383,7 +383,7 @@ class ImportManager {
      * object and kicks of the code analysis.
      * @param {string} source - The unmodified source code-
      * @param {string} filename - The filename of the input file. 
-     * @param {object} warnSpamProtection - A Set which contains all previously printed warning hashes.
+     * @param {object} [warnSpamProtection] - A Set which contains all previously printed warning hashes.
      * @param {boolean} [warnings=true] - Pass false to suppress warning messages.
      */
     constructor(source, rollupID, warnSpamProtection=new Set(), warnings=true) {
@@ -1296,7 +1296,7 @@ const showDiff = (filename, source, code, diffOption) => {
 /**
  * [rollup-plugin-import-manager]{@link https://github.com/UmamiAppearance/rollup-plugin-import-manager}
  *
- * @version 0.1.4
+ * @version 0.2.0
  * @author UmamiAppearance [mail@umamiappearance.eu]
  * @license MIT
  */
@@ -1326,11 +1326,11 @@ const ensureObj = (input) => {
 
 // makes the life of the user a little bit easier
 // by accepting multiple versions of boolean vars 
-const bool = (b) => !(Boolean(b) === false || String(b).match(/^(?:false|no?|0)$/, "i"));
+const bool = (b) => !(Boolean(b) === false || (/^(?:false|no?|0)$/i).test(String(b)));
 
 // allow some variations to enable object mode 
 // for debugging
-const showObjects = (v) => Boolean(String(v).match(/^(?:objects?|imports?|verbose)$/));
+const showObjects = (v) => (/^(?:objects?|imports?|verbose)$/).test(String(v));
 
 
 // main
@@ -1585,5 +1585,6 @@ const importManager = (options={}) => {
     };
 };
 
+exports.ImportManager = ImportManager;
 exports.importManager = importManager;
 //# sourceMappingURL=import-manager.cjs.map

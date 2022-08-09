@@ -1,7 +1,7 @@
 /**
  * [rollup-plugin-import-manager]{@link https://github.com/UmamiAppearance/rollup-plugin-import-manager}
  *
- * @version 0.1.4
+ * @version 0.2.0
  * @author UmamiAppearance [mail@umamiappearance.eu]
  * @license MIT
  */
@@ -36,11 +36,11 @@ const ensureObj = (input) => {
 
 // makes the life of the user a little bit easier
 // by accepting multiple versions of boolean vars 
-const bool = (b) => !(Boolean(b) === false || String(b).match(/^(?:false|no?|0)$/, "i"));
+const bool = (b) => !(Boolean(b) === false || (/^(?:false|no?|0)$/i).test(String(b)));
 
 // allow some variations to enable object mode 
 // for debugging
-const showObjects = (v) => Boolean(String(v).match(/^(?:objects?|imports?|verbose)$/));
+const showObjects = (v) => (/^(?:objects?|imports?|verbose)$/).test(String(v));
 
 
 // main
@@ -295,4 +295,4 @@ const importManager = (options={}) => {
     };
 };
   
-export { importManager };
+export { importManager, ImportManager };
