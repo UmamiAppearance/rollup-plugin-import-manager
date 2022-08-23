@@ -1,7 +1,7 @@
 import test from "ava";
 import { rollup } from "rollup";
 import { importManager } from "../src/index.js";
-import { DebuggingError, MatchError } from "../ImportManager/errors.js";
+import { DebuggingError, MatchError } from "import-manager";
 
 
 test("selecting unit (by module name) without file attribute", async (t) => {

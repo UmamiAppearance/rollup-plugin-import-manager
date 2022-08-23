@@ -1,7 +1,7 @@
 import test from "ava";
 import { rollup } from "rollup";
 import { importManager } from "../src/index.js";
-import { DebuggingError } from "../ImportManager/errors.js";
+import { DebuggingError } from "import-manager";
 
 
 test("selecting unit by module name", async (t) => {

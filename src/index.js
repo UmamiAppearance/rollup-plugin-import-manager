@@ -8,7 +8,7 @@
 
 
 import { createFilter } from "@rollup/pluginutils";
-import ImportManager from "../ImportManager/core.js";
+import ImportManager from "import-manager";
 import showDiff from "./diff.js";
 
 // test if input is an object
@@ -295,4 +295,4 @@ const importManager = (options={}) => {
     };
 };
   
-export { importManager, ImportManager };
+export { importManager };
