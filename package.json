@@ -40,11 +40,9 @@
   ],
   "dependencies": {
     "@rollup/pluginutils": "^4.2.1",
-    "acorn": "^8.8.0",
-    "acorn-walk": "^8.2.0",
     "colorette": "^2.0.19",
     "diff": "^5.1.0",
-    "magic-string": "^0.26.2"
+    "import-manager": "^0.1.1"
   },
   "devDependencies": {
     "ava": "^4.3.1",
