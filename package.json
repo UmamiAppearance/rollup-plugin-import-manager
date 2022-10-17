@@ -39,7 +39,7 @@
     "switch"
   ],
   "dependencies": {
-    "@rollup/pluginutils": "^4.2.1",
+    "@rollup/pluginutils": "^5.0.1",
     "colorette": "^2.0.19",
     "diff": "^5.1.0",
     "import-manager": "^0.1.2"
