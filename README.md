@@ -79,7 +79,7 @@ npm install rollup-plugin-import-manager --save-dev
 ## How it works
 **rollup-plugin-import-manager** analyzes each file (which is used for the rollup building process) for import statements. Those are collected as so called unit objects, on which the user can interact with. Also the creation of new units &rarr; import statements is possible.  
   
-_(The actual work is done by the outsourced program [ImportManager]((https://github.com/UmamiAppearance/ImportManager)) which can by used independently from this rollup-plugin.)_
+_(The actual work is done by the outsourced program [ImportManager](https://github.com/UmamiAppearance/ImportManager) which can by used independently from this rollup-plugin.)_
 
 
 ## Usage
