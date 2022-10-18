@@ -1,7 +1,7 @@
 /**
  * [rollup-plugin-import-manager]{@link https://github.com/UmamiAppearance/rollup-plugin-import-manager}
  *
- * @version 0.3.1
+ * @version 0.3.2
  * @author UmamiAppearance [mail@umamiappearance.eu]
  * @license MIT
  */
