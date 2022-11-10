@@ -1,7 +1,5 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', { value: true });
-
 var pluginutils = require('@rollup/pluginutils');
 var importManager$1 = require('import-manager');
 var diff = require('diff');
@@ -132,7 +130,7 @@ const showDiff = (filename, source, code, diffOption) => {
 /**
  * [rollup-plugin-import-manager]{@link https://github.com/UmamiAppearance/rollup-plugin-import-manager}
  *
- * @version 0.3.1
+ * @version 0.3.3
  * @author UmamiAppearance [mail@umamiappearance.eu]
  * @license MIT
  */
