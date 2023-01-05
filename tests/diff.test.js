@@ -28,9 +28,7 @@ test.serial("showDiff method (default)", async (t) => {
                 }
             })
         ]
-    }); 
-
-    t.context.data.shift();
+    });
 
     t.truthy(
         t.context.data.filter(l => l.at(0).indexOf("(plugin ImportManager) diff for file") > -1).length
@@ -62,8 +60,6 @@ test.serial("showDiff method (file)", async (t) => {
             })
         ]
     }); 
-
-    t.context.data.shift();
 
     t.truthy(
         t.context.data.filter(l => l.at(0).indexOf("(plugin ImportManager) diff for file") > -1).length

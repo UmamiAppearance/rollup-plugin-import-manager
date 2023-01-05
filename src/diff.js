@@ -36,8 +36,7 @@ const addAngles = (angle, txt) => {
  */
 const showDiff = (filename, source, code, diffOption) => {
     const fileMode = diffOption == "file";
-    console.log(code);
-
+    
     console.log(bold(blue(
         `(plugin ImportManager) diff for file '${filename}':`
     )));

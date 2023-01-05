@@ -39,8 +39,7 @@ const addAngles = (angle, txt) => {
  */
 const showDiff = (filename, source, code, diffOption) => {
     const fileMode = diffOption == "file";
-    console.log(code);
-
+    
     console.log(colorette.bold(colorette.blue(
         `(plugin ImportManager) diff for file '${filename}':`
     )));
@@ -130,7 +129,7 @@ const showDiff = (filename, source, code, diffOption) => {
 /**
  * [rollup-plugin-import-manager]{@link https://github.com/UmamiAppearance/rollup-plugin-import-manager}
  *
- * @version 0.3.6
+ * @version 0.3.7
  * @author UmamiAppearance [mail@umamiappearance.eu]
  * @license MIT
  */
