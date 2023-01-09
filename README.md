@@ -993,5 +993,4 @@ plugins: [
 
 [MIT](https://opensource.org/licenses/MIT)
 
-Copyright (c) 2022, UmamiAppearance
-
+Copyright (c) 2022-2023, UmamiAppearance
