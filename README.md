@@ -347,43 +347,42 @@ A member part of `{ foobar as foo, baz }` can be selected with `name: "foobar"` 
 Type: `String`  
 Default: `null`  
 
-An option to target an alias of a [selected](#select-option-for-actions) `defaultMember` or `member`. If a value is set, this will change or initially set the alias to the this value. Aliases for _members_ can also be [removed](#remove-option-for-actions), in this case the value for alias will be ignored.
+An option to target an alias of a [selected](#select-option-for-actions) `defaultMember` or `member`. If a value is set, this will change or initially set the alias. Aliases for _members_ can also be [removed](#remove-option-for-actions), by using the _remove_ option (in this case the value for alias will be ignored) and/or by passing `null` as a value. [Examples](#addressing-an-alias).
 
 
 ##### `rename` <samp>[option for actions]</samp>
 Type: `String`  
 Default: `null`  
 
-This option is used to rename a [selected](#select-option-for-actions) specific part (`defaultMember`, `member`, `module`). The value is the new name of the selected part.
+This option is used to rename a [selected](#select-option-for-actions) specific part (`defaultMember`, `member`, `module`). The value is the new name of the selected part. See this [example](#changing-the-module).
 
 
 ##### `modType` <samp>[option for actions]</samp>
 Type: `String`  
 Default: `"string"|"raw"`  
 
-If [renaming](#rename-option-for-actions) is done with modType `string` there are quotation marks set around the input by default, mode `raw` is not doing that. This can be useful for replacing the module by anything other than a string (which is only valid for _cjs_ and _dynamic_ imports). By default the `modType` is defined by the existing statement. If it is not a string, type `raw` is assumed (those are rare occasions).  
+If [renaming](#rename-option-for-actions) is done with modType `"string"` there are quotation marks set around the input by default, mode `"raw"` is not doing that. This can be useful for replacing the module by anything other than a string (which is only valid for _cjs_ and _dynamic_ imports). By default the `modType` is defined by the existing statement. If it is not a string, type `raw` is assumed (those are rare occasions).  
 
 
 ##### `keepAlias` <samp>[option for actions]</samp>
 Type: `Boolean`  
 Default: `false`  
 
-This is an extra argument to [rename](#rename-option-for-actions) a (default) member. If true, the alias will kept untouched, otherwise it gets overwritten in the renaming process, wether a new alias is set or not.
+This is an extra argument to [rename](#rename-option-for-actions) a (default) member. If true, the alias will kept untouched, otherwise it gets overwritten in the renaming process, wether a new alias is set or not. [Example](#renaming-but-keeping-the-alias).
 
 
 ##### `remove` <samp>[option for actions]</samp>
 Type: `Any`  
 Default: `null`  
 
-When no part was selected, this removes the entire unit &rarr; import statement. The value is irrelevant. If this is the only action it can be passed as a string: `actions: "remove"`. If a part is [selected](#select-option-for-actions) (`defaultMembers`, `members`, `module` or [`alias`](#alias-option-for-actions)) only the according (most specific) part is getting removed.
+When no part is selected, this removes the entire unit &rarr; import statement. The value is irrelevant. If this is the only action it can be passed as a string: `actions: "remove"`. If a part is [selected](#select-option-for-actions) (`defaultMembers`, `members`, `module` or [`alias`](#alias-option-for-actions)) only the according (most specific) part is getting removed. See e.g. this [example](#removing-a-member).
 
 
 ##### `add` <samp>[option for actions]</samp>
 Type: `String` | `Array[...String]`
 Default: `null`  
 
-An additional parameter for `defaultMembers` or `members`. It adds one or multiple (default) members to the existing ones. The group has to be [selected](#select-option-for-actions) for the `add` keyword to have an effect.  
-[Example](#adding-a-defaultmember)
+An additional parameter for `defaultMembers` or `members`. It adds one or multiple (default) members to the existing ones. The group has to be [selected](#select-option-for-actions) for the `add` keyword to have an effect. [Example](#adding-a-defaultmember).
 
 
 ## Examples
