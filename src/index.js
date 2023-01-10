@@ -196,7 +196,21 @@ const importManager = (options={}) => {
                         }
 
                         else {
-                            const type = unitSection.type === "cjs" ? "cjs" : "es6";
+                            // default is es6
+                            let type = "es6";
+
+                            // overwrite this if set by the config
+                            if (unitSection.type) {
+                                type = unitSection.type;
+                            } 
+                            
+                            // if type is dynamic change to es6 if is6 imports
+                            // are found (as dynamic imports can be wildly spread)
+                            
+                            if (type === "dynamic" && manager.imports.es6.length) {
+                                type = "es6";
+                            }
+
                             manager.insertStatement(codeSnippet, unitSection.insert, type);
                         }
 
