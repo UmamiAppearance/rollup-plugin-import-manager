@@ -156,7 +156,8 @@ test("creating an import statement", async (t) => {
                     file: "**/hi.dynamic.js",
                     createModule: "./lib/create.js",
                     type: "dynamic",
-                    const: "create"
+                    const: "create",
+                    insert: "top"
                 }
             })
         ]
