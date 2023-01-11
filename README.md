@@ -385,10 +385,12 @@ Default: `null`
 An additional parameter for `defaultMembers` or `members`. It adds one or multiple (default) members to the existing ones. The group has to be [selected](#select-option-for-actions) for the `add` keyword to have an effect. [Example](#adding-a-defaultmember).
 
 
+
 ## Examples
 
 ### Creating an Import Statement
 There are a few options on how to create new import statements. The [`createModule`](#createmodule-option-for-units) is working a lot like the the methods for selecting existing statements.
+
 
 #### Basic ES6 Statement via [`createModule`](#createmodule-option-for-units)
 ```js
@@ -573,13 +575,15 @@ import * as qux from "./path/to/baz.js";
 
 
 ### Removing an Import Statement
-If we take the example from before:
+If we take the example from before Module _"bar"_ can be removed as follows:
+
+###### Initial Code
 ```js
 import { foo } from "bar";
 import * as qux from "./path/to/baz.js";
 ```
 
-Module _bar_ can be removed like this:
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -595,6 +599,13 @@ plugins: [
     })
 ]
 ```
+
+###### Final Code
+```js
+// result
+import * as qux from "./path/to/baz.js";
+```
+
 
 #### Shorthand Method
 The above can be shortened by a lot as the removal is the only action and the value is not relevant:
