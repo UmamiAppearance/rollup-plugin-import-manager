@@ -393,6 +393,16 @@ There are a few options on how to create new import statements. The [`createModu
 
 
 #### Basic ES6 Statement via [`createModule`](#createmodule-option-for-units)
+
+Without specifying [`insert`](#insert-option-for-units) or [`append`](#append-option-for-units)/[`prepend`](#prepend-option-for-units) the following import statement is getting inserted after the last import statement:
+
+###### Source Code
+```js
+import "foobar";
+import "bar as pub" from "baz";
+```
+
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -414,14 +424,30 @@ plugins: [
 ]
 ```
 
-Without specifying [`insert`](#insert-option-for-units) or [`append`](#append-option-for-units)/[`prepend`](#prepend-option-for-units) the following import statement is getting inserted after the last import statement:
+###### Bundle Code
 ```js
-import bar, { baz as qux } from "./path/to/foo.js";
+import "foobar";
+import bar as pub from "baz";
+import bar, { baz as qux } from "./path/to/foo.js"; // <--
 ```
 
-#### Basic CJS Statement via [`createModule`](#createmodule-option-for-units)
-CJS Imports are also supported. But this time the [`type`](#type-option-for-units) needs to be specified. Also a variable name has to be set. In this example the [`const`](#const-option-for-units) _foo_. (Other declaration types are: [`let`](#let-option-for-units), [`var`](#var-option-for-units) and [`global`](#global-option-for-units))
+___
 
+#### Basic CJS Statement via [`createModule`](#createmodule-option-for-units)
+CJS Imports are also supported. But this time the [`type`](#type-option-for-units) needs to be specified. Also a variable name has to be set. In this example the [`const`](#const-option-for-units) _foo_. (Other declaration types are: [`let`](#let-option-for-units), [`var`](#var-option-for-units) and [`global`](#global-option-for-units)).
+
+_(This time the import should be placed at the very top of the file. Therefore `insert: "top"` gets additionally added to the config file.)_
+
+###### Source Code
+```js
+/**
+ * This is my description.
+ */
+
+const foobar = require("foobar");
+```
+
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -429,20 +455,35 @@ plugins: [
             file: "**/my-file.js",
             createModule: "./path/to/foo.js", 
             type: "cjs",
-            const: "foo"
+            const: "foo",
+            insert: "top"
         }
     })
 ]
 ```
 
-Result:
+###### Bundle Code
 ```js
-const foo = require("./path/to/foo.js");
+/**
+ * This is my description.
+ */
+
+const foo = require("./path/to/foo.js"); // <--
+const foobar = require("foobar");
 ```
+
+___
 
 #### Basic Dynamic Import Statement via [`createModule`](#createmodule-option-for-units)
 Almost exactly the same (only the [`type`](#type-option-for-units) differs) goes for dynamic imports:
 
+###### Source Code
+```js
+import "foobar";
+import "bar as pub" from "baz";
+```
+
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -456,15 +497,26 @@ plugins: [
 ]
 ```
 
-Result:
+###### Bundle Code
 ```js
-let foo = await import("./path/to/foo.js");
+import "foobar";
+import "bar as pub" from "baz";
+let foo = await import("./path/to/foo.js");  // <--
 ```
+
+___
 
 #### Manual Statement creation via [`addCode`](#addcode-option-for-units)
 If this is all to much predetermination, the [`addCode`](#addcode-option-for-units) method is a very handy feature. It allows to inject a string containing the code snippet (most likely an import statement). Which is very different but behaves exactly the same in other regards ([inserting](#insert-option-for-units), [appending](#append-option-for-units)/[prepending](#prepend-option-for-units), [replacing](#replace-option-for-units)).
+  
+The [`addCode`](#addcode-option-for-units) value can contain any code you like. You probably should not get too creative. It is designed to add import statements or other short code chunks and it gets appended to existing statements. 
 
-Example:
+###### Source Code
+```js
+import "bar as pub" from "baz";
+```
+
+###### Rollup Config
 ```js
 const customImport = `
 let foobar;
@@ -481,21 +533,23 @@ plugins: [
 ]
 ```
 
-Result:
+###### Bundle Code
 ```js
-let foobar;
-import("fs").then(fs => foobar = fs.readFileSync("./path/to/foobar.txt"));
+import "bar as pub" from "baz";
+let foobar;                                                                // <--
+import("fs").then(fs => foobar = fs.readFileSync("./path/to/foobar.txt")); // <--
 ```
-
-The [`addCode`](#addcode-option-for-units) value can contain any code you like. You probably should not get too creative. It is designed to add import statements and it gets appended to existing statements. 
-
+___
 
 #### Creating an Import Statement, appended after another statement:
-Example Target module: 
+So far statements where created, but they were always appendend to the import list or added on top of the file. Now it should be demonstrated how new statements can be appended to another import statement. 
+
+###### Source Code
 ```js
 import { foo } from "bar";
 ```
 
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -514,18 +568,21 @@ plugins: [
 ]
 ```  
 
-Result:
+###### Bundle Code
 ```js
 import { foo } from "bar";
-import * as qux from "./path/to/baz.js";
+import * as qux from "./path/to/baz.js"; // <--
 ```
+___
 
 #### Creating an Import Statement, prepended before another statement:
-Example:
+
+###### Source Code
 ```js
-import { foo } from "bar";
+import { foo } from "foobar";
 ```
 
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -542,14 +599,23 @@ plugins: [
         }
     })
 ]
-```  
+```
+
+###### Bundle Code
+```js
+import * as qux from "bar"; // <--
+import { foo } from "foobar";
+```
+___
 
 #### Creating an Import Statement by replacing another statement:
-Example:
+
+###### Source Code
 ```js
 import { foo } from "bar";
 ```
 
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -568,7 +634,7 @@ plugins: [
 ]
 ```  
 
-Result:
+###### Bundle Code
 ```js
 import * as qux from "./path/to/baz.js";
 ```
@@ -577,7 +643,7 @@ import * as qux from "./path/to/baz.js";
 ### Removing an Import Statement
 If we take the example from before Module _"bar"_ can be removed as follows:
 
-###### Initial Code
+###### Source Code
 ```js
 import { foo } from "bar";
 import * as qux from "./path/to/baz.js";
@@ -600,15 +666,13 @@ plugins: [
 ]
 ```
 
-###### Final Code
+###### Bundle Code
 ```js
-// result
 import * as qux from "./path/to/baz.js";
 ```
 
-
 #### Shorthand Method
-The above can be shortened by a lot as the removal is the only action and the value is not relevant:
+The above example can be shortened by a lot as the removal is the only action and the value is not relevant:
 ```js
 plugins: [
     importManager({
@@ -621,13 +685,17 @@ plugins: [
 ]
 ```
 
+___
+
 ### Changing the module
-In this example there is a relative path that should be changed to a non relative module.
+In this example there is a relative path that should be changed to a non relative module. This can be achieved like this:
+
+###### Source Code
 ```js
 import foo from "./path/to/bar.js";
 ```
 
-This can be achieved like this:
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -643,21 +711,24 @@ plugins: [
 ]
 ```
 
-Result:
+###### Bundle Code
 ```js
 import foo from "bar";
 ```
+___
 
 ### Addressing the (default) members
 `defaultMembers` and `members` are using the exact same methods. It is only important to keep in mind to address default members with `select: "defaultMembers"` or for a specific one `select: "defaultMember"`; for members `select: "members"` and `select: "member"`. 
 
 #### Adding a defaultMember
-Example:
+A default Member can be added as follows:
+
+###### Source Code
 ```js
 import foo from "bar";
 ```  
 
-A default Member can be added like this:
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -673,16 +744,20 @@ plugins: [
 ]
 ```
 
-Result:
+###### Bundle Code
 ```js
 import foo, * as baz from "bar";
 ```
+___
 
-Adding multiple members, again for the same example:
+**Adding multiple members, again for the same example:**
+
+###### Source Code
 ```js
 import foo from "bar";
 ```  
 
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -701,16 +776,20 @@ plugins: [
 ]
 ```
 
-Result:
+###### Bundle Code
 ```js
 import foo, { baz, qux } from "bar";
 ```
+___
 
 #### Removing a member
+
+###### Source Code
 ```js
 import { foo, bar, baz } from "qux";
 ```  
 
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -727,16 +806,19 @@ plugins: [
 ]
 ```
 
-Result:
+###### Bundle Code
 ```js
 import { foo, baz } from "qux";
 ``` 
+___
 
 #### Removing a group of members
+
+###### Source Code
 ```js
 import foo, { bar, baz } from "qux";
 ```  
-
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -752,17 +834,20 @@ plugins: [
 ]
 ```
 
-Result:
+###### Bundle Code
 ```js
 import foo from "qux";
 ``` 
+___
 
 #### Changing a defaultMember name
-Example:
+
+###### Source Code
 ```js
 import foo from "bar";
 ```  
 
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -779,13 +864,21 @@ plugins: [
 ]
 ```
 
+###### Bundle Code
+```js
+import baz from "bar";
+```
+___
+
 ##### Renaming but keeping the alias
-Example:
+By default the alias gets overwritten, but this can be prevented.
+
+###### Source Code
 ```js
 import { foo as bar } from "baz";
 ```
 
-By default the alias gets overwritten, but this can be prevented.
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -803,19 +896,21 @@ plugins: [
 ]
 ```  
 
-Result:
+###### Bundle Code
 ```js
 import { qux as bar } from "baz";
 ```
+___
 
 ##### Addressing an alias
 Aliases can also be addressed (_set_, _renamed_ and _removed_). All possibilities demonstrated at once via [chaining](#chaining).
 
-Example:
+###### Source Code
 ```js
 import { foo as bar, baz as qux, quux } from "quuz";
 ```  
 
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -850,21 +945,23 @@ plugins: [
 //    method syntactically consistent)
 ```  
 
-Result:
+###### Bundle Code
 ```js
 import { foo, baz as corge, quux as grault } from "quuz";
 ```
+___
 
 ## General Hints
 
 ### Chaining
 It is possible to address every part of a statement in one go. The order usually doesn't matter. But one part should not be selected twice, which might produce unwanted results. To address every part of a [`unit`](#units) with its [`actions`](#actions-option-for-units) can be as complex as follows.
 
-Example Statement:
+###### Source Code
 ```js
 import foo, { bar } from "baz";
 ```
 
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -903,7 +1000,7 @@ plugins: [
 ]
 ```
 
-Result:
+###### Bundle Code
 ```js
 import qux, { bar as quux, quuz, corge } from "grault";
 ```
@@ -919,6 +1016,7 @@ As a general rule, all arrays can be unpacked if only one member is inside. Obje
 ### Show Diff
 A general hint while creating a `rollup.config.js` [configuration file](https://www.rollupjs.org/guide/en/#configuration-files): it is useful to enable [`diff`](#show-diff) logging to see how the source file is actually getting manipulated.
 
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -935,6 +1033,7 @@ This will log the performed changes to the console.
 ### Debugging Files
 To visualize the properties of a specific file, it can help to stop the building process and throw a `DebuggingError`.
 
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -946,7 +1045,7 @@ plugins: [
     })
 ]
 ```
-Or more verbose:
+_Or more verbose:_
 
 ```js
 plugins: [
@@ -965,6 +1064,7 @@ In both cases the [`include`](#include) keyword is also passed. Otherwise the de
 ### Debugging Units
 Also a single unit can be debugged. The keyword can be added to the existing list in an [actions](#actions-option-for-units) object.
 
+###### Rollup Config
 ```js
 plugins: [
     importManager({
@@ -982,7 +1082,7 @@ plugins: [
 ]
 ```
 
-Or as a shorthand, if it is the only option:
+_Or as a shorthand, if it is the only option:_
 ```js
 plugins: [
     importManager({
