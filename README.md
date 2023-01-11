@@ -542,7 +542,7 @@ import("fs").then(fs => foobar = fs.readFileSync("./path/to/foobar.txt")); // <-
 ___
 
 #### Creating an Import Statement, appended after another statement:
-So far statements where created, but they were always appendend to the import list or added on top of the file. Now it should be demonstrated how new statements can be appended to another import statement. 
+So far statements where created, but they were always appended to the import list or added on top of the file. Now it should be demonstrated how new statements can be appended to any available import statement. 
 
 ###### Source Code
 ```js
@@ -566,7 +566,7 @@ plugins: [
         }
     })
 ]
-```  
+```
 
 ###### Bundle Code
 ```js
@@ -632,7 +632,7 @@ plugins: [
         }
     })
 ]
-```  
+```
 
 ###### Bundle Code
 ```js
@@ -641,7 +641,6 @@ import * as qux from "./path/to/baz.js";
 
 
 ### Removing an Import Statement
-If we take the example from before Module _"bar"_ can be removed as follows:
 
 ###### Source Code
 ```js
@@ -672,7 +671,8 @@ import * as qux from "./path/to/baz.js";
 ```
 
 #### Shorthand Method
-The above example can be shortened by a lot as the removal is the only action and the value is not relevant:
+_The above example can be shortened by a lot as the removal is the only action and the value is not relevant._
+
 ```js
 plugins: [
     importManager({
@@ -721,12 +721,11 @@ ___
 `defaultMembers` and `members` are using the exact same methods. It is only important to keep in mind to address default members with `select: "defaultMembers"` or for a specific one `select: "defaultMember"`; for members `select: "members"` and `select: "member"`. 
 
 #### Adding a defaultMember
-A default Member can be added as follows:
 
 ###### Source Code
 ```js
 import foo from "bar";
-```  
+```
 
 ###### Rollup Config
 ```js
@@ -755,7 +754,7 @@ ___
 ###### Source Code
 ```js
 import foo from "bar";
-```  
+```
 
 ###### Rollup Config
 ```js
@@ -787,7 +786,7 @@ ___
 ###### Source Code
 ```js
 import { foo, bar, baz } from "qux";
-```  
+```
 
 ###### Rollup Config
 ```js
@@ -817,7 +816,8 @@ ___
 ###### Source Code
 ```js
 import foo, { bar, baz } from "qux";
-```  
+```
+
 ###### Rollup Config
 ```js
 plugins: [
@@ -837,7 +837,7 @@ plugins: [
 ###### Bundle Code
 ```js
 import foo from "qux";
-``` 
+```
 ___
 
 #### Changing a defaultMember name
@@ -845,7 +845,7 @@ ___
 ###### Source Code
 ```js
 import foo from "bar";
-```  
+```
 
 ###### Rollup Config
 ```js
@@ -894,7 +894,7 @@ plugins: [
         }
     })
 ]
-```  
+```
 
 ###### Bundle Code
 ```js
@@ -908,7 +908,7 @@ Aliases can also be addressed (_set_, _renamed_ and _removed_). All possibilitie
 ###### Source Code
 ```js
 import { foo as bar, baz as qux, quux } from "quuz";
-```  
+```
 
 ###### Rollup Config
 ```js
@@ -943,7 +943,7 @@ plugins: [
 //    is null, this is redundant
 //    (the option is only there to keep the
 //    method syntactically consistent)
-```  
+```
 
 ###### Bundle Code
 ```js
