@@ -29,10 +29,13 @@
     "add",
     "cjs",
     "es6",
+    "delete",
     "dynamic",
     "import",
+    "import-manager",
     "modules",
     "remove",
+    "replace",
     "rollup",
     "rollup-plugin",
     "rollup-plugin-import-manager",
@@ -42,7 +45,7 @@
     "@rollup/pluginutils": "^5.0.2",
     "colorette": "^2.0.19",
     "diff": "^5.1.0",
-    "import-manager": "^0.1.7"
+    "import-manager": "^0.2.0"
   },
   "devDependencies": {
     "ava": "^5.1.0",
