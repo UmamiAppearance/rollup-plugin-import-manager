@@ -119,6 +119,7 @@ const importManager = (options={}) => {
                     if ("createModule" in unitSection || "addCode" in unitSection) {
 
                         let codeSnippet;
+                        let debug = false;
 
                         if ("createModule" in unitSection) {
 
@@ -139,6 +140,9 @@ const importManager = (options={}) => {
                                     action = ensureObj(action);
                                     if ((action.select === "members" || action.select === "defaultMembers") && "add" in action) {
                                         mem[action.select] = ensureArray(action.add); 
+                                    }
+                                    if ("debug" in action) {
+                                        debug = true;
                                     }
                                 }
                             }
@@ -173,6 +177,15 @@ const importManager = (options={}) => {
                             if (!(codeSnippet && typeof codeSnippet === "string")) {
                                 throw new TypeError("'addCode' must be a non empty string.");
                             }
+
+                            if ("actions" in unitSection) {
+                                for (let action of ensureArray(unitSection.actions)) {
+                                    action = ensureObj(action);
+                                    if ("debug" in action) {
+                                        debug = true;
+                                    }
+                                }
+                            }
                         }
                         
                         let mode;
@@ -183,10 +196,15 @@ const importManager = (options={}) => {
                                 break;
                             }
                         }
+
                         
                         if (mode) {
                             // look for the target with the values at key 'append|prepend|replace'
                             const target = selectUnit(unitSection[mode]);
+
+                            if (debug) {
+                                manager.logCreations(codeSnippet, target, null, mode);
+                            }
                             
                             // insert if match is found
                             // (which can be undefined if no file specified)
@@ -209,6 +227,10 @@ const importManager = (options={}) => {
                             
                             if (type === "dynamic" && manager.imports.es6.length) {
                                 type = "es6";
+                            }
+
+                            if (debug) {
+                                manager.logCreations(codeSnippet, null, type, unitSection.insert || "bottom");
                             }
 
                             manager.insertStatement(codeSnippet, unitSection.insert, type);
