@@ -594,7 +594,7 @@ plugins: [
                 "add": "* as qux"
             },
             prepend: {
-                module: "bar"
+                module: "foobar"
             }
         }
     })
@@ -603,7 +603,7 @@ plugins: [
 
 ###### Bundle Code
 ```js
-import * as qux from "bar"; // <--
+import * as qux from "./path/to/baz.js"; // <--
 import { foo } from "foobar";
 ```
 ___
