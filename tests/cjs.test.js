@@ -163,7 +163,7 @@ test("creating an import statement", async (t) => {
     const code = bundle.cache.modules.at(0).code;
     const node = bundle
         .cache.modules.at(0).ast    // parse tree
-        .body.at(1);                // first import statement
+        .body.at(2);                // second import statement
     
 
     const importStatement = code.slice(node.start, node.end);
@@ -264,5 +264,32 @@ test("replacing a statement with a manual created statement, selected via id", a
     t.is(
         importStatement,
         "var hi = require(\"./lib/create.js\");"
+    );
+});
+
+test("cutting a module and pasting it at the very top", async (t) => {
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.cjs.cjs",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.cjs.cjs",
+                    module: "dummy.cjs",
+                    actions: "cut",
+                    insert: "top"
+                }
+            })
+        ]
+    });
+
+    const code = bundle.cache.modules.at(0).code;
+    const astBody = bundle.cache.modules.at(0).ast.body;
+
+    const nodeStatement = astBody.at(0);
+    const importStatement = code.slice(nodeStatement.start, nodeStatement.end);
+
+    t.is(
+        importStatement,
+        "const dummy = require(\"./lib/dummy.cjs\");"
     );
 });

@@ -3,9 +3,11 @@ import helloWorld, {
     hallo
 } from "./lib/hello.js";
 
+import dummy from "./lib/dummy.js";
+
 const englishGreeting = () => hi();
 const nonEnglishGreeting = () => hallo();
 const nerdGreeting = () => helloWorld();
 
 export default englishGreeting;
-export { nonEnglishGreeting, nerdGreeting };
+export { dummy, nonEnglishGreeting, nerdGreeting };

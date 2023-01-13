@@ -129,7 +129,7 @@ const showDiff = (filename, source, code, diffOption) => {
 /**
  * [rollup-plugin-import-manager]{@link https://github.com/UmamiAppearance/rollup-plugin-import-manager}
  *
- * @version 0.4.2
+ * @version 0.5.0
  * @author UmamiAppearance [mail@umamiappearance.eu]
  * @license MIT
  */
@@ -196,7 +196,9 @@ const importManager = (options={}) => {
             
             else {
 
-                for (const unitSection of ensureArray(options.units)) {
+                const unitArray = ensureArray(options.units);
+
+                for (const unitSection of unitArray) {
 
                     let allowId = false; 
                     let allowNull = true;
@@ -242,6 +244,7 @@ const importManager = (options={}) => {
                     if ("createModule" in unitSection || "addCode" in unitSection) {
 
                         let codeSnippet;
+                        let debug = false;
 
                         if ("createModule" in unitSection) {
 
@@ -262,6 +265,9 @@ const importManager = (options={}) => {
                                     action = ensureObj(action);
                                     if ((action.select === "members" || action.select === "defaultMembers") && "add" in action) {
                                         mem[action.select] = ensureArray(action.add); 
+                                    }
+                                    if ("debug" in action) {
+                                        debug = true;
                                     }
                                 }
                             }
@@ -296,6 +302,15 @@ const importManager = (options={}) => {
                             if (!(codeSnippet && typeof codeSnippet === "string")) {
                                 throw new TypeError("'addCode' must be a non empty string.");
                             }
+
+                            if ("actions" in unitSection) {
+                                for (let action of ensureArray(unitSection.actions)) {
+                                    action = ensureObj(action);
+                                    if ("debug" in action) {
+                                        debug = true;
+                                    }
+                                }
+                            }
                         }
                         
                         let mode;
@@ -306,10 +321,15 @@ const importManager = (options={}) => {
                                 break;
                             }
                         }
+
                         
                         if (mode) {
                             // look for the target with the values at key 'append|prepend|replace'
                             const target = selectUnit(unitSection[mode]);
+
+                            if (debug) {
+                                manager.logCreations(codeSnippet, target, null, mode);
+                            }
                             
                             // insert if match is found
                             // (which can be undefined if no file specified)
@@ -334,6 +354,10 @@ const importManager = (options={}) => {
                                 type = "es6";
                             }
 
+                            if (debug) {
+                                manager.logCreations(codeSnippet, null, type, unitSection.insert || "bottom");
+                            }
+
                             manager.insertStatement(codeSnippet, unitSection.insert, type);
                         }
 
@@ -356,6 +380,16 @@ const importManager = (options={}) => {
                             
                             if ("debug" in action) {
                                 unit.methods.log();       
+                            }
+
+                            // cut and paste a unit
+                            else if ("cut" in action) {
+                                const newSection = {...unitSection};
+                                delete newSection.actions;
+                                newSection.addCode = manager.remove(unit);
+                                unitArray.push(newSection);
+
+                                continue;
                             }
                             
                             else if ("select" in action) {
@@ -401,7 +435,7 @@ const importManager = (options={}) => {
                                     } 
                                 }
                             }
-                            
+
                             // remove the entire unit
                             else if ("remove" in action) {
                                 manager.remove(unit);

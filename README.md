@@ -41,6 +41,7 @@ A Rollup plugin which makes it possible to manipulate import statements. Feature
         - [`keepAlias`](#keepalias-option-for-actions)
         - [`remove`](#remove-option-for-actions)
         - [`add`](#add-option-for-actions)
+        - [`cut`](#cut-option-for-actions)
   - [Examples](#examples)
     - [Creating an Import Statement](#creating-an-import-statement)
       - [Basic ES6 Statement via createModule](#basic-es6-statement-via-createmodule)
@@ -50,6 +51,7 @@ A Rollup plugin which makes it possible to manipulate import statements. Feature
       - [Creating an Import Statement, appended after another statement](#creating-an-import-statement-appended-after-another-statement)
       - [Creating an Import Statement, prepended before another statement](#creating-an-import-statement-prepended-before-another-statement)
       - [Creating an Import Statement by replacing another statement](#creating-an-import-statement-by-replacing-another-statement)
+    - [Moving an Import Statement (cut and paste)](#moving-an-import-statement-cut-and-paste)
     - [Removing an Import Statement](#removing-an-import-statement)
       - [Shorthand Method](#shorthand-method)
     - [Changing the module](#changing-the-module)
@@ -385,6 +387,13 @@ Default: `null`
 An additional parameter for `defaultMembers` or `members`. It adds one or multiple (default) members to the existing ones. The group has to be [selected](#select-option-for-actions) for the `add` keyword to have an effect. [Example](#adding-a-defaultmember).
 
 
+##### `cut` <samp>[option for actions]</samp>
+Type: `Any`  
+Default: `null`  
+
+_cut_ and _paste_ &rarr; _move_ a unit. Actually it [removes](#remove-option-for-actions) an import statement and passes its code snippet to [`addCode`](#addcode-option-for-units). Therefore a unit with this action, accepts the additional parameters ([`insert`](#insert-option-for-units), [`append`](#append-option-for-units), [`prepend`](#prepend-option-for-units), [`replace`](#replace-option-for-units)). [Example](#moving-an-import-statement-cut-and-paste).
+
+
 
 ## Examples
 
@@ -638,7 +647,39 @@ plugins: [
 ```js
 import * as qux from "./path/to/baz.js";
 ```
+___
 
+#### Moving an Import Statement (cut and paste):
+
+###### Source Code
+```js
+import "foobar";
+import { foo } from "bar";
+import baz from "quz";
+```
+
+###### Rollup Config
+```js
+plugins: [
+    importManager({
+        units: {
+            file: "**/my-file.js",
+            module: "quz", 
+            actions: "cut",
+            insert: "top"
+        }
+    })
+]
+```
+
+###### Bundle Code
+```js
+import baz from "quz";  // <----
+import "foobar";             // |
+import { foo } from "bar";   // |
+// -----------------------------
+```
+___
 
 ### Removing an Import Statement
 
