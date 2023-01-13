@@ -51,9 +51,9 @@ A Rollup plugin which makes it possible to manipulate import statements. Feature
       - [Creating an Import Statement, appended after another statement](#creating-an-import-statement-appended-after-another-statement)
       - [Creating an Import Statement, prepended before another statement](#creating-an-import-statement-prepended-before-another-statement)
       - [Creating an Import Statement by replacing another statement](#creating-an-import-statement-by-replacing-another-statement)
-    - [Moving an Import Statement (cut and paste)](#moving-an-import-statement-cut-and-paste)
     - [Removing an Import Statement](#removing-an-import-statement)
       - [Shorthand Method](#shorthand-method)
+    - [Moving an Import Statement (cut and paste)](#moving-an-import-statement-cut-and-paste)
     - [Changing the module](#changing-the-module)
     - [Addressing the (default) members](#addressing-the-default-members)
       - [Adding a defaultMember](#adding-a-defaultmember)
@@ -649,38 +649,6 @@ import * as qux from "./path/to/baz.js";
 ```
 ___
 
-#### Moving an Import Statement (cut and paste):
-
-###### Source Code
-```js
-import "foobar";
-import { foo } from "bar";
-import baz from "quz";
-```
-
-###### Rollup Config
-```js
-plugins: [
-    importManager({
-        units: {
-            file: "**/my-file.js",
-            module: "quz", 
-            actions: "cut",
-            insert: "top"
-        }
-    })
-]
-```
-
-###### Bundle Code
-```js
-import baz from "quz";  // <----
-import "foobar";             // |
-import { foo } from "bar";   // |
-// -----------------------------
-```
-___
-
 ### Removing an Import Statement
 
 ###### Source Code
@@ -725,7 +693,38 @@ plugins: [
     })
 ]
 ```
+___
 
+#### Moving an Import Statement (cut and paste):
+
+###### Source Code
+```js
+import "foobar";
+import { foo } from "bar";
+import baz from "quz";
+```
+
+###### Rollup Config
+```js
+plugins: [
+    importManager({
+        units: {
+            file: "**/my-file.js",
+            module: "quz", 
+            actions: "cut",
+            insert: "top"
+        }
+    })
+]
+```
+
+###### Bundle Code
+```js
+import baz from "quz";  // <----
+import "foobar";             // |
+import { foo } from "bar";   // |
+// -----------------------------
+```
 ___
 
 ### Changing the module
