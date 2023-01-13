@@ -73,7 +73,9 @@ const importManager = (options={}) => {
             
             else {
 
-                for (const unitSection of ensureArray(options.units)) {
+                const unitArray = ensureArray(options.units);
+
+                for (const unitSection of unitArray) {
 
                     let allowId = false; 
                     let allowNull = true;
@@ -256,6 +258,16 @@ const importManager = (options={}) => {
                             if ("debug" in action) {
                                 unit.methods.log();       
                             }
+
+                            // cut and paste a unit
+                            else if ("cut" in action) {
+                                const newSection = {...unitSection};
+                                delete newSection.actions;
+                                newSection.addCode = manager.remove(unit);
+                                unitArray.push(newSection);
+
+                                continue;
+                            }
                             
                             else if ("select" in action) {
 
@@ -300,7 +312,7 @@ const importManager = (options={}) => {
                                     } 
                                 }
                             }
-                            
+
                             // remove the entire unit
                             else if ("remove" in action) {
                                 manager.remove(unit);

@@ -87,7 +87,7 @@ test("removing import statement", async (t) => {
         ]
     });
 
-    t.truthy(bundle.watchFiles.length === 1);
+    t.truthy(bundle.watchFiles.length === 2);
 });
 
 
@@ -163,7 +163,7 @@ test("adding a member", async (t) => {
     });
 
     const mod = bundle
-        .cache.modules.at(1).ast    // parse tree
+        .cache.modules.at(2).ast    // parse tree
         .body.at(0)                 // first import statement
         .specifiers.at(3)           // the member at index 3
         .imported.name;             // name
@@ -192,7 +192,7 @@ test("renaming a member", async (t) => {
     });
 
     const mod = bundle
-        .cache.modules.at(1).ast    // parse tree
+        .cache.modules.at(2).ast    // parse tree
         .body.at(0)                 // first import statement
         .specifiers.at(2)           // the member at index 2
         .imported.name;             // name
@@ -300,7 +300,7 @@ test("adding a member alias", async (t) => {
     });
     
     const mod = bundle
-        .cache.modules.at(1).ast    // parse tree
+        .cache.modules.at(2).ast    // parse tree
         .body.at(0)                 // first import statement
         .specifiers.at(2)           // the default member at index 2
         .local.name;                // name
@@ -329,7 +329,7 @@ test("renaming a member alias", async (t) => {
     });
     
     const mod = bundle
-        .cache.modules.at(1).ast    // parse tree
+        .cache.modules.at(2).ast    // parse tree
         .body.at(0)                 // first import statement
         .specifiers.at(1)           // the default member at index 2
         .local.name;                // name
@@ -358,7 +358,7 @@ test("removing a member alias", async (t) => {
     });
     
     const mod = bundle
-        .cache.modules.at(1).ast    // parse tree
+        .cache.modules.at(2).ast    // parse tree
         .body.at(0)                 // first import statement
         .specifiers.at(1)           // the default member at index 2
         .local.name;                // name
@@ -391,7 +391,7 @@ test("adding a default member (by chaining)", async (t) => {
         ]
     });
 
-    const importStatement = bundle.cache.modules.at(1).code.split("\n").at(0);
+    const importStatement = bundle.cache.modules.at(2).code.split("\n").at(0);
     
     t.is(
         importStatement,
@@ -421,7 +421,7 @@ test("renaming a default member", async (t) => {
     });
 
     const mod = bundle
-        .cache.modules.at(1).ast    // parse tree
+        .cache.modules.at(2).ast    // parse tree
         .body.at(0)                 // first import statement
         .specifiers.at(0)           // the default member at index 0
         .local.name;                // name
@@ -459,7 +459,7 @@ test("removing a default member (by chaining)", async (t) => {
         ]
     });
     
-    const importStatement = bundle.cache.modules.at(1).code.split("\n").at(0);
+    const importStatement = bundle.cache.modules.at(2).code.split("\n").at(0);
 
     t.is(
         importStatement,
@@ -526,7 +526,7 @@ test("renaming a default member alias (by chaining)", async (t) => {
     });
     
     const mod = bundle
-        .cache.modules.at(1).ast    // parse tree
+        .cache.modules.at(2).ast    // parse tree
         .body.at(0)                 // first import statement
         .specifiers.at(0)           // the default member at index 0
         .local.name;                // name
@@ -563,10 +563,10 @@ test("creating an import statement", async (t) => {
         ]
     });
 
-    const code = bundle.cache.modules.at(2).code;
+    const code = bundle.cache.modules.at(3).code;
     const node = bundle
-        .cache.modules.at(2).ast    // parse tree
-        .body.at(1);                // second import statement
+        .cache.modules.at(3).ast    // parse tree
+        .body.at(2);                // third import statement
     
 
     const importStatement = code.slice(node.start, node.end);
@@ -599,9 +599,9 @@ test("inserting an import statement before the very first module", async (t) => 
         ]
     });
 
-    const code = bundle.cache.modules.at(2).code;
+    const code = bundle.cache.modules.at(3).code;
     const node = bundle
-        .cache.modules.at(2).ast    // parse tree
+        .cache.modules.at(3).ast    // parse tree
         .body.at(0);                // first import statement
     
 
@@ -634,9 +634,9 @@ test("appending an import statement after a specific module", async (t) => {
         ]
     });
 
-    const code = bundle.cache.modules.at(2).code;
+    const code = bundle.cache.modules.at(3).code;
     const node = bundle
-        .cache.modules.at(2).ast    // parse tree
+        .cache.modules.at(3).ast    // parse tree
         .body.at(1);                // second import statement
     
 
@@ -665,9 +665,9 @@ test("prepending a manual created statement before a specific module, selected v
         ]
     });
 
-    const code = bundle.cache.modules.at(2).code;
+    const code = bundle.cache.modules.at(3).code;
     const node = bundle
-        .cache.modules.at(2).ast    // parse tree
+        .cache.modules.at(3).ast    // parse tree
         .body.at(0);                // first import statement
     
 
@@ -707,4 +707,29 @@ test("replacing a statement with a manual created statement, selected via id", a
     t.truthy(salutonMondo);
     t.truthy(ciao);
     t.truthy(hola);
+});
+
+
+test("cutting a module and pasting it at the very top", async (t) => {
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.es6.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.es6.js",
+                    module: "dummy.js",
+                    actions: "cut",
+                    insert: "top"
+                }
+            })
+        ]
+    });
+
+    const mod = bundle
+        .cache.modules.at(2).ast    // parse tree
+        .body.at(0)                 // first import statement
+        .specifiers.at(0)           // the member at index 0
+        .local.name;                // name
+
+    t.is(mod, "dummy");
 });
