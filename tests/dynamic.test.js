@@ -87,7 +87,7 @@ test("removing import statement", async (t) => {
         ]
     });
 
-    t.truthy(bundle.watchFiles.length === 1);
+    t.truthy(bundle.watchFiles.length === 2);
 });
 
 
@@ -324,4 +324,33 @@ test("(whacky chaining) appending an import statement, replacing the original st
         importStatement,
         "hi = await import(\"./lib/create.js\");"
     );
+});
+
+
+test("cutting a module and pasting it at the very top", async (t) => {
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.dynamic.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.dynamic.js",
+                    module: "dummy.js",
+                    actions: "cut",
+                    insert: "top"
+                }
+            })
+        ]
+    });
+
+    const code = bundle.cache.modules.at(0).code;
+    const astBody = bundle.cache.modules.at(0).ast.body;
+    
+    const nodeStatement = astBody.at(0);
+    const importStatement = code.slice(nodeStatement.start, nodeStatement.end);
+
+    t.is(
+        importStatement,
+        "const dummy = await import(\"./lib/dummy.js\");"
+    );
+
 });

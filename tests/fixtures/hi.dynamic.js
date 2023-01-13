@@ -1,4 +1,5 @@
 const hi = await import("./lib/hello.js");
+const dummy = await import("./lib/dummy.js");
 
 const englishGreeting = () => hi.hello();
 const nonEnglishGreeting = () => hi.hallo();
@@ -12,4 +13,6 @@ if (date.getFullYear() === 1984) {
         nonEnglishGreeting(),
         nerdGreeting()
     );
+
+    console.log(dummy);
 }

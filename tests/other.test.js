@@ -141,7 +141,7 @@ test("testing include/exclude keyword", async (t) => {
     const includeDynImports = JSON.parse(include.message).dynamic;
     const excludeDynImports = JSON.parse(exclude.message).dynamic;
 
-    t.is(plainDynImports.count, 1);
+    t.is(plainDynImports.count, 2);
     t.is(includeDynImports.count, 0);
     t.is(excludeDynImports.count, 0);
 });

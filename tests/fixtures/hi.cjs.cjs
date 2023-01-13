@@ -1,4 +1,5 @@
-const hi = require("./lib/hello.cjs")
+const hi = require("./lib/hello.cjs");
+const dummy = require("./lib/dummy.cjs");
 
 const englishGreeting = () => hi.hello();
 const nonEnglishGreeting = () => hi.hallo();
@@ -12,4 +13,6 @@ if (date.getFullYear() === 1984) {
         nonEnglishGreeting(),
         nerdGreeting()
     );
+
+    console.log(dummy());
 }
