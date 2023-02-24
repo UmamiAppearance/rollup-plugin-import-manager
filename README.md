@@ -1045,7 +1045,7 @@ plugins: [
 import qux, { bar as quux, quuz, corge } from "grault";
 ```
 
-This is in no way an efficient, but an example to show the complexity modifications are allowed to have. 
+This is in no way an efficient, but an example to show the complexity modifications are allowed to have.
 
 ### Array and Object shortening
 As a general rule, all arrays can be unpacked if only one member is inside. Objects with meaningless values, can be passed as a string, if syntactically allowed. An example is shown [here](#shorthand-method).
