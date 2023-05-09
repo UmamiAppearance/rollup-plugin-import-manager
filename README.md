@@ -162,7 +162,7 @@ This is where the plugin comes to life. Here is the place where units are gettin
 ---
 
 #### `module` <samp>[option for units]</samp>
-Type: `String`  
+Type: `String` | `RexExp`  
 Default: `null`  
 
 Selects a unit by its module name. Each import has a name object. This is constructed from the module.
@@ -171,12 +171,15 @@ Path information are getting removed. Consider this basic es6 import statement:
 import foo from "./path/bar.js";
 ```
 The corresponding unit assigns the module name `bar.js` which can be matched with: `module: "bar.js"`  
-(The matching method is actually a little more generous. You can skip the extension or even bigger parts if you like and if this doesn't lead to multiple matches).  
+(The matching method is actually a little more generous if the value is a `String` and will search anywhere in the module name for your provided value. You can skip the extension or even bigger parts if you like and if this doesn't lead to multiple matches. However, if the value is a `RegExp`, it will test against the full module name. You can provide a `RegExp` value that ignores file extensions if desired).  
 
 Absolute imports are directly assigned as the name attribute. So, the following example can be matched with `module: "bar"`
 ```js
 import foo from "bar";
 ```
+
+To match to an exact module name like `react` (no other characters before or after, so it does not match to `react-table` for example), you can provide a `RegExp`:
+`module: /^react$/`
 
 Also see this [example](#changing-the-module) of matching a module and changing it.
 
@@ -353,10 +356,10 @@ An option to target an alias of a [selected](#select-option-for-actions) `defaul
 
 
 ##### `rename` <samp>[option for actions]</samp>
-Type: `String`  
+Type: `String` | `(moduleSourceRaw: string) => string`  
 Default: `null`  
 
-This option is used to rename a [selected](#select-option-for-actions) specific part (`defaultMember`, `member`, `module`). The value is the new name of the selected part. See this [example](#changing-the-module).
+This option is used to rename a [selected](#select-option-for-actions) specific part (`defaultMember`, `member`, `module`). The value is a string of the new name of the selected part. If the selected part is `module`, the value could alternatively be a function accepting the whole raw module source (ex: `"./module-name"` including quotes) and returning the whole new name (ex: `"./newmodule-name"` including quotes). See this [example](#changing-the-module).
 
 
 ##### `modType` <samp>[option for actions]</samp>
@@ -728,6 +731,9 @@ import { foo } from "bar";   // |
 ___
 
 ### Changing the module
+You can rename modules with the `rename` action.
+
+#### Changing a relative path to an absolute path
 In this example there is a relative path that should be changed to a non relative module. This can be achieved like this:
 
 ###### Source Code
@@ -754,6 +760,50 @@ plugins: [
 ###### Bundle Code
 ```js
 import foo from "bar";
+```
+___
+
+#### Changing a relative path to different directory
+In this example there is a relative path that should be changed to a sub-directory. This can be achieved like this (note: to use a function in `rename`, `select` must be `module`):
+
+###### Source Code
+```js
+import foo from "./path/to/bar.js";
+```
+
+###### Rollup Config
+```js
+plugins: [
+    importManager({
+        units: {
+            file: "**/my-file.js",
+            /** Example of using RegExp for module to match the exact module name. This is just an example use of RegExp and is not required for using a function in `rename` */
+            module: /^bar.js$/,
+            actions: {
+                select: "module",
+                /** moduleSourceRaw will be `"./path/to/bar.js"` including the double quotes */
+                rename(moduleSourceRaw) {
+                    // Note the style of quotes used
+                    const quote = moduleSourceRaw.at(0);
+                    // Get rid of the quotes
+                    const importPath = moduleSourceRaw.slice(1, -1);
+                    // Parse the path into its parts
+                    const importInfo = path.parse(importPath);
+                    // Build the new import path with the sub-directory
+                    const newPath = [importInfo.dir, "build-temp", importInfo.base].join("/");
+                    // Add the quotes back on
+                    const finalModuleSource = `${quote}${newPath}${quote}`;
+                    return finalModuleSource;
+                }
+            }
+        }
+    })
+]
+```
+
+###### Bundle Code
+```js
+import foo from "./path/to/build-temp/bar";
 ```
 ___
 
