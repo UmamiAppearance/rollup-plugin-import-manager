@@ -162,7 +162,7 @@ This is where the plugin comes to life. Here is the place where units are gettin
 ---
 
 #### `module` <samp>[option for units]</samp>
-Type: `String` | `RexExp`  
+Type: `String` | `RegExp`  
 Default: `null`  
 
 Selects a unit by its module name. Each import has a name object. This is constructed from the module.
