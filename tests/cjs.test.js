@@ -26,6 +26,28 @@ test("selecting unit by module name", async (t) => {
 });
 
 
+test("selecting unit by the module's raw name (using a regular expression)", async (t) => {
+    
+    const debug = await t.throwsAsync(() => {
+        return rollup({
+            input: "./tests/fixtures/hi.cjs.cjs",
+            plugins: [
+                importManager({
+                    units: {
+                        file: "**/hi.cjs.cjs",
+                        rawModule: /lib.hello/,
+                        actions: "debug"
+                    }
+                })
+            ]
+        }); 
+    }, { instanceOf: DebuggingError });
+
+    const unit = JSON.parse(debug.message);
+    t.is(unit.module.name, "hello.cjs");
+});
+
+
 test("selecting unit by hash", async (t) => {
     
     const debug = await t.throwsAsync(() => {

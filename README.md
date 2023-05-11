@@ -162,7 +162,7 @@ This is where the plugin comes to life. Here is the place where units are gettin
 ---
 
 #### `module` <samp>[option for units]</samp>
-Type: `String` | `RegExp`  
+Type: `String` | `Object`
 Default: `null`  
 
 Selects a unit by its module name. Each import has a name object. This is constructed from the module.
@@ -182,6 +182,13 @@ To match to an exact module name like `react` (no other characters before or aft
 `module: /^react$/`
 
 Also see this [example](#changing-the-module) of matching a module and changing it.
+
+
+#### `rawModule` <samp>[option for units]</samp>
+Type: `String` | `Object`
+Default: `null`  
+
+Selects a unit by its raw module name.
 
 
 #### `hash` <samp>[option for units]</samp>

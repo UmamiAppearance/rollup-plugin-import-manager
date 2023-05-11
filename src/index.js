@@ -111,6 +111,8 @@ const importManager = (options={}) => {
                             unit = manager.selectModByHash(section.hash, allowNull);
                         } else if ("module" in section) {
                             unit = manager.selectModByName(section.module, section.type, allowNull);
+                        } else if ("rawModule" in section) {
+                            unit = manager.selectModByName(section.rawModule, section.type, allowNull, true);
                         }
                     
                         return unit;
