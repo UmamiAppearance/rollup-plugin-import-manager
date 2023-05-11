@@ -65,6 +65,7 @@ A Rollup plugin which makes it possible to manipulate import statements. Feature
       - [Changing a defaultMember name](#changing-a-defaultmember-name)
         - [Renaming but keeping the alias](#renaming-but-keeping-the-alias)
         - [Addressing an alias](#addressing-an-alias)
+    - [Applying RegExp for module matching](#applying-regexp-for-module-matching)
   - [General Hints](#general-hints)
     - [Chaining](#chaining)
     - [Array and Object shortening](#array-and-object-shortening)
@@ -174,7 +175,7 @@ Path information are getting removed. Consider this basic es6 import statement:
 import foo from "./path/bar.js";
 ```
 The corresponding unit assigns the module name `bar.js` which can be matched with: `module: "bar.js"`  
-(The matching method is actually a little more generous if the value is a `String` the provided value will get searched anywhere in the module name. You can skip the extension or even bigger parts if you like and if this doesn't lead to multiple matches. However, if you need more control, you can always use a Regular Expression Object. (If you need access to the full path you should use the [`rawModule`](#rawmodule-option-for-units) matching method.)
+(The matching method is actually a little more generous if the value is a `String` the provided value will get searched anywhere in the module name. You can skip the extension or even bigger parts if you like and if this doesn't lead to multiple matches. However, if you need more control, you can always use a [Regular Expression Object](#applying-regexp-for-module-matching). (If you need access to the full path you should use the [`rawModule`](#rawmodule-option-for-units) matching method.)
 
 Absolute imports are directly assigned as the name attribute. So, the following example can be matched with `module: "bar"`
 ```js
@@ -377,12 +378,17 @@ Type: `String` | `Function` _(when targeting the module)_
 Default: `null`  
 
 This option is used to rename a [selected](#select-option-for-actions) specific part (`defaultMember`, `member`, `module`). The value is a string of the new name of the selected part.  
-  
-If the selected part is `module`, the value could alternatively be a function. The function must return a raw full module name (ex: `() => '"./new-module-name"'`) as a `String`. The original raw name is getting passed to the function and can be accessed by passing a variable to the function: `oldRawName => oldRawName.replace("foo", "bar")`.  
+
+Examples:
+ * [Changing a relative path to an absolute path](#changing-a-relative-path-to-an-absolute-path-passing-a-string-to-rename)
+ * [Changing a defaultMember name](#changing-a-defaultmember-name)  
+
+<br>
+If the selected part is `module`, the value could alternatively be a function. The function must return a raw full module name (eg. `() => '"./new-module-name"'`) as a `String`. The original raw name is getting passed to the function and can be accessed by passing a variable to the function: `oldRawName => oldRawName.replace("foo", "bar")`.  
 
 When passing a function the [`modType`](#modtype-option-for-actions) is getting ignored. Always make sure the return value includes quotation marks if the import statement requires it.
   
-See this [example](#changing-the-module).
+See this [example](#changing-a-relative-path-to-different-directory-making-use-of-a-rename-function).
 
 
 ##### `modType` <samp>[option for actions]</samp>
@@ -465,8 +471,8 @@ import "foobar";
 import bar as pub from "baz";
 import bar, { baz as qux } from "./path/to/foo.js"; // <--
 ```
-
 ___
+
 
 #### Basic CJS Statement via [`createModule`](#createmodule-option-for-units)
 CJS Imports are also supported. But this time the [`type`](#type-option-for-units) needs to be specified. Also a variable name has to be set. In this example the [`const`](#const-option-for-units) _foo_. (Other declaration types are: [`let`](#let-option-for-units), [`var`](#var-option-for-units) and [`global`](#global-option-for-units)).
@@ -787,8 +793,8 @@ import foo from "bar";
 ___
 
 
-#### Changing a relative path to different directory (making use of a [`rename`](#rename-option-for-actions) `Function`)
-In this example there is a relative path, that should be changed to a sub-directory. This time a function is used for the goal, also a little help of an external function from [path](https://nodejs.org/api/path.html), which must be available in the rollup config file. Therefore this example is a little more complex.
+#### Changing a relative path to different directory (making use of a [`rename`](#rename-option-for-actions) function)
+In this example there is a relative path, that should be changed to a sub-directory. This time a function is used for the goal, also a little help of an external function from [path](https://nodejs.org/api/path.html), which must be available (imported) in the rollup config file. Therefore this example is a little more complex.
 
 _(keep in mind, that a function in `rename` is only valid for modules)_
 
@@ -1066,6 +1072,36 @@ plugins: [
 import { foo, baz as corge, quux as grault } from "quuz";
 ```
 ___
+
+### Applying RegExp for module matching
+This example demonstrates a case, where matching the module via a regular expression is necessary. Exemplary the first import statement of the following source code should be matched and removed. Searching for 'bar' or 'bar.js' is not an option, as this matches both statements. RegExp to the rescue: 
+
+###### Source Code
+```js
+import foo from "./path/to/bar.js";
+import baz from "./path/to/foobar.js";
+```
+
+###### Rollup Config
+```js
+
+plugins: [
+    importManager({
+        units: {
+            file: "**/my-file.js",
+            module: /[^foo]bar\.js/,
+            actions: "remove"
+        }
+    })
+]
+```
+
+###### Bundle Code
+```js
+import baz from "./path/to/foobar.js";
+```
+___
+
 
 ## General Hints
 
