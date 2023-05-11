@@ -17,7 +17,7 @@ A Rollup plugin which makes it possible to manipulate import statements. Feature
     - [`warnings`](#warnings)
     - [`units`](#units)
       - [`module`](#module-option-for-units)
-      - [`rawModule`](#module-option-for-units)
+      - [`rawModule`](#rawmodule-option-for-units)
       - [`hash`](#hash-option-for-units)
       - [`id`](#id-option-for-units)
       - [`file`](#file-option-for-units)
