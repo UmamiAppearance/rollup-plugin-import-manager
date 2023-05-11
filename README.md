@@ -17,6 +17,7 @@ A Rollup plugin which makes it possible to manipulate import statements. Feature
     - [`warnings`](#warnings)
     - [`units`](#units)
       - [`module`](#module-option-for-units)
+      - [`rawModule`](#module-option-for-units)
       - [`hash`](#hash-option-for-units)
       - [`id`](#id-option-for-units)
       - [`file`](#file-option-for-units)
@@ -171,24 +172,31 @@ Path information are getting removed. Consider this basic es6 import statement:
 import foo from "./path/bar.js";
 ```
 The corresponding unit assigns the module name `bar.js` which can be matched with: `module: "bar.js"`  
-(The matching method is actually a little more generous if the value is a `String` and will search anywhere in the module name for your provided value. You can skip the extension or even bigger parts if you like and if this doesn't lead to multiple matches. However, if the value is a `RegExp`, it will test against the full module name. You can provide a `RegExp` value that ignores file extensions if desired).  
+(The matching method is actually a little more generous if the value is a `String` the provided value will get searched anywhere in the module name. You can skip the extension or even bigger parts if you like and if this doesn't lead to multiple matches. However, if you need more control, you can always use a Regular Expression Object. (If you need access to the full path you should use the [`rawModule`](#rawmodule-option-for-units) matching method.)
 
 Absolute imports are directly assigned as the name attribute. So, the following example can be matched with `module: "bar"`
 ```js
 import foo from "bar";
 ```
 
-To match to an exact module name like `react` (no other characters before or after, so it does not match to `react-table` for example), you can provide a `RegExp`:
-`module: /^react$/`
+To match to an exact module name like `react` but exclude `react-table` for example, you can provide a `RegExp`:
+`module: /^react$/`.
 
 Also see this [example](#changing-the-module) of matching a module and changing it.
 
 
+
 #### `rawModule` <samp>[option for units]</samp>
-Type: `String` | `Object`
+Type: `String` | `Object`  
 Default: `null`  
 
-Selects a unit by its raw module name.
+Selects a unit by its raw module name. `rawModule` works exactly the same as [`module`](#module-option-for-units). The only difference is, that is using the raw full module path. Consider the example from above:
+```js
+import foo from "./path/bar.js";
+```
+The raw module stores the value `"./path/bar.js"` including the brackets, which can be matched as shown before via `String` or `RegExp`.
+
+If any other matching option is set `rawModule` gets ignored.
 
 
 #### `hash` <samp>[option for units]</samp>
