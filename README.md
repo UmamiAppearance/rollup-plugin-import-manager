@@ -176,7 +176,8 @@ Path information are getting removed. Consider this basic es6 import statement:
 import foo from "./path/bar.js";
 ```
 The corresponding unit assigns the module name `bar.js` which can be matched with: `module: "bar.js"`  
-(The matching method is actually a little more generous if the value is a `String` the provided value will get searched anywhere in the module name. You can skip the extension or even bigger parts if you like and if this doesn't lead to multiple matches. However, if you need more control, you can always use a [Regular Expression Object](#applying-regexp-for-module-matching). (If you need access to the full path you should use the [`rawModule`](#rawmodule-option-for-units) matching method.)
+  
+The matching method is actually a little more generous. If the value is a `String` the provided value will get searched anywhere in the module name. You can skip the extension or even bigger parts if you like and if this doesn't lead to multiple matches. However, if you need more control, you can always use a [Regular Expression Object](#applying-regexp-for-module-matching). (If you need access to the full path you should use the [`rawModule`](#rawmodule-option-for-units) matching method.)
 
 Absolute imports are directly assigned as the name attribute. So, the following example can be matched with `module: "bar"`
 ```js
