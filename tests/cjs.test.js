@@ -139,6 +139,32 @@ test("changing a module (renaming)", async (t) => {
 });
 
 
+test("changing a module (renaming via function)", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.cjs.cjs",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.cjs.cjs",
+                    rawModule: /hello.cjs"$/,
+                    actions: {
+                        select: "module",
+                        rename: rawName => rawName.replace("hello", "hello-clone")
+                    }
+                }
+            })
+        ]
+    });
+
+    const importVal = bundle.cache.modules.at(0).ast    // parse tree
+        .body.at(0).declarations.at(0)                  // first declaration
+        .init.arguments.at(0).value;                    // first arguments value
+
+    t.is(importVal, "./lib/hello-clone.cjs");
+});
+
+
 test("changing a module (renaming) with 'modType': raw", async (t) => {
     
     const bundle = await rollup({

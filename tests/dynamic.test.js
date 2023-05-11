@@ -138,6 +138,32 @@ test("changing a module (renaming)", async (t) => {
 });
 
 
+test("changing a module (renaming via function)", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.dynamic.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.dynamic.js",
+                    module: "hello",
+                    actions: {
+                        select: "module",
+                        rename: rawName => rawName.replace("hello", "hello-clone")
+                    }
+                }
+            })
+        ]
+    });
+     
+    const modPath = Boolean(
+        bundle.watchFiles.filter(f => f.indexOf("hello-clone.js") > -1).at(0)
+    );
+
+    t.truthy(modPath);
+});
+
+
 test("changing a module (renaming) with 'modType': raw", async (t) => {
     
     const bundle = await rollup({

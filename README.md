@@ -55,7 +55,9 @@ A Rollup plugin which makes it possible to manipulate import statements. Feature
     - [Removing an Import Statement](#removing-an-import-statement)
       - [Shorthand Method](#shorthand-method)
     - [Moving an Import Statement (cut and paste)](#moving-an-import-statement-cut-and-paste)
-    - [Changing the module](#changing-the-module)
+    - [Modifying the module](#changing-the-module)
+      - [Changing a relative path to an absolute path (passing a String to rename)](#changing-a-relative-path-to-an-absolute-path-passing-a-string-to-rename)
+      - [Changing a relative path to different directory (making use of a rename Function)](#changing-a-relative-path-to-different-directory-making-use-of-a-rename-function)
     - [Addressing the (default) members](#addressing-the-default-members)
       - [Adding a defaultMember](#adding-a-defaultmember)
       - [Removing a member](#removing-a-member)
@@ -194,7 +196,7 @@ Selects a unit by its raw module name. `rawModule` works exactly the same as [`m
 ```js
 import foo from "./path/bar.js";
 ```
-The raw module stores the value `"./path/bar.js"` including the brackets, which can be matched as shown before via `String` or `RegExp`.
+The raw module stores the value `"./path/bar.js"` including the quotation marks, which can be matched as shown before via `String` or `RegExp`.
 
 If any other matching option is set `rawModule` gets ignored.
 
@@ -371,10 +373,16 @@ An option to target an alias of a [selected](#select-option-for-actions) `defaul
 
 
 ##### `rename` <samp>[option for actions]</samp>
-Type: `String` | `(moduleSourceRaw: string) => string`  
+Type: `String` | `Function` _(when targeting the module)_  
 Default: `null`  
 
-This option is used to rename a [selected](#select-option-for-actions) specific part (`defaultMember`, `member`, `module`). The value is a string of the new name of the selected part. If the selected part is `module`, the value could alternatively be a function accepting the whole raw module source (ex: `"./module-name"` including quotes) and returning the whole new name (ex: `"./newmodule-name"` including quotes). See this [example](#changing-the-module).
+This option is used to rename a [selected](#select-option-for-actions) specific part (`defaultMember`, `member`, `module`). The value is a string of the new name of the selected part.  
+  
+If the selected part is `module`, the value could alternatively be a function. The function must return a raw full module name (ex: `() => '"./new-module-name"'`) as a `String`. The original raw name is getting passed to the function and can be accessed by passing a variable to the function: `oldRawName => oldRawName.replace("foo", "bar")`.  
+
+When passing a function the [`modType`](#modtype-option-for-actions) is getting ignored. Always make sure the return value includes quotation marks if the import statement requires it.
+  
+See this [example](#changing-the-module).
 
 
 ##### `modType` <samp>[option for actions]</samp>
@@ -713,7 +721,7 @@ plugins: [
 ```
 ___
 
-#### Moving an Import Statement (cut and paste):
+### Moving an Import Statement (cut and paste):
 
 ###### Source Code
 ```js
@@ -745,11 +753,11 @@ import { foo } from "bar";   // |
 ```
 ___
 
-### Changing the module
-You can rename modules with the `rename` action.
+### Modifying the module
+To change a module in any way, first it must be [`select`](#select-option-for-actions)ed and then [`rename`](#rename-option-for-actions)ed, which can be fed with a `String` or a `Function` for module manipulation.
 
-#### Changing a relative path to an absolute path
-In this example there is a relative path that should be changed to a non relative module. This can be achieved like this:
+#### Changing a relative path to an absolute path (passing a `String` to [`rename`](#rename-option-for-actions))
+In this example there is a relative path, that should be changed to a non relative module. This can be achieved like this:
 
 ###### Source Code
 ```js
@@ -778,8 +786,11 @@ import foo from "bar";
 ```
 ___
 
-#### Changing a relative path to different directory
-In this example there is a relative path that should be changed to a sub-directory. This can be achieved like this (note: to use a function in `rename`, `select` must be `module`):
+
+#### Changing a relative path to different directory (making use of a [`rename`](#rename-option-for-actions) `Function`)
+In this example there is a relative path, that should be changed to a sub-directory. This time a function is used for the goal, also a little help of an external function from [path](https://nodejs.org/api/path.html), which must be available in the rollup config file. Therefore this example is a little more complex.
+
+_(keep in mind, that a function in `rename` is only valid for modules)_
 
 ###### Source Code
 ```js
@@ -788,27 +799,27 @@ import foo from "./path/to/bar.js";
 
 ###### Rollup Config
 ```js
+
 plugins: [
     importManager({
         units: {
             file: "**/my-file.js",
-            /** Example of using RegExp for module to match the exact module name. This is just an example use of RegExp and is not required for using a function in `rename` */
-            module: /^bar.js$/,
+            module: "bar.js",
             actions: {
                 select: "module",
-                /** moduleSourceRaw will be `"./path/to/bar.js"` including the double quotes */
-                rename(moduleSourceRaw) {
-                    // Note the style of quotes used
-                    const quote = moduleSourceRaw.at(0);
+                rename: moduleSourceRaw => { 
+                    
                     // Get rid of the quotes
                     const importPath = moduleSourceRaw.slice(1, -1);
-                    // Parse the path into its parts
+                    
+                    // Parse the path into its parts (path must be imported for this example)
                     const importInfo = path.parse(importPath);
+                    
                     // Build the new import path with the sub-directory
                     const newPath = [importInfo.dir, "build-temp", importInfo.base].join("/");
-                    // Add the quotes back on
-                    const finalModuleSource = `${quote}${newPath}${quote}`;
-                    return finalModuleSource;
+
+                    // Remember to add quotes again 
+                    return`"${newPath}"`;
                 }
             }
         }
@@ -818,7 +829,7 @@ plugins: [
 
 ###### Bundle Code
 ```js
-import foo from "./path/to/build-temp/bar";
+import foo from "./path/to/build-temp/bar.js";
 ```
 ___
 
