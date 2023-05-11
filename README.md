@@ -794,7 +794,7 @@ ___
 
 
 #### Changing a relative path to different directory (making use of a [`rename`](#rename-option-for-actions) function)
-In this example there is a relative path, that should be changed to a sub-directory. This time a function is used for the goal, also a little help of an external function from [path](https://nodejs.org/api/path.html), which must be available (imported) in the rollup config file. Therefore this example is a little more complex.
+In this example there is a relative path, that should be changed to a sub-directory. This time a function is used for the goal, also a little help of an external function from [path](https://nodejs.org/api/path.html), which must be available (imported) in the rollup config file.
 
 _(keep in mind, that a function in `rename` is only valid for modules)_
 
