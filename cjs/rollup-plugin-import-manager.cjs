@@ -129,10 +129,11 @@ const showDiff = (filename, source, code, diffOption) => {
 /**
  * [rollup-plugin-import-manager]{@link https://github.com/UmamiAppearance/rollup-plugin-import-manager}
  *
- * @version 0.5.3
+ * @version 0.6.1
  * @author UmamiAppearance [mail@umamiappearance.eu]
  * @license MIT
  */
+
 
 // test if input is an object
 const isObject = input => typeof input === "object" && !Array.isArray(input) && input !== null;
@@ -234,6 +235,8 @@ const importManager = (options={}) => {
                             unit = manager.selectModByHash(section.hash, allowNull);
                         } else if ("module" in section) {
                             unit = manager.selectModByName(section.module, section.type, allowNull);
+                        } else if ("rawModule" in section) {
+                            unit = manager.selectModByName(section.rawModule, section.type, allowNull, true);
                         }
                     
                         return unit;
