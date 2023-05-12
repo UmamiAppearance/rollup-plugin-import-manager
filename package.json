@@ -1,6 +1,6 @@
 {
   "name": "rollup-plugin-import-manager",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "description": "A rollup plugin to add, modify, and remove imports (cjs/es6/dynamic)",
   "main": "./cjs/rollup-plugin-import-manager.cjs",
   "module": "./src/index.js",
@@ -43,13 +43,13 @@
   ],
   "dependencies": {
     "@rollup/pluginutils": "^5.0.2",
-    "colorette": "^2.0.19",
+    "colorette": "^2.0.20",
     "diff": "^5.1.0",
-    "import-manager": "^0.3.3"
+    "import-manager": "^0.4.0"
   },
   "devDependencies": {
     "ava": "^5.2.0",
-    "eslint": "^8.36.0",
-    "rollup": "^3.20.0"
+    "eslint": "^8.40.0",
+    "rollup": "^3.21.6"
   }
 }

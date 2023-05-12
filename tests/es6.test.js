@@ -3,7 +3,6 @@ import { rollup } from "rollup";
 import { importManager } from "../src/index.js";
 import { DebuggingError } from "import-manager";
 
-
 test("selecting unit by module name", async (t) => {
     
     const debug = await t.throwsAsync(() => {
@@ -14,6 +13,28 @@ test("selecting unit by module name", async (t) => {
                     units: {
                         file: "**/hi.es6.js",
                         module: "hello",
+                        actions: "debug"
+                    }
+                })
+            ]
+        }); 
+    }, { instanceOf: DebuggingError });
+
+    const unit = JSON.parse(debug.message);
+    t.is(unit.module.name, "hello.js");
+});
+
+
+test("selecting unit by the module's raw name (using a regular expression)", async (t) => {
+    
+    const debug = await t.throwsAsync(() => {
+        return rollup({
+            input: "./tests/fixtures/hi.es6.js",
+            plugins: [
+                importManager({
+                    units: {
+                        file: "**/hi.es6.js",
+                        rawModule: /lib.hello/,
                         actions: "debug"
                     }
                 })
@@ -103,6 +124,32 @@ test("changing a module (renaming)", async (t) => {
                     actions: {
                         select: "module",
                         rename: "./lib/hello-clone.js"
+                    }
+                }
+            })
+        ]
+    });
+     
+    const modPath = Boolean(
+        bundle.watchFiles.filter(f => f.indexOf("hello-clone.js") > -1).at(0)
+    );
+
+    t.truthy(modPath);
+});
+
+
+test("changing a module (renaming via function)", async (t) => {
+    
+    const bundle = await rollup({
+        input: "./tests/fixtures/hi.es6.js",
+        plugins: [
+            importManager({
+                units: {
+                    file: "**/hi.es6.js",
+                    rawModule: /hello.js"$/,
+                    actions: {
+                        select: "module",
+                        rename: rawName => rawName.replace("hello", "hello-clone")
                     }
                 }
             })

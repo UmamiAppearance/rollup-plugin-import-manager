@@ -1,7 +1,7 @@
 /**
  * [rollup-plugin-import-manager]{@link https://github.com/UmamiAppearance/rollup-plugin-import-manager}
  *
- * @version 0.5.3
+ * @version 0.6.0
  * @author UmamiAppearance [mail@umamiappearance.eu]
  * @license MIT
  */
@@ -111,6 +111,8 @@ const importManager = (options={}) => {
                             unit = manager.selectModByHash(section.hash, allowNull);
                         } else if ("module" in section) {
                             unit = manager.selectModByName(section.module, section.type, allowNull);
+                        } else if ("rawModule" in section) {
+                            unit = manager.selectModByName(section.rawModule, section.type, allowNull, true);
                         }
                     
                         return unit;
