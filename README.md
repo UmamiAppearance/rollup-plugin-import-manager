@@ -5,7 +5,9 @@
 
 A Rollup plugin which makes it possible to manipulate import statements. Features are deleting, adding, changing the members and modules and much more. Supports ES6 Import Statements, CommonJS and Dynamic Imports.
 
-## Table of Contents
+<details>
+  <summary><h2>Table of Contents</h2> <i>(click to expand)</i></summary>
+  
   - [Install](#install)
   - [How it works](#how-it-works)
   - [Usage](#usage)
@@ -75,6 +77,7 @@ A Rollup plugin which makes it possible to manipulate import statements. Feature
     - [Debugging Files](#debugging-files)
     - [Debugging Units](#debugging-units)
   - [License](#license)
+</details>
 
 
 ## Install
